@@ -13,18 +13,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id    Int     @default(autoincrement()) @id
-  email String  @unique
-  name  String?
-  posts Post[]
-}
-
-model Post {
-  id        Int      @default(autoincrement()) @id
-  title     String
-  content   String?
-  published Boolean? @default(false)
-  author    User?    @relation(fields: [authorId], references: [id])
-  authorId  Int?
+model Sensor {
+  id        Int      @id @default(autoincrement())
+  air_temperature Float
+  air_humidity   Float
+  soil_moisture  String
+  soil_temperature Float
+  light_intensity Float
+  water_level Float
+  water_reserve Float
+  timecreated DateTime @default(now())
 }
