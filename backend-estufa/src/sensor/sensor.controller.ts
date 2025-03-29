@@ -9,7 +9,6 @@ export class SensorController {
   @Post()
   sendData(@Body() data: CreateSensorDataDto) {
     try {
-      
       this.sensorService.sendData(data);
       return { message: 'Data sent successfully' };
     } catch (error) {
