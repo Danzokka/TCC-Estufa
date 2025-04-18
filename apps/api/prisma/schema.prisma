@@ -1,0 +1,56 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Plant {
+  id               Int                @id @default(autoincrement())
+  name             String
+  description      String
+  dateadded        DateTime           @default(now())
+  Sensor           Sensor[]
+  PlantIdealValues PlantIdealValues[]
+
+  @@unique([id, name])
+}
+
+model PlantIdealValues {
+  id                       Int    @id @default(autoincrement())
+  plant_id                 Int
+  plant_name               String
+  plant                    Plant  @relation(fields: [plant_id, plant_name], references: [id, name])
+  air_temperature_initial  Float
+  air_humidity_initial     Float
+  soil_moisture_initial    Int
+  soil_temperature_initial Float
+  light_intensity_initial  Float
+  air_temperature_final    Float
+  air_humidity_final       Float
+  soil_moisture_final      Int
+  soil_temperature_final   Float
+  light_intensity_final    Float
+}
+
+model Sensor {
+  id               Int      @id @default(autoincrement())
+  plant_id         Int      @default(0)
+  plant            Plant    @relation(fields: [plant_id], references: [id])
+  air_temperature  Float
+  air_humidity     Float
+  soil_moisture    Int
+  soil_temperature Float
+  light_intensity  Float
+  water_level      Float
+  water_reserve    Float
+  timecreated      DateTime @default(now())
+}
