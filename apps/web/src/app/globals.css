@@ -46,14 +46,14 @@
 :root {
   --radius: 0.625rem;
   --background: #fdfdf5;
-  --foreground: #1b1b1b;
+  --foreground: #1B2823;
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: #4caf50;
+  --primary: #3F7633;
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: #8fc999;
+  --secondary: #7DB671;
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);

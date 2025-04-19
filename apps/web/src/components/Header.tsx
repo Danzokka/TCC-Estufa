@@ -69,7 +69,7 @@ const Header = () => {
                 asChild
                 variant="secondary"
               >
-                <Link href="/login">Login</Link>
+                <Link href="/auth/login">Login</Link>
               </Button>
             </div>
           </div>
