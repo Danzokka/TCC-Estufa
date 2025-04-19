@@ -1,143 +1,97 @@
-"use client";
+import WaterChart from "@/components/Home/WaterChart";
+import { Card } from "@/components/ui/card";
+import { Droplet, Sprout, Thermometer } from "lucide-react";
+import Image from "next/image";
+import React from "react";
 
-import { useState, useEffect } from "react";
-import { subscribeUser, unsubscribeUser, sendNotification } from "./actions";
-
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
-
-function PushNotificationManager() {
-  const [isSupported, setIsSupported] = useState(false);
-  const [subscription, setSubscription] = useState<PushSubscription | null>(
-    null
-  );
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    if ("serviceWorker" in navigator && "PushManager" in window) {
-      setIsSupported(true);
-      registerServiceWorker();
-    }
-  }, []);
-
-  async function registerServiceWorker() {
-    const registration = await navigator.serviceWorker.register("/sw.js", {
-      scope: "/",
-      updateViaCache: "none",
-    });
-    const sub = await registration.pushManager.getSubscription();
-    setSubscription(sub);
-  }
-
-  async function subscribeToPush() {
-    const registration = await navigator.serviceWorker.ready;
-    const sub = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(
-        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-      ),
-    });
-    setSubscription(sub);
-    const serializedSub = JSON.parse(JSON.stringify(sub));
-    await subscribeUser(serializedSub);
-  }
-
-  async function unsubscribeFromPush() {
-    await subscription?.unsubscribe();
-    setSubscription(null);
-    await unsubscribeUser();
-  }
-
-  async function sendTestNotification() {
-    if (subscription) {
-      await sendNotification(message);
-      setMessage("");
-    }
-  }
-
-  if (!isSupported) {
-    return <p>Push notifications are not supported in this browser.</p>;
-  }
-
+const PlantDays = () => {
   return (
-    <div>
-      <h3>Push Notifications</h3>
-      {subscription ? (
-        <>
-          <p>You are subscribed to push notifications.</p>
-          <button onClick={unsubscribeFromPush}>Unsubscribe</button>
-          <input
-            type="text"
-            placeholder="Enter notification message"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-          />
-          <button onClick={sendTestNotification}>Send Test</button>
-        </>
-      ) : (
-        <>
-          <p>You are not subscribed to push notifications.</p>
-          <button onClick={subscribeToPush}>Subscribe</button>
-        </>
-      )}
+    <Card className="flex gap-8 flex-row p-8 bg-transparent border-secondary w-[calc(100vw/3)] justify-between">
+      {/*Dias*/}
+      <div className="flex flex-col items-center justify-center gap-2">
+        <span className="text-2xl font-semibold">Tempo</span>
+        <span className="text-3xl font-bold">10</span>
+        <span className="text-xl">dias</span>
+      </div>
+      {/*Imagem*/}
+      <div>
+        <Image
+          src="/plant.png"
+          alt="Plant"
+          width={180}
+          height={180}
+          className="rounded-full object-contain w-48 h-48"
+        />
+      </div>
+      {/*Saude*/}
+      <div className="flex flex-col items-center justify-center gap-2">
+        <span className="text-2xl font-semibold">Saúde</span>
+        <span className="text-2xl font-bold bg-secondary text-primary px-4 py-1 rounded-3xl">
+          Boa
+        </span>
+      </div>
+    </Card>
+  );
+};
+
+const PlantStats = () => {
+
+  const iconClassName = "w-16 h-16 text-primary";
+
+  const stats = [
+    { title: "Umidade", value: "50%", icon: <Droplet className={iconClassName} /> },
+    {
+      title: "Temperatura",
+      value: "25°C",
+      icon: <Thermometer className={iconClassName} />,
+    },
+    { title: "Solo", value: "80%", icon: <Sprout className={iconClassName} /> },
+  ];
+  return (
+    <div className="w-[calc(100vw/3)] flex flex-col gap-8">
+      <Card className="gap-8 p-8 bg-transparent border-secondary">
+        <h2 className="text-xl font-bold w-full text-left">
+          Estufa Inteligente
+        </h2>
+        <WaterChart />
+      </Card>
+      <div className="flex w-full gap-4">
+        {stats.map((stat, index) => (
+          <Stat key={index} props={stat} />
+        ))}
+      </div>
     </div>
   );
+};
+
+interface StatProps {
+  props: {
+    title: string;
+    value: string;
+    icon: React.ReactNode;
+  };
 }
 
-function InstallPrompt() {
-  const [isIOS, setIsIOS] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
-
-  useEffect(() => {
-    setIsIOS(
-      /iPad|iPhone|iPod/.test(navigator.userAgent) && !("MSStream" in window)
-    );
-
-    setIsStandalone(window.matchMedia("(display-mode: standalone)").matches);
-  }, []);
-
-  if (isStandalone) {
-    return null; // Don't show install button if already installed
-  }
-
+const Stat = ({ props }: StatProps) => {
   return (
-    <div>
-      <h3>Install App</h3>
-      <button>Add to Home Screen</button>
-      {isIOS && (
-        <p>
-          To install this app on your iOS device, tap the share button
-          <span role="img" aria-label="share icon">
-            {" "}
-            ⎋{" "}
-          </span>
-          and then &quot;Add to Home Screen&quot;
-          <span role="img" aria-label="plus icon">
-            {" "}
-            +{" "}
-          </span>
-          .
-        </p>
-      )}
+    <Card className="flex flex-row items-center gap-2 p-4 bg-transparent border-secondary w-full">
+      {props.icon}
+      <div className="flex flex-col gap-2 items-center w-full">
+        <span className="text-2xl font-semibold">{props.title}</span>
+        <span className="text-2xl font-bold text-primary">{props.value}</span>
+      </div>
+    </Card>
+  );
+};
+
+const Home = () => {
+  return (
+    <div className="flex flex-col items-center justify-center py-8 px-12 gap-8">
+      <h2 className="text-2xl font-bold">Estufa Inteligente</h2>
+      <PlantDays />
+      <PlantStats />
     </div>
   );
-}
+};
 
-export default function Page() {
-  return (
-    <div>
-      <PushNotificationManager />
-      <InstallPrompt />
-    </div>
-  );
-}
+export default Home;
