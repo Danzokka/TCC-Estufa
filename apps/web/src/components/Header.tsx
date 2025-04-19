@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "./ui/button";
 import Link from "next/link";
+import ThemeSwitcher from "./ThemeSwitcher";
 
 const NavLink = ({
   href,
@@ -24,8 +25,8 @@ const NavLink = ({
 
 const Header = () => {
   const links = [
-    { href: "about", label: "Sobre" },
-    { href: "install", label: "Instalação" },
+    { href: "/about", label: "Sobre" },
+    { href: "/install", label: "Instalação" },
     { href: "#", label: "Blog" },
   ];
 
@@ -34,7 +35,7 @@ const Header = () => {
       <div className="mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="md:flex md:items-center md:gap-12">
-            <a className="block text-primary" href="#">
+            <Link className="block text-primary" href="/">
               <span className="sr-only">Home</span>
               <svg
                 className="h-8"
@@ -47,7 +48,7 @@ const Header = () => {
                   fill="currentColor"
                 />
               </svg>
-            </a>
+            </Link>
           </div>
 
           <div className="hidden md:block">
@@ -63,6 +64,7 @@ const Header = () => {
           </div>
 
           <div className="flex items-center gap-4">
+            <ThemeSwitcher />
             <div className="sm:flex sm:gap-4">
               <Button
                 className="bg-secondary text-white font-bold shadow-sm"
