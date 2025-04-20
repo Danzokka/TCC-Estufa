@@ -1,3 +1,4 @@
+import PlantAlerts from "@/components/Home/PlantAlerts";
 import WaterChart from "@/components/Home/WaterChart";
 import { Card } from "@/components/ui/card";
 import { Droplet, Sprout, Thermometer } from "lucide-react";
@@ -97,6 +98,7 @@ const Home = () => {
       <h2 className="text-3xl font-bold">Estufa Inteligente</h2>
       <PlantDays />
       <PlantStats />
+      <PlantAlerts className="w-[calc(100vw/3)]" />
     </div>
   );
 };

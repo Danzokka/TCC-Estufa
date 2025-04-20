@@ -10,7 +10,7 @@ export default function Page() {
   const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
 
   return (
-    <div className="w-full h-full gap-8 flex flex-col items-center justify-center">
+    <div className="w-full h-[calc(100vh-4rem)] gap-8 flex flex-col items-center justify-center">
       <h2 className="font-bold text-3xl">Instalação</h2>
       <div className="w-2/5 flex flex-col items-center justify-center gap-8">
         <InstallPrompt isIOS={isIOS} isStandalone={isStandalone} />

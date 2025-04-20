@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import React from "react"; // Adicione isso
 import { ThemeProvider } from "@/components/ThemeProvider";
+import FooterHandler from "@/components/FooterHandler";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,7 +39,7 @@ export default function RootLayout({
         >
           <Header />
           {children}
-          <Footer />
+          <FooterHandler />
         </ThemeProvider>
       </body>
     </html>
