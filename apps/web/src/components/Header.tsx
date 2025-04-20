@@ -27,7 +27,7 @@ const Header = () => {
   const links = [
     { href: "/about", label: "Sobre" },
     { href: "/install", label: "Instalação" },
-    { href: "#", label: "Blog" },
+    { href: "/blog", label: "Blog" },
   ];
 
   return (
@@ -49,18 +49,17 @@ const Header = () => {
                 />
               </svg>
             </Link>
-          </div>
-
-          <div className="hidden md:block">
-            <nav aria-label="Global">
-              <ul className="flex items-center gap-6 text-sm">
-                {links.map((link) => (
-                  <NavLink key={link.label} href={link.href}>
-                    {link.label}
-                  </NavLink>
-                ))}
-              </ul>
-            </nav>
+            <div className="hidden md:block">
+              <nav aria-label="Global">
+                <ul className="flex items-center gap-6 text-sm">
+                  {links.map((link) => (
+                    <NavLink key={link.label} href={link.href}>
+                      {link.label}
+                    </NavLink>
+                  ))}
+                </ul>
+              </nav>
+            </div>
           </div>
 
           <div className="flex items-center gap-4">

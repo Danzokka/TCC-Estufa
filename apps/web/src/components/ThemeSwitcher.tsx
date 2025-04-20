@@ -25,7 +25,7 @@ const ThemeSwitcher = ({ className }: ThemeSwitcherProps) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className={cn(
-        "rounded-full h-10 w-10 lg:h-12 lg:w-12 p-1 transition-colors duration-300 bg-gray-300 dark:bg-gray-800 hover:bg-gray-800 dark:hover:bg-gray-300 hover:cursor-pointer", className
+        "rounded-full h-10 w-10 lg:h-12 lg:w-12 p-1 transition-colors duration-300 bg-background hover:cursor-pointer shadow-sm dark:shadow-white/5 ", className
       )}
     >
       {isHovered ? (

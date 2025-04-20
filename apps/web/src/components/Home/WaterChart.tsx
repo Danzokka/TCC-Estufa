@@ -10,7 +10,7 @@ import {
 
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
 const chartData = [
-  { browser: "safari", visitors: 200, fill: "var(--color-safari)" },
+  { browser: "safari", visitors: 75, fill: "var(--color-safari)" },
 ];
 
 const chartConfig = {
@@ -60,14 +60,14 @@ export default function WaterChart() {
                           y={viewBox.cy}
                           className="fill-foreground text-4xl font-bold"
                         >
-                          {chartData[0].visitors.toLocaleString()}
+                          {chartData[0].visitors.toLocaleString()}%
                         </tspan>
                         <tspan
                           x={viewBox.cx}
                           y={(viewBox.cy || 0) + 24}
                           className="fill-muted-foreground"
                         >
-                          Visitors
+                          Água
                         </tspan>
                       </text>
                     );
