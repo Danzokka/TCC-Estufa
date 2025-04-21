@@ -78,7 +78,7 @@ function PushNotificationManager() {
   }
 
   return (
-    <Card className="p-8 w-full flex flex-col items-center justify-center gap-4">
+    <Card className="p-8 w-full flex flex-col items-center justify-center gap-4 bg-background">
       <h2 className="text-xl font-semibold text-foreground">
         Habilitar Notificação
       </h2>

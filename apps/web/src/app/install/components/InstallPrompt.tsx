@@ -51,26 +51,11 @@ function InstallPrompt({ isIOS, isStandalone }: InstallPromptProps) {
   }
 
   return (
-    <Card className="p-8 w-full">
+    <Card className="p-8 w-full bg-background">
       <h2 className="text-foreground font-semibold w-full text-center text-xl">
         Instalando o App
       </h2>
       <HandleDevice />
-      {isIOS && (
-        <p>
-          To install this app on your iOS device, tap the share button
-          <span role="img" aria-label="share icon">
-            {" "}
-            ⎋{" "}
-          </span>
-          and then &quot;Add to Home Screen&quot;
-          <span role="img" aria-label="plus icon">
-            {" "}
-            +{" "}
-          </span>
-          .
-        </p>
-      )}
     </Card>
   );
 }
