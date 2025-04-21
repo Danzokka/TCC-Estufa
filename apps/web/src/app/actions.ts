@@ -1,6 +1,8 @@
 "use server";
 
+import { NotificationType } from "@/data/notifications";
 import webpush from "web-push";
+import { notifications } from "@/data/notifications";
 
 webpush.setVapidDetails(
   "https://example.com",
@@ -43,4 +45,17 @@ export async function sendNotification(message: string) {
     console.error("Error sending push notification:", error);
     return { success: false, error: "Failed to send notification" };
   }
+}
+
+export async function getAlerts(): Promise<NotificationType[]> {
+  return notifications.sort((a, b) => {
+    return a.timestamp.getTime() - b.timestamp.getTime();
+  }
+  );
+}
+
+export async function getNotifications(): Promise<NotificationType[]> {
+  return notifications.sort((a, b) => {
+    return a.timestamp.getTime() - b.timestamp.getTime();
+  });
 }

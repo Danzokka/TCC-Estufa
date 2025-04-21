@@ -7,7 +7,7 @@ import React from "react";
 
 const PlantDays = () => {
   return (
-    <Card className="flex gap-8 flex-row p-8 w-[calc(100vw/3)] justify-between">
+    <Card className="flex gap-4 lg:gap-8 flex-row p-4 lg:p-8 w-full lg:w-[calc(100vw/3)] justify-between">
       {/*Dias*/}
       <div className="flex flex-col items-center justify-center gap-2">
         <span className="text-xl font-semibold">Tempo</span>
@@ -56,14 +56,14 @@ const PlantStats = () => {
     { title: "Solo", value: "80%", icon: <Sprout className={iconClassName} /> },
   ];
   return (
-    <div className="w-[calc(100vw/3)] flex flex-col gap-8">
+    <div className="w-full lg:w-[calc(100vw/3)] flex flex-col gap-4 lg:gap-8">
       <Card className="gap-8 p-8">
         <h2 className="text-xl font-bold w-full text-left">
           Nível de Água
         </h2>
         <WaterChart />
       </Card>
-      <div className="flex w-full gap-4">
+      <div className="flex flex-col lg:flex-row w-full gap-4">
         {stats.map((stat, index) => (
           <Stat key={index} props={stat} />
         ))}
@@ -94,11 +94,11 @@ const Stat = ({ props }: StatProps) => {
 
 const Home = () => {
   return (
-    <div className="flex flex-col items-center justify-center py-8 px-12 gap-8">
+    <div className="flex flex-col items-center justify-center py-8 px-8 lg:px-12 gap-8">
       <h2 className="text-3xl font-bold">Estufa Inteligente</h2>
       <PlantDays />
       <PlantStats />
-      <PlantAlerts className="w-[calc(100vw/3)]" />
+      <PlantAlerts className="w-full lg:w-[calc(100vw/3)]" />
     </div>
   );
 };

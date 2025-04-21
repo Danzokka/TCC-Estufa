@@ -5,6 +5,9 @@ import Header from "@/components/Header";
 import React from "react"; // Adicione isso
 import { ThemeProvider } from "@/components/ThemeProvider";
 import FooterHandler from "@/components/FooterHandler";
+import Nav from "@/components/Nav";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/Sidebar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,7 +32,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col justify-between min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
       >
         <ThemeProvider
           attribute="class"
@@ -37,9 +40,13 @@ export default function RootLayout({
           enableSystem
           storageKey="theme"
         >
-          <Header />
-          {children}
-          <FooterHandler />
+          <SidebarProvider className="flex flex-col justify-between mb-20 md:mb-0">
+            <AppSidebar />
+            <Header />
+            {children}
+            <FooterHandler />
+            <Nav />
+          </SidebarProvider>
         </ThemeProvider>
       </body>
     </html>

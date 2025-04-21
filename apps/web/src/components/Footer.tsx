@@ -33,7 +33,7 @@ const Footer = () => {
   ];
   return (
     <footer className="">
-      <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 md:px-8">
         <div className="flex justify-center text-primary">
           <svg
             className="h-8"

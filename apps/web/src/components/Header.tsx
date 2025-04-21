@@ -2,6 +2,8 @@ import React from "react";
 import { Button } from "./ui/button";
 import Link from "next/link";
 import ThemeSwitcher from "./ThemeSwitcher";
+import { SidebarTrigger } from "./ui/sidebar";
+import Notification from "./Notifications";
 
 const NavLink = ({
   href,
@@ -32,7 +34,7 @@ const Header = () => {
 
   return (
     <header className="">
-      <div className="mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto px-4 sm:px-6 md:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="md:flex md:items-center md:gap-12">
             <Link className="block text-primary" href="/">
@@ -63,6 +65,7 @@ const Header = () => {
           </div>
 
           <div className="flex items-center gap-4">
+            <Notification />
             <ThemeSwitcher />
             <div className="sm:flex sm:gap-4">
               <Button
@@ -73,6 +76,7 @@ const Header = () => {
                 <Link href="/auth/login">Login</Link>
               </Button>
             </div>
+            <SidebarTrigger className="size-8 md:hidden"/>
           </div>
         </div>
       </div>
