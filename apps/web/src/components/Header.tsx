@@ -5,6 +5,8 @@ import ThemeSwitcher from "./ThemeSwitcher";
 import { SidebarTrigger } from "./ui/sidebar";
 import Notification from "./Notifications";
 import Logo from "./Logo";
+import { getSession } from "@/app/actions";
+import { Avatar } from "./ui/avatar";
 
 const NavLink = ({
   href,
@@ -26,7 +28,9 @@ const NavLink = ({
   );
 };
 
-const Header = () => {
+const Header = async () => {
+  const user = await getSession();
+
   const links = [
     { href: "/about", label: "Sobre" },
     { href: "/install", label: "Instalação" },
@@ -58,15 +62,24 @@ const Header = () => {
             <Notification />
             <ThemeSwitcher />
             <div className="sm:flex sm:gap-4">
-              <Button
-                className="bg-secondary text-white font-bold shadow-sm"
-                asChild
-                variant="secondary"
-              >
-                <Link href="/auth/login">Login</Link>
-              </Button>
+              {!user.isLoggedIn ? (
+                <Avatar
+                  className="bg-secondary text-white font-bold shadow-sm"
+                  asChild
+                >
+                  {user.username}
+                </Avatar>
+              ) : (
+                <Button
+                  className="bg-secondary text-white font-bold shadow-sm"
+                  asChild
+                  variant="secondary"
+                >
+                  <Link href="/auth/login">Login</Link>
+                </Button>
+              )}
             </div>
-            <SidebarTrigger className="size-8 md:hidden"/>
+            <SidebarTrigger className="size-8 md:hidden" />
           </div>
         </div>
       </div>

@@ -3,6 +3,10 @@
 import { NotificationType } from "@/data/notifications";
 import webpush from "web-push";
 import { notifications } from "@/data/notifications";
+import { SessionData } from "./lib";
+import { getIronSession } from "iron-session";
+import { cookies } from "next/headers";
+import { sessionOptions, defaultSession } from "./lib";
 
 webpush.setVapidDetails(
   "https://example.com",
@@ -10,10 +14,17 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY!
 );
 
-let subscription: PushSubscription | null = null;
+let subscription: webpush.PushSubscription | null = null;
 
 export async function subscribeUser(sub: PushSubscription) {
-  subscription = sub;
+  subscription = {
+    endpoint: sub.endpoint,
+    expirationTime: sub.expirationTime,
+    keys: {
+      p256dh: sub.getKey("p256dh") ? Buffer.from(sub.getKey("p256dh")!).toString("base64") : "",
+      auth: sub.getKey("auth") ? Buffer.from(sub.getKey("auth")!).toString("base64") : "",
+    }
+  };
   // In a production environment, you would want to store the subscription in a database
   // For example: await db.subscriptions.create({ data: sub })
   return { success: true };
@@ -50,12 +61,39 @@ export async function sendNotification(message: string) {
 export async function getAlerts(): Promise<NotificationType[]> {
   return notifications.sort((a, b) => {
     return a.timestamp.getTime() - b.timestamp.getTime();
-  }
-  );
+  });
 }
 
 export async function getNotifications(): Promise<NotificationType[]> {
   return notifications.sort((a, b) => {
     return a.timestamp.getTime() - b.timestamp.getTime();
   });
+}
+
+export async function getSession() {
+  const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
+
+  if (!session.isLoggedIn) {
+    session.isLoggedIn = defaultSession.isLoggedIn;
+  }
+
+  return session;
+}
+
+export async function login(user: SessionData) {
+  const session = await getSession();
+
+  session.isLoggedIn = true;
+  session.userid = user.userid;
+  session.email = user.email;
+  session.username = user.username;
+  session.token = user.token;
+
+  await session.save();
+}
+
+export async function logout() {
+  const session = await getSession();
+
+  session.destroy();
 }
