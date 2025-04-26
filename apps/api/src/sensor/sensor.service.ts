@@ -28,4 +28,19 @@ export class SensorService {
       throw new Error('Failed to send data');
     }
   }
+
+  async getData() {
+    try {
+      const data = await this.prisma.sensor.findMany({
+        orderBy: {
+          timecreated: 'desc',
+        },
+      });
+      this.logger.log('Data retrieved successfully:', data);
+      return data;
+    } catch (error) {
+      this.logger.error('Error retrieving data:', error);
+      throw new Error('Failed to retrieve data');
+    }
+  }
 }

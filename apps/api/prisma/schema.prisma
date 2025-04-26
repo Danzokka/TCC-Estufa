@@ -18,7 +18,6 @@ model Plant {
   name             String
   description      String
   dateadded        DateTime           @default(now())
-  Sensor           Sensor[]
   PlantIdealValues PlantIdealValues[]
 
   @@unique([id, name])
@@ -43,8 +42,6 @@ model PlantIdealValues {
 
 model Sensor {
   id               Int      @id @default(autoincrement())
-  plant_id         Int      @default(0)
-  plant            Plant    @relation(fields: [plant_id], references: [id])
   air_temperature  Float
   air_humidity     Float
   soil_moisture    Int

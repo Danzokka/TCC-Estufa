@@ -20,6 +20,7 @@
     "@radix-ui/react-tooltip": "^1.2.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "embla-carousel-react": "^8.6.0",
     "iron-session": "^8.0.4",
     "lucide-react": "^0.501.0",
     "motion": "^12.7.4",
