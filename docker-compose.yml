@@ -11,7 +11,7 @@ services:
 
   python-ia:
     build:
-      context: ./apps/python-ia
+      context: ./apps/ai
     command: python test.py
     depends_on:
       - db
