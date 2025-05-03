@@ -6,4 +6,5 @@ export class CreateSensorDataDto {
   light_intensity: number;
   water_level: number;
   water_reserve: number;  
+  userPlant: string; // Ensure this property is provided in CreateSensorDataDto
 }

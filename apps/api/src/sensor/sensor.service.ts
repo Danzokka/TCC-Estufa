@@ -19,6 +19,7 @@ export class SensorService {
           light_intensity: data.light_intensity,
           water_level: data.water_level,
           water_reserve: data.water_reserve,
+          userPlantId: data.userPlant, // Ensure this property is provided in CreateSensorDataDto
         },
       });
       this.logger.log('Data sent successfully:', sensorData);

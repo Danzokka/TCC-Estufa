@@ -28,7 +28,7 @@ model User {
 }
 
 model Plant {
-  id                      Int          @id @default(autoincrement())
+  id                      String          @id @default(uuid())
   name                    String       @unique
   description             String
   dateadded               DateTime     @default(now())
@@ -46,9 +46,9 @@ model Plant {
 }
 
 model UserPlant {
-  id              Int      @id @default(autoincrement())
+  id              String      @id @default(uuid())
   userId          String
-  plantId         Int
+  plantId         String
   user            User     @relation(fields: [userId], references: [id])
   plant           Plant    @relation(fields: [plantId], references: [id])
   nickname        String?
@@ -59,8 +59,8 @@ model UserPlant {
 }
 
 model Sensor {
-  id               Int       @id @default(autoincrement())
-  userPlantId      Int
+  id               String       @id @default(uuid())
+  userPlantId      String
   userPlant        UserPlant @relation(fields: [userPlantId], references: [id])
   air_temperature  Float
   air_humidity     Float
