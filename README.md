@@ -80,7 +80,7 @@ O projeto segue uma arquitetura de monorepo gerenciada pelo Turborepo, organizad
 TCC-Estufa/
 ├── apps/
 │   ├── ai/            # Serviço de IA para análise e previsões
-│   ├── esp32/         # Firmware do ESP32 para coleta de dados
+│   ├── esp/         # Firmware do ESP32 para coleta de dados
 │   ├── api/           # Backend NestJS com Prisma
 │   └── web/           # Frontend Next.js (PWA)
 ├── packages/
