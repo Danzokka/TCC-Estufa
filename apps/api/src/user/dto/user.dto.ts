@@ -52,25 +52,4 @@ export class UpdateUserDto {
   @IsNotEmpty()
   name: string;
 
-  worksAt: string | undefined;
-
-  @IsString()
-  @IsNotEmpty()
-  location: string;
-
-  linkedin: string | undefined;
-
-  github: string | undefined;
-
-  website: string | undefined;
-
-  bio: string;
-
-  about: string | undefined;
-
-  image: string | undefined;
-
-  especialities: string[];
-
-  technologies: string[];
 }

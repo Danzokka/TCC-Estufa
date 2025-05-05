@@ -16,6 +16,7 @@ Este projeto implementa um sistema completo de estufa inteligente que monitora e
 ## 🛠️ Tecnologias Utilizadas
 
 ### Hardware
+
 - **ESP32** - Microcontrolador para leitura de sensores e atuação
 - **Sensores**:
   - Luminosidade
@@ -28,25 +29,47 @@ Este projeto implementa um sistema completo de estufa inteligente que monitora e
 ### Software
 
 #### Backend
+
+![Backend](https://go-skill-icons.vercel.app/api/icons?i=typescript,nestjs,prisma,postgresql,docker)
+
+- **TypeScript** - Linguagem de programação para maior segurança e escalabilidade
 - **NestJS** - Framework Node.js para backend robusto e escalável
 - **Prisma ORM** - ORM para acesso e manipulação do banco de dados
 - **PostgreSQL** - Banco de dados relacional
 
 #### Frontend
+
+![Frontend](https://go-skill-icons.vercel.app/api/icons?i=typescript,react,nextjs,reactquery,tailwindcss)
+
+- **React** - Biblioteca JavaScript para construção de interfaces de usuário
 - **Next.js** - Framework React para criar um PWA responsivo
+- **TypeScript** - Tipagem estática para maior segurança no desenvolvimento
+- **React Query** - Gerenciamento de estado e cache para chamadas à API
 - **Tailwind CSS** - Framework CSS para design moderno e responsivo
 
 #### IA
+
+![IA](https://go-skill-icons.vercel.app/api/icons?i=python,pytorch,pandas)
+
 - **Python** - Processamento de dados e modelo de previsão/recomendação
+- **PyTorch** - Biblioteca para aprendizado de máquina
+- **Pandas** - Biblioteca para manipulação e análise de dados
 
 #### Dispositivo IoT
+
+![IoT](https://go-skill-icons.vercel.app/api/icons?i=arduino,platformio)
+
 - **Arduino Framework** - Para programação do ESP32
 - **PlatformIO** - Ambiente de desenvolvimento para IoT
 
 #### DevOps e Infraestrutura
+
+![DevOps](https://go-skill-icons.vercel.app/api/icons?i=docker,git,github,githubactions,nodejs)
+
+- **Git** - Controle de versão para gerenciamento do código-fonte
+- **GitHub** - Hospedagem do repositório e colaboração
 - **Docker/Docker Compose** - Contêinerização para consistência nos ambientes
 - **Turborepo** - Gerenciamento de monorepo para desenvolvimento otimizado
-- **TypeScript** - Tipagem estática para maior segurança no desenvolvimento
 - **Node.js** - Ambiente de execução JavaScript no servidor
 
 ## 🏗️ Estrutura do Projeto
@@ -57,6 +80,7 @@ O projeto segue uma arquitetura de monorepo gerenciada pelo Turborepo, organizad
 TCC-Estufa/
 ├── apps/
 │   ├── ai/            # Serviço de IA para análise e previsões
+│   ├── esp32/         # Firmware do ESP32 para coleta de dados
 │   ├── api/           # Backend NestJS com Prisma
 │   └── web/           # Frontend Next.js (PWA)
 ├── packages/
@@ -78,35 +102,41 @@ TCC-Estufa/
 ## 🚀 Instalação e Execução
 
 ### Pré-requisitos
+
 - Docker e Docker Compose
 - Node.js (v18+)
-- PNPM
+- NPM
 - PlatformIO (para desenvolvimento do firmware ESP32)
 
 ### Configuração e Execução
 
 1. Clone o repositório:
+
 ```bash
 git clone https://github.com/seu-usuario/TCC-Estufa.git
 cd TCC-Estufa
 ```
 
 2. Instale as dependências:
+
 ```bash
 npm install
 ```
 
 3. Execute o projeto em ambiente de desenvolvimento:
+
 ```bash
 npm run dev
 ```
 
 4. Para build de produção:
+
 ```bash
 npm run build
 ```
 
 5. Para execução com Docker:
+
 ```bash
 docker-compose up -d
 ```
@@ -117,5 +147,4 @@ docker-compose up -d
 - Gráficos históricos de medições
 - Configuração de parâmetros ideais para diferentes tipos de plantas
 - Alertas e notificações para condições críticas
-- Controle remoto de atuadores (irrigação, ventilação, etc.)
-- Modo automático com ajuste baseado em IA
+
