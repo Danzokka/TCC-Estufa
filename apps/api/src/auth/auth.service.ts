@@ -54,6 +54,8 @@ export class AuthService {
 
   async signIn(user: User) {
     const tokenPayload = {
+      image: user.image,
+      name: user.name,
       username: user.username,
       email: user.email,
       id: user.id,
@@ -64,6 +66,8 @@ export class AuthService {
     return {
       accessToken,
       username: user.username,
+      name: user.name,
+      image: user.image,
       email: user.email,
       id: user.id,
     };

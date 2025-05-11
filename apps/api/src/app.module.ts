@@ -7,9 +7,25 @@ import { UserModule } from './user/user.module';
 import { BlogModule } from './blog/blog.module';
 import { PlantModule } from './plant/plant.module';
 import { AuthModule } from './auth/auth.module';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [SensorModule, UserModule, BlogModule, PlantModule, AuthModule],
+  imports: [
+    SensorModule,
+    UserModule,
+    BlogModule,
+    PlantModule,
+    AuthModule,
+    ConfigModule.forRoot({
+      isGlobal: true, // Makes the configuration available globally
+      envFilePath: '.env', // Path to your .env file
+    }),
+    JwtModule.register({
+      secret: process.env.JWT_SECRET || 'defaultSecret',
+      signOptions: { expiresIn: '1d' }, // Token expiration time
+    }),
+  ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })

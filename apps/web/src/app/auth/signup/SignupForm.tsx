@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useSession } from "@/context/session-provider";
+import { signup } from "../authActions";
 import { redirect } from "next/navigation";
 const formSchema = z.object({
   username: z.string().min(3, {
@@ -33,8 +33,6 @@ const formSchema = z.object({
 });
 
 const SignupForm = () => {
-  const { signup } = useSession();
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -48,7 +46,7 @@ const SignupForm = () => {
   // 2. Define a submit handler.
   async function onSubmit(values: z.infer<typeof formSchema>) {
     await signup(values.username, values.name, values.email, values.password);
-    redirect("/");
+    redirect("/auth/login");
   }
 
   return (

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useSession } from "@/context/session-provider";
+import { login } from "../authActions";
 import { redirect } from "next/navigation";
 
 const formSchema = z.object({
@@ -27,7 +27,6 @@ const formSchema = z.object({
 });
 
 const LoginForm = () => {
-  const { login } = useSession();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

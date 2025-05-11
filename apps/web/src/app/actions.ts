@@ -66,6 +66,8 @@ export async function login(user: SessionData) {
   session.userid = user.userid;
   session.email = user.email;
   session.username = user.username;
+  session.name = user.name;
+  session.image = user.image;
   session.token = user.token;
 
   await session.save();
