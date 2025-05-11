@@ -1,8 +1,6 @@
 "use server";
 
-import { NotificationType } from "@/data/notifications";
 import webpush from "web-push";
-import { notifications } from "@/data/notifications";
 import { SessionData } from "./lib";
 import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
@@ -49,18 +47,6 @@ export async function sendNotification(message: string) {
     console.error("Error sending push notification:", error);
     return { success: false, error: "Failed to send notification" };
   }
-}
-
-export async function getAlerts(): Promise<NotificationType[]> {
-  return notifications.sort((a, b) => {
-    return a.timestamp.getTime() - b.timestamp.getTime();
-  });
-}
-
-export async function getNotifications(): Promise<NotificationType[]> {
-  return notifications.sort((a, b) => {
-    return a.timestamp.getTime() - b.timestamp.getTime();
-  });
 }
 
 export async function getSession() {

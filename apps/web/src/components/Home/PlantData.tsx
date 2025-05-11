@@ -9,16 +9,14 @@ import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { PlantDaysSkeleton, WaterChartSkeleton } from "../Skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getPlantData, getPlantStats } from "@/app/plantActions";
 
 export const PlantDays = () => {
   const { data: plantData, isLoading } = useQuery({
-    queryKey: ["plant"],
-    queryFn: async () => {
-      // Fetch the plant data from the API
-      setTimeout(() => {}, 2000);
-      const res = await api.get("/plant/days");
-      return res.data;
-    },
+    queryKey: ["plantData"],
+    queryFn: () => getPlantData("plantId"),
+    //Refetch every 5 minutes
+    refetchInterval: 5 * 60 * 1000,
   });
 
   return (
@@ -66,12 +64,8 @@ export const PlantDays = () => {
 export const PlantStats = () => {
   const { data: plantStats, isLoading } = useQuery({
     queryKey: ["plantstats"],
-    queryFn: async () => {
-      // Fetch the plant data from the API
-      setTimeout(() => {}, 2000);
-      const res = await api.get("/plant/stats");
-      return res.data;
-    },
+    queryFn: () => getPlantStats("plantId"),
+    refetchInterval: 5 * 60 * 1000,
   });
 
   const iconClassName = "w-16 h-16 text-primary";

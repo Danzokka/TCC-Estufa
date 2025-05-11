@@ -9,16 +9,14 @@ import { Bell, Sun, Sprout, Droplet, Thermometer } from "lucide-react";
 import { AnimatedList } from "./magicui/animated-list";
 import { NotificationType } from "@/data/notifications";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getNotifications } from "@/app/actions";
+import { getNotifications } from "@/app/plantActions";
 
 interface NotificationCardData {
   props: NotificationType;
   className?: string;
 }
 
-export const NotificationCard = ({
-  props,
-}: NotificationCardData) => {
+export const NotificationCard = ({ props }: NotificationCardData) => {
   const timeAgo = (date: Date) => {
     const now = new Date();
     const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
@@ -79,7 +77,7 @@ export default async function Notifications() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[calc(95vw)] bg-background border-secondary flex flex-col gap-4 p-8 max-h-[calc(100vh/2)] overflow-y-auto">
+      <PopoverContent className="w-[calc(95vw)] md:w-auto md:max-w-[w-1/2] bg-background border-secondary flex flex-col gap-4 p-8 max-h-[calc(100vh/2)] overflow-y-auto">
         <h2 className="font-semibold text-lg text-foreground">Notificações</h2>
         <AnimatedList>
           {notifications.map((notification) => (
