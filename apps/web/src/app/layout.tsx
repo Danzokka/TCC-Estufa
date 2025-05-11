@@ -8,6 +8,7 @@ import FooterHandler from "@/components/FooterHandler";
 import Nav from "@/components/Nav";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/Sidebar";
+import { Providers } from "@/context/providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,13 +41,15 @@ export default function RootLayout({
           enableSystem
           storageKey="theme"
         >
-          <SidebarProvider className="flex flex-col justify-between mb-20 md:mb-0">
-            <AppSidebar />
-            <Header />
-            {children}
-            <FooterHandler />
-            <Nav />
-          </SidebarProvider>
+          <Providers>
+            <SidebarProvider className="flex flex-col justify-between mb-20 md:mb-0">
+              <AppSidebar />
+              <Header />
+              {children}
+              <FooterHandler />
+              <Nav />
+            </SidebarProvider>
+          </Providers>
         </ThemeProvider>
       </body>
     </html>

@@ -1,7 +1,7 @@
 import { SessionOptions } from "iron-session";
 
 export interface SessionData {
-  userid?: number;
+  userid?: string;
   username?: string;
   email?: string;
   token?: string;
