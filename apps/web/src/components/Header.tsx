@@ -6,7 +6,7 @@ import { SidebarTrigger } from "./ui/sidebar";
 import Notification from "./Notifications";
 import Logo from "./Logo";
 import { getSession } from "@/app/actions";
-import { Avatar, AvatarImage } from "./ui/avatar";
+import UserMenu from "./UserMenu";
 
 const NavLink = ({
   href,
@@ -30,7 +30,6 @@ const NavLink = ({
 
 const Header = async () => {
   const user = await getSession();
-  console.log("User", user);
 
   const links = [
     { href: "/about", label: "Sobre" },
@@ -64,12 +63,7 @@ const Header = async () => {
             <ThemeSwitcher />
             <div className="sm:flex sm:gap-4">
               {user.isLoggedIn ? (
-                <Avatar
-                  className="bg-secondary text-white font-bold shadow-sm size-8"
-                  asChild
-                >
-                  <AvatarImage src={user.image} alt="User Avatar" />
-                </Avatar>
+                <UserMenu user={user} />
               ) : (
                 <Button
                   className="bg-secondary text-white font-bold shadow-sm"
