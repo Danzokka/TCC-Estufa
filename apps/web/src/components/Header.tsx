@@ -62,7 +62,7 @@ const Header = async () => {
             <Notification />
             <ThemeSwitcher />
             <div className="sm:flex sm:gap-4">
-              {!user.isLoggedIn ? (
+              {user.isLoggedIn ? (
                 <Avatar
                   className="bg-secondary text-white font-bold shadow-sm"
                   asChild

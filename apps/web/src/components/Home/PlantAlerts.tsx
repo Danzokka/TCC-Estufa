@@ -1,37 +1,51 @@
+"use client";
 import React from "react";
 import { cn } from "@/lib/utils";
 import { AnimatedList } from "../magicui/animated-list";
-import { NotificationType } from "@/data/notifications";
 import { getAlerts } from "@/app/actions";
 import { NotificationCard } from "../Notifications";
+import { useQuery } from "@tanstack/react-query";
+import { PlantAlertsSkeleton } from "../Skeletons";
 
 interface PlantAlertsProps {
   className?: string;
 }
 
-const PlantAlerts = async ({ className }: PlantAlertsProps) => {
-
-  const alerts: NotificationType[] = await getAlerts();
+const PlantAlerts = ({ className }: PlantAlertsProps) => {
+  const { data: alerts, isLoading } = useQuery({
+    queryKey: ["alerts"],
+    queryFn: async () => {
+      // Fetch the alerts from the API
+      // Simulate a delay
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const res = await getAlerts();
+      return res;
+    },
+  });
 
   return (
     <div className={cn("w-full flex flex-col gap-4", className)}>
       <h2 className="text-2xl font-bold">Alertas</h2>
       <p className="text-foreground/65">Principais alertas do seu cultivo</p>
-      <AnimatedList>
-        {alerts.map((alert) => (
-          <NotificationCard
-            key={alert.id}
-            className="mb-4"
-            props={{
-              id: alert.id,
-              title: alert.title,
-              description: alert.description,
-              timestamp: alert.timestamp,
-              type: alert.type,
-            }}
-          />
-        ))}
-      </AnimatedList>
+      {isLoading ? (
+        <PlantAlertsSkeleton />
+      ) : (
+        <AnimatedList>
+          {alerts?.map((alert) => (
+            <NotificationCard
+              key={alert.id}
+              className="mb-4"
+              props={{
+                id: alert.id,
+                title: alert.title,
+                description: alert.description,
+                timestamp: alert.timestamp,
+                type: alert.type,
+              }}
+            />
+          ))}
+        </AnimatedList>
+      )}
     </div>
   );
 };
