@@ -21,10 +21,6 @@ import { ConfigModule } from '@nestjs/config';
       isGlobal: true, // Makes the configuration available globally
       envFilePath: '.env', // Path to your .env file
     }),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'defaultSecret',
-      signOptions: { expiresIn: '1d' }, // Token expiration time
-    }),
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
