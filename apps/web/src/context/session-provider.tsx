@@ -17,7 +17,7 @@ interface SessionContextType {
   loading: boolean;
   error: Error | null;
   login: (email: string, password: string) => Promise<void>;
-  signup: (username: string, email: string, password: string) => Promise<void>;
+  signup: (username: string, name:string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -103,6 +103,7 @@ export function SessionProvider({ children }: SessionProviderProps) {
   // Handle user signup
   const handleSignup = async (
     username: string,
+    name: string,
     email: string,
     password: string
   ) => {
@@ -111,7 +112,7 @@ export function SessionProvider({ children }: SessionProviderProps) {
       setError(null);
 
       // Call auth service to register
-      const userData = await authService.signup({ username, email, password });
+      const userData = await authService.signup({ username, name, email, password });
 
       // Store token for API calls
       if (typeof window !== "undefined") {

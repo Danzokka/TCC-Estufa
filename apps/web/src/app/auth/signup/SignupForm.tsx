@@ -15,8 +15,15 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-
+import { useSession } from "@/context/session-provider";
+import { redirect } from "next/navigation";
 const formSchema = z.object({
+  username: z.string().min(3, {
+    message: "Username must be at least 3 characters.",
+  }),
+  name: z.string().min(3, {
+    message: "Name must be at least 3 characters.",
+  }),
   email: z.string().email({
     message: "Invalid email address.",
   }),
@@ -26,19 +33,22 @@ const formSchema = z.object({
 });
 
 const SignupForm = () => {
+  const { signup } = useSession();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      username: "",
+      name: "",
       email: "",
       password: "",
     },
   });
 
   // 2. Define a submit handler.
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    console.log(values);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    await signup(values.username, values.name, values.email, values.password);
+    redirect("/");
   }
 
   return (
@@ -47,6 +57,34 @@ const SignupForm = () => {
         <h2 className="text-2xl font-bold text-center text-foreground">
           Cadastro
         </h2>
+        <FormField
+          control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nome de Usuário</FormLabel>
+              <FormControl>
+                <Input placeholder="exemplo123" {...field} />
+              </FormControl>
+              <FormDescription>Insira seu nome de usuário</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nome</FormLabel>
+              <FormControl>
+                <Input placeholder="Seu Nome" {...field} />
+              </FormControl>
+              <FormDescription>Insira seu nome completo</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="email"
@@ -90,9 +128,9 @@ const SignupForm = () => {
           </p>
           <Button
             type="submit"
-            className="hover:cursor-pointer text-foreground bg-primary/60"
+            className="hover:cursor-pointer text-foreground bg-primary/60 w-full"
           >
-            Submit
+            Cadastrar
           </Button>
         </div>
       </form>

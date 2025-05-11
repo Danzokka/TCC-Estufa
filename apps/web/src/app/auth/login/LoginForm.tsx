@@ -14,19 +14,21 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { useSession } from "@/context/session-provider";
+import { redirect } from "next/navigation";
 
 const formSchema = z.object({
   email: z.string().email({
     message: "Invalid email address.",
   }),
-  password: z
-    .string()
-    .min(8, {
-      message: "Password must be at least 8 characters.",
-    })
+  password: z.string().min(8, {
+    message: "Password must be at least 8 characters.",
+  }),
 });
 
 const LoginForm = () => {
+  const { login } = useSession();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -36,10 +38,9 @@ const LoginForm = () => {
   });
 
   // 2. Define a submit handler.
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    console.log(values);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    await login(values.email, values.password);
+    redirect("/");
   }
 
   return (
@@ -87,9 +88,9 @@ const LoginForm = () => {
           </p>
           <Button
             type="submit"
-            className="hover:cursor-pointer text-foreground bg-primary/60"
+            className="hover:cursor-pointer text-foreground bg-primary/60 w-full"
           >
-            Submit
+            Realizar Login
           </Button>
         </div>
       </form>

@@ -7,6 +7,7 @@ export interface LoginCredentials {
 
 export interface SignupData {
   username: string;
+  name: string;
   email: string;
   password: string;
 }
@@ -25,7 +26,7 @@ export const authService = {
   },
 
   async signup(userData: SignupData): Promise<UserData> {
-    const response = await api.post<UserData>("/auth/register", userData);
+    const response = await api.post<UserData>("/user", userData);
     return response.data;
   },
 
