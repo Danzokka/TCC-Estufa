@@ -6,7 +6,7 @@ import { SidebarTrigger } from "./ui/sidebar";
 import Notification from "./Notifications";
 import Logo from "./Logo";
 import { getSession } from "@/app/actions";
-import { Avatar } from "./ui/avatar";
+import { Avatar, AvatarImage } from "./ui/avatar";
 
 const NavLink = ({
   href,
@@ -30,6 +30,7 @@ const NavLink = ({
 
 const Header = async () => {
   const user = await getSession();
+  console.log("User", user);
 
   const links = [
     { href: "/about", label: "Sobre" },
@@ -64,10 +65,10 @@ const Header = async () => {
             <div className="sm:flex sm:gap-4">
               {user.isLoggedIn ? (
                 <Avatar
-                  className="bg-secondary text-white font-bold shadow-sm"
+                  className="bg-secondary text-white font-bold shadow-sm size-8"
                   asChild
                 >
-                  {user.username}
+                  <AvatarImage src={user.image} alt="User Avatar" />
                 </Avatar>
               ) : (
                 <Button
