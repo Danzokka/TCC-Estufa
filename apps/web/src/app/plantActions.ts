@@ -6,6 +6,7 @@ import { notifications } from "@/data/notifications";
 export async function getPlantData(plantId: string) {
   try {
     const response = await api.get(`/plants/${plantId}`);
+    console.log("Plant data response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching plant data:", error);

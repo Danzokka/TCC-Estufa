@@ -1,0 +1,111 @@
+@baseUrl = http://localhost:5000
+@auth = {{authenticateUser.response.body.accessToken}}
+@userId = {{authenticateUser.response.body.id}}
+@plantId = {{createPlant.response.body.id}}
+
+### Auth: autenticar usuário
+# @name authenticateUser
+POST {{baseUrl}}/auth
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "testpassword"
+}
+
+### User: criar usuário
+# @name createUser
+POST {{baseUrl}}/user
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "name": "Test User",
+  "email": "testuser@example.com",
+  "password": "testpassword"
+}
+
+### Auth: autenticar usuário
+# @name authenticateUser
+POST {{baseUrl}}/auth
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "testpassword"
+}
+
+### Plant: criar planta
+# @name createPlant
+POST {{baseUrl}}/plant
+Content-Type: application/json
+
+{
+  "name": "Tomate",
+  "description": "Planta de tomateiro",
+  "air_temperature_initial": 22.5,
+  "air_humidity_initial": 60.0,
+  "soil_moisture_initial": 40,
+  "soil_temperature_initial": 21.0,
+  "light_intensity_initial": 300.0,
+  "air_temperature_final": 24.0,
+  "air_humidity_final": 65.0,
+  "soil_moisture_final": 45,
+  "soil_temperature_final": 22.0,
+  "light_intensity_final": 320.0
+}
+
+### UserPlant: criar relação usuário-planta
+# @name createUserPlant
+POST {{baseUrl}}/plant/userplant
+Content-Type: application/json
+Authorization: Bearer {{auth}}
+
+{
+  "plantId": "{{plantId}}",
+  "nickname": "Tomatinho"
+}
+
+### Sensor: criar leitura de sensor
+# @name createSensor
+POST {{baseUrl}}/sensor
+Content-Type: application/json
+
+{
+  "userPlant": "<USERPLANT_ID>",
+  "air_temperature": 23.5,
+  "air_humidity": 62.0,
+  "soil_temperature": 21.5,
+  "soil_moisture": 42,
+  "light_intensity": 310.0,
+  "water_level": 80.0,
+  "water_reserve": 50.0
+}
+
+### Buscar usuários
+# @name getUsers
+GET {{baseUrl}}/user
+
+### Buscar plantas
+# @name getPlants
+GET {{baseUrl}}/plant
+
+### Buscar userplants
+# @name getUserPlants
+GET {{baseUrl}}/userplant
+
+### Buscar sensores
+# @name getSensors
+GET {{baseUrl}}/sensor
+
+### Buscar dados da planta (dias e status)
+# @name getPlantData
+GET {{baseUrl}}/plant/<PLANT_ID>/data
+
+### Buscar stats da planta
+# @name getPlantStats
+GET {{baseUrl}}/plant/<PLANT_ID>/stats
+
+### Buscar alertas da planta
+# @name getPlantAlerts
+GET {{baseUrl}}/plant/<PLANT_ID>/alerts

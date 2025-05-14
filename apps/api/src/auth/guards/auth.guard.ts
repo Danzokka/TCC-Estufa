@@ -20,14 +20,20 @@ export class AuthGuard implements CanActivate {
     }
 
     try {
-      const tokenPayload = await this.jwtService.verifyAsync(token);
+      // Usar o mesmo segredo que foi usado para gerar o token
+      const tokenPayload = await this.jwtService.verifyAsync(token, {
+        secret: process.env.JWT_SECRET || 'defaultSecret', // Deve ser o mesmo valor do auth.module.ts
+      });
       request.user = {
         username: tokenPayload.username,
+        image: tokenPayload.image,
+        name: tokenPayload.name,
         email: tokenPayload.email,
         id: tokenPayload.id,
       };
       return true;
     } catch (error) {
+      console.error('JWT Verification Error:', error);
       throw new UnauthorizedException('Invalid token');
     }
   }
@@ -35,6 +41,8 @@ export class AuthGuard implements CanActivate {
 
 export type RequestAuthGuard = {
   user: {
+    image: string;
+    name: string;
     username: string;
     email: string;
     id: string;
