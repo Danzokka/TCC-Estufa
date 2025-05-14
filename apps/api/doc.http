@@ -2,16 +2,8 @@
 @auth = {{authenticateUser.response.body.accessToken}}
 @userId = {{authenticateUser.response.body.id}}
 @plantId = {{createPlant.response.body.id}}
+@userPlantId = {{createUserPlant.response.body.id}}
 
-### Auth: autenticar usuário
-# @name authenticateUser
-POST {{baseUrl}}/auth
-Content-Type: application/json
-
-{
-  "username": "testuser",
-  "password": "testpassword"
-}
 
 ### User: criar usuário
 # @name createUser
@@ -41,7 +33,7 @@ POST {{baseUrl}}/plant
 Content-Type: application/json
 
 {
-  "name": "Tomate",
+  "name": "Tomates",
   "description": "Planta de tomateiro",
   "air_temperature_initial": 22.5,
   "air_humidity_initial": 60.0,
@@ -62,8 +54,8 @@ Content-Type: application/json
 Authorization: Bearer {{auth}}
 
 {
-  "plantId": "{{plantId}}",
-  "nickname": "Tomatinho"
+  "plantId": "33286f02-f25d-4dc1-b397-d52c4a0dca9c",
+  "nickname": "Tomatinhos"
 }
 
 ### Sensor: criar leitura de sensor
@@ -72,7 +64,7 @@ POST {{baseUrl}}/sensor
 Content-Type: application/json
 
 {
-  "userPlant": "<USERPLANT_ID>",
+  "userPlant": "{{userPlantId}}",
   "air_temperature": 23.5,
   "air_humidity": 62.0,
   "soil_temperature": 21.5,
@@ -92,7 +84,8 @@ GET {{baseUrl}}/plant
 
 ### Buscar userplants
 # @name getUserPlants
-GET {{baseUrl}}/userplant
+GET {{baseUrl}}/plant/userplant
+Authorization: Bearer {{auth}}
 
 ### Buscar sensores
 # @name getSensors

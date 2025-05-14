@@ -60,6 +60,15 @@ export class PlantService {
     };
   }
 
+  async getUserPlants(userId: string) {
+    // Busca todas as plantas do usuário
+    const userPlants = await this.prisma.userPlant.findMany({
+      where: { userId },
+      include: { plant: true },
+    });
+    return userPlants;
+  }
+
   async getPlantAlerts(plantId: string) {
     // Exemplo: retorna alertas fictícios, adapte conforme sua lógica
     const alerts = [

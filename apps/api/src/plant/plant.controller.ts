@@ -30,6 +30,15 @@ export class PlantController {
     return this.plantService.getPlantAlerts(id);
   }
 
+  @UseGuards(AuthGuard)
+  @Get('/userplant')
+  async getUserPlants(
+    @Request()
+    request: Request & { user: { id: RequestAuthGuard['user']['id'] } },
+  ) {
+    return this.plantService.getUserPlants(request.user.id);
+  }
+
   @Post()
   async createPlant(@Body() plantData: CreatePlantDto) {
     // Implementar lógica para criar uma nova planta
@@ -43,10 +52,7 @@ export class PlantController {
     @Request()
     request: Request & { user: { id: RequestAuthGuard['user']['id'] } },
   ) {
-
-    console.log(request.user)
-    console.log('User ID:', request.user.id);
-
+    console.log(createUserPlantDto);
     return this.plantService.createUserPlant(
       request.user.id,
       createUserPlantDto,
