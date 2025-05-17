@@ -1,30 +1,75 @@
 #include "SOIL_SENSOR.h"
 
+SOIL_SENSOR::SOIL_SENSOR()
+{
+    oneWire = NULL;
+    tempSensor = NULL;
+    soilTemperature = 0.0;
+    moistureRaw = 0;
+}
+
+SOIL_SENSOR::~SOIL_SENSOR()
+{
+    if (tempSensor != NULL)
+    {
+        delete tempSensor;
+    }
+    if (oneWire != NULL)
+    {
+        delete oneWire;
+    }
+}
+
 bool SOIL_SENSOR::begin()
 {
     pinMode(sensorPower, OUTPUT);
     digitalWrite(sensorPower, LOW);
+
+    // Initialize DS18B20 temperature sensor
+    oneWire = new OneWire(oneWirePin);
+    tempSensor = new DallasTemperature(oneWire);
+    tempSensor->begin();
+
     Serial.println(F("Soil sensor initialized!"));
     return true;
 }
 
 void SOIL_SENSOR::read()
 {
-    digitalWrite(sensorPower, HIGH); // Turn the sensor ON
-    delay(10);                       // Allow power to settle
-    int val = analogRead(sensorPin); // Read the analog value form sensor
-    digitalWrite(sensorPower, LOW);  // Turn the sensor OFF
-    soilHumidity = format(val);
+    // Read soil moisture
+    digitalWrite(sensorPower, HIGH);     // Turn the sensor ON
+    delay(10);                           // Allow power to settle
+    moistureRaw = analogRead(sensorPin); // Read the analog value from sensor
+    digitalWrite(sensorPower, LOW);      // Turn the sensor OFF
+    soilHumidity = format(moistureRaw);
+
+    // Read soil temperature
+    tempSensor->requestTemperatures();
+    float tempReading = tempSensor->getTempCByIndex(0);
+
+    // Verifica se a leitura é válida
+    if (tempReading != DEVICE_DISCONNECTED_C && tempReading != -127.00)
+    {
+        soilTemperature = tempReading;
+    }
+    else
+    {
+        Serial.println("Erro na leitura do sensor de temperatura do solo!");
+        // Mantém o valor anterior, não atualiza soilTemperature
+    }
+
+    // Print readings to serial
     Serial.print("Soil Humidity: ");
     Serial.println(soilHumidity);
-    Serial.print("Soil Moisture: ");
-    Serial.println(val);
+    Serial.print("Soil Moisture Raw: ");
+    Serial.println(moistureRaw);
+    Serial.print("Soil Temperature: ");
+    Serial.print(soilTemperature);
+    Serial.println(" °C");
 }
 
 String SOIL_SENSOR::format(int val)
 {
-
-    int maxValue = 4063;
 
     // Molhada 1000 a 1500
     // Encharcada de 750 a 1000
@@ -49,7 +94,7 @@ String SOIL_SENSOR::format(int val)
     {
         return "Molhada";
     }
-    else if (val > 2000 && val <= 2500)
+    else if (val > 2000 && val <= 3000)
     {
         return "Úmida";
     }
@@ -65,6 +110,18 @@ String SOIL_SENSOR::format(int val)
     {
         return "Erro";
     }
+}
+
+String SOIL_SENSOR::getJsonData()
+{
+    // Construir JSON com todos os dados do sensor de solo
+    String jsonData = "{";
+    jsonData += "\"soilHumidity\":\"" + soilHumidity + "\",";
+    jsonData += "\"soilMoistureRaw\":" + String(moistureRaw) + ",";
+    jsonData += "\"soilTemperature\":" + String(soilTemperature);
+    jsonData += "}";
+
+    return jsonData;
 }
 
 SOIL_SENSOR soil_sensor;

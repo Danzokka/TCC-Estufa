@@ -26,6 +26,8 @@ bool SERVER::begin()
     if (WiFi.status() == WL_CONNECTED)
     {
         Serial.println("Connected to the WiFi network");
+        Serial.print("IP address: ");
+        Serial.println(WiFi.localIP());
         return true;
     }
     else
@@ -37,21 +39,46 @@ bool SERVER::begin()
 
 void SERVER::send(String data)
 {
-    http.begin(String(server) + String(endpoint));
-    http.addHeader("Content-Type", "application/json");
-    int httpResponseCode = http.POST(data);
-    if (httpResponseCode > 0)
+    if (WiFi.status() == WL_CONNECTED)
     {
-        String response = http.getString();
-        Serial.println(httpResponseCode);
-        Serial.println(response);
+        http.begin(String(server) + String(endpoint));
+        http.addHeader("Content-Type", "application/json");
+        int httpResponseCode = http.POST(data);
+        if (httpResponseCode > 0)
+        {
+            String response = http.getString();
+            Serial.println(httpResponseCode);
+            Serial.println(response);
+        }
+        else
+        {
+            Serial.print("Error on sending POST: ");
+            Serial.println(httpResponseCode);
+        }
+        http.end();
     }
     else
     {
-        Serial.print("Error on sending POST: ");
-        Serial.println(httpResponseCode);
+        Serial.println("WiFi Disconnected. Cannot send data.");
     }
-    http.end();
+}
+
+void SERVER::sendSensorData(float airTemperature, float airHumidity, String soilHumidity, float soilTemperature)
+{
+    // Construir JSON com todos os dados dos sensores
+    String jsonData = "{";
+    jsonData += "\"airTemperature\":" + String(airTemperature) + ",";
+    jsonData += "\"airHumidity\":" + String(airHumidity) + ",";
+    jsonData += "\"soilHumidity\":\"" + soilHumidity + "\",";
+    jsonData += "\"soilTemperature\":" + String(soilTemperature) + ",";
+    jsonData += "\"timestamp\":\"" + String(millis()) + "\""; // Adicionando timestamp para rastreamento
+    jsonData += "}";
+
+    Serial.print("Sending data to server: ");
+    Serial.println(jsonData);
+
+    // Enviar o JSON para o servidor
+    send(jsonData);
 }
 
 SERVER server;
