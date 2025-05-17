@@ -27,36 +27,46 @@ export class PlantService {
 
   async getPlantData(plantId: string) {
     // Retorna dias e status da planta
-    const plant = await this.prisma.plant.findUnique({
+    const plant = await this.prisma.userPlant.findUnique({
       where: { id: plantId },
+      include: { plant: true },
     });
     if (!plant) return null;
     // Exemplo: dias desde o dateadded
     const days = Math.floor(
-      (Date.now() - new Date(plant.dateadded).getTime()) /
+      (Date.now() - new Date(plant.plant.dateadded).getTime()) /
         (1000 * 60 * 60 * 24),
     );
     // Status pode ser calculado conforme sua lógica, aqui um exemplo simples
-    const status = plant.air_humidity_final > 50 ? 'Saudável' : 'Atenção';
+    const status = plant.plant.air_humidity_final > 50 ? 'Saudável' : 'Atenção';
     return { days, status };
   }
 
   async getPlantStats(plantId: string) {
     // Busca o último dado do sensor relacionado à planta
+
+    console.log('PlantId:', plantId);
+
     const userPlant = await this.prisma.userPlant.findFirst({
-      where: { plantId },
+      where: { id: plantId },
+      include: { plant: true },
     });
+
+    console.log('UserPlant:', userPlant);
+
     if (!userPlant) return null;
+
     const sensor = await this.prisma.sensor.findFirst({
       where: { userPlantId: userPlant.id },
       orderBy: { timecreated: 'desc' },
     });
+
     if (!sensor) return null;
     return {
-      nivelAgua: sensor.water_level,
-      umidadeAr: sensor.air_humidity,
-      temperaturaAr: sensor.air_temperature,
-      umidadeSolo: sensor.soil_moisture,
+      water_level: sensor.water_level,
+      air_humidity: sensor.air_humidity,
+      air_temperature: sensor.air_temperature,
+      soil_moisture: sensor.soil_moisture,
     };
   }
 

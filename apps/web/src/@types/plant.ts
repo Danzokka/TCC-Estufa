@@ -23,3 +23,15 @@ export type UserPlant = {
   dateAdded: string;
   plant: Plant;
 };
+
+export type PlantDays = {
+  days: number;
+  status: string;
+}
+
+export type PlantStats = {
+  water_level: number;
+  air_humidity: number;
+  air_temperature: number;
+  soil_moisture: number;
+}

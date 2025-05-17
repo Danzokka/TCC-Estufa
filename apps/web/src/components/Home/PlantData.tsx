@@ -56,7 +56,7 @@ export const PlantDays = () => {
           <div className="flex flex-col items-center justify-center gap-2">
             <span className="text-xl font-semibold">Saúde</span>
             <span className="text-lg font-bold bg-secondary text-white dark:text-primary px-4 py-1 rounded-3xl">
-              {plantData?.health || 0}%
+              {plantData?.status || 0}
             </span>
           </div>
         </>
@@ -83,7 +83,7 @@ export const PlantStats = () => {
       value: isLoading ? (
         <Skeleton className="h-8 w-16 bg-secondary text-white dark:text-primary px-4 py-1" />
       ) : (
-        "50%"
+        `${plantStats?.air_humidity}%`
       ),
       icon: <Droplet className={iconClassName} />,
     },
@@ -92,7 +92,7 @@ export const PlantStats = () => {
       value: isLoading ? (
         <Skeleton className="h-8 w-16 bg-secondary text-white dark:text-primary px-4 py-1" />
       ) : (
-        "25°C"
+        `${plantStats?.air_temperature}°C`
       ),
       icon: <Thermometer className={iconClassName} />,
     },
@@ -101,7 +101,7 @@ export const PlantStats = () => {
       value: isLoading ? (
         <Skeleton className="h-8 w-16 bg-secondary text-white dark:text-primary px-4 py-1" />
       ) : (
-        "80%"
+        `${plantStats?.soil_moisture}%`
       ),
       icon: <Sprout className={iconClassName} />,
     },
@@ -110,7 +110,7 @@ export const PlantStats = () => {
     <div className="w-full lg:w-[calc(100vw/3)] flex flex-col gap-4 lg:gap-8">
       <Card className="gap-8 p-8">
         <h2 className="text-xl font-bold w-full text-left">Nível de Água</h2>
-        {isLoading ? <WaterChartSkeleton /> : <WaterChart />}
+        {isLoading ? <WaterChartSkeleton /> : <WaterChart data={plantStats?.water_level} />}
       </Card>
       <div className="flex flex-col lg:flex-row w-full gap-4">
         {stats.map((stat, index) => (

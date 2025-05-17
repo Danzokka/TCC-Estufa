@@ -15,17 +15,20 @@ import { AuthGuard, RequestAuthGuard } from 'src/auth/guards/auth.guard';
 export class PlantController {
   constructor(private readonly plantService: PlantService) {}
 
-  @Get(':id/data')
+  @Get('data/:id')
+  @UseGuards(AuthGuard)
   async getPlantData(@Param('id') id: string) {
     return this.plantService.getPlantData(id);
   }
 
-  @Get(':id/stats')
+  @Get('stats/:id')
+  @UseGuards(AuthGuard)
   async getPlantStats(@Param('id') id: string) {
     return this.plantService.getPlantStats(id);
   }
 
-  @Get(':id/alerts')
+  @Get('alerts/:id')
+  @UseGuards(AuthGuard)
   async getPlantAlerts(@Param('id') id: string) {
     return this.plantService.getPlantAlerts(id);
   }
@@ -52,7 +55,6 @@ export class PlantController {
     @Request()
     request: Request & { user: { id: RequestAuthGuard['user']['id'] } },
   ) {
-    console.log(createUserPlantDto);
     return this.plantService.createUserPlant(
       request.user.id,
       createUserPlantDto,

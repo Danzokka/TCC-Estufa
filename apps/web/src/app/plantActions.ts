@@ -2,13 +2,12 @@
 import api from "@/lib/api";
 import { NotificationType } from "@/data/notifications";
 import { notifications } from "@/data/notifications";
-import { UserPlant } from "@/@types/plant";
+import { PlantDays, PlantStats, UserPlant } from "@/@types/plant";
 
 export async function getUserPlants(): Promise<UserPlant[]> {
   try {
     // O interceptor do Axios adicionará automaticamente o token da sessão
     const response = await api.get("/plant/userplant");
-    console.log(response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching plant data:", error);
@@ -16,9 +15,9 @@ export async function getUserPlants(): Promise<UserPlant[]> {
   }
 }
 
-export async function getPlantData(plantId: string) {
+export async function getPlantData(plantId: string): Promise<PlantDays> {
   try {
-    const response = await api.get(`/plants/${plantId}`);
+    const response = await api.get(`/plant/data/${plantId}`);
     console.log("Plant data response:", response.data);
     return response.data;
   } catch (error) {
@@ -27,9 +26,10 @@ export async function getPlantData(plantId: string) {
   }
 }
 
-export async function getPlantStats(plantId: string) {
+export async function getPlantStats(plantId: string): Promise<PlantStats> {
   try {
-    const response = await api.get(`/plants/${plantId}/stats`);
+    const response = await api.get(`/plant/stats/${plantId}`);
+    console.log("Plant stats response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching plant stats:", error);

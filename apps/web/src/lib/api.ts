@@ -16,9 +16,7 @@ api.interceptors.request.use(
     try {
       // Attempt to fetch the session token from the cookies via an endpoint
       const session = await getSession();
-      console.log(session);
       if (!session.isLoggedIn) {
-        console.log("No session");
         throw new Error("No session token found");
       }
 
