@@ -1,3 +1,4 @@
+import { getSession } from "@/app/actions";
 import axios from "axios";
 
 // Create axios instance with base configuration
@@ -10,13 +11,20 @@ const api = axios.create({
 
 // Request interceptor for adding auth token
 api.interceptors.request.use(
-  (config) => {
-    // Only access localStorage on the client side
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("token");
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+  async (config) => {
+    // Only in client side
+    try {
+      // Attempt to fetch the session token from the cookies via an endpoint
+      const session = await getSession();
+      console.log(session);
+      if (!session.isLoggedIn) {
+        console.log("No session");
+        throw new Error("No session token found");
       }
+
+      config.headers.Authorization = `Bearer ${session.token}`;
+    } catch (error) {
+      console.error("Error fetching auth token:", error);
     }
     return config;
   },
@@ -35,12 +43,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      // Clear token on authentication error
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("token");
-      }
-
-      // Redirect to login page
+      // Redirect to login page, session will be cleared by the server
       if (typeof window !== "undefined") {
         window.location.href = "/auth/login";
       }

@@ -2,6 +2,19 @@
 import api from "@/lib/api";
 import { NotificationType } from "@/data/notifications";
 import { notifications } from "@/data/notifications";
+import { UserPlant } from "@/@types/plant";
+
+export async function getUserPlants(): Promise<UserPlant[]> {
+  try {
+    // O interceptor do Axios adicionará automaticamente o token da sessão
+    const response = await api.get("/plant/userplant");
+    console.log(response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching plant data:", error);
+    throw new Error("Failed to fetch plant data");
+  }
+}
 
 export async function getPlantData(plantId: string) {
   try {

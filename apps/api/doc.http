@@ -23,8 +23,8 @@ POST {{baseUrl}}/auth
 Content-Type: application/json
 
 {
-  "email": "testuser@example.com",
-  "password": "testpassword"
+  "email": "danzokka@gmail.com",
+  "password": "28022003pL@"
 }
 
 ### Plant: criar planta
@@ -33,8 +33,8 @@ POST {{baseUrl}}/plant
 Content-Type: application/json
 
 {
-  "name": "Tomates",
-  "description": "Planta de tomateiro",
+  "name": "Manjericão",
+  "description": "Planta de manjericão",
   "air_temperature_initial": 22.5,
   "air_humidity_initial": 60.0,
   "soil_moisture_initial": 40,
@@ -54,8 +54,8 @@ Content-Type: application/json
 Authorization: Bearer {{auth}}
 
 {
-  "plantId": "33286f02-f25d-4dc1-b397-d52c4a0dca9c",
-  "nickname": "Tomatinhos"
+  "plantId": "{{plantId}}",
+  "nickname": "Verdinha"
 }
 
 ### Sensor: criar leitura de sensor
