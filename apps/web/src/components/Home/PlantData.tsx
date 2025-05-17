@@ -10,13 +10,17 @@ import api from "@/lib/api";
 import { PlantDaysSkeleton, WaterChartSkeleton } from "../Skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getPlantData, getPlantStats } from "@/app/plantActions";
+import { usePlant } from "@/context/PlantContext";
 
 export const PlantDays = () => {
+  const { selectedPlant } = usePlant();
+
   const { data: plantData, isLoading } = useQuery({
-    queryKey: ["plantData"],
-    queryFn: () => getPlantData("plantId"),
+    queryKey: ["plantData", selectedPlant?.id],
+    queryFn: () => (selectedPlant ? getPlantData(selectedPlant.id) : null),
     //Refetch every 5 minutes
     refetchInterval: 5 * 60 * 1000,
+    enabled: !!selectedPlant,
   });
 
   return (
@@ -62,10 +66,13 @@ export const PlantDays = () => {
 };
 
 export const PlantStats = () => {
+  const { selectedPlant } = usePlant();
+
   const { data: plantStats, isLoading } = useQuery({
-    queryKey: ["plantstats"],
-    queryFn: () => getPlantStats("plantId"),
+    queryKey: ["plantstats", selectedPlant?.id],
+    queryFn: () => (selectedPlant ? getPlantStats(selectedPlant.id) : null),
     refetchInterval: 5 * 60 * 1000,
+    enabled: !!selectedPlant,
   });
 
   const iconClassName = "w-16 h-16 text-primary";

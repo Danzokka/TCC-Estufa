@@ -23,8 +23,8 @@ POST {{baseUrl}}/auth
 Content-Type: application/json
 
 {
-  "email": "danzokka@gmail.com",
-  "password": "28022003pL@"
+  "email": "testuser",
+  "password": "12345678"
 }
 
 ### Plant: criar planta

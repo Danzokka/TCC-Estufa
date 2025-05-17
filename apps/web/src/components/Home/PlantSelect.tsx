@@ -18,17 +18,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useQuery } from "@tanstack/react-query";
-import { getUserPlants } from "@/app/plantActions";
+import { usePlant } from "@/context/PlantContext";
 
 export default function PlantSelect() {
   const [open, setOpen] = React.useState(false);
-  const [value, setValue] = React.useState("");
-
-  const { data: userPlants, isLoading } = useQuery({
-    queryKey: ["userPlants"],
-    queryFn: async () => await getUserPlants(),
-  });
+  const { selectedPlant, setSelectedPlant, userPlants, isLoading } = usePlant();
 
   if (!isLoading && !userPlants) {
     return <div>Erro ao carregar</div>;
@@ -44,15 +38,8 @@ export default function PlantSelect() {
             aria-expanded={open}
             className="w-[200px] justify-between"
           >
-            {value
-              ? userPlants?.find(
-                  (plant) =>
-                    plant.nickname === value || plant.plant.name === value
-                )?.nickname ||
-                userPlants?.find(
-                  (plant) =>
-                    plant.nickname === value || plant.plant.name === value
-                )?.plant.name
+            {selectedPlant
+              ? selectedPlant.nickname || selectedPlant.plant.name
               : "Selecione a planta"}
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
@@ -60,7 +47,7 @@ export default function PlantSelect() {
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0">
         <Command>
-          <CommandInput placeholder="Search framework..." />
+          <CommandInput placeholder="Buscar planta..." />
           <CommandList>
             <CommandEmpty>Nenhuma planta encontrada.</CommandEmpty>
             <CommandGroup>
@@ -68,15 +55,15 @@ export default function PlantSelect() {
                 <CommandItem
                   key={userPlant.id}
                   value={userPlant.nickname || userPlant.plant.name}
-                  onSelect={(currentValue) => {
-                    setValue(currentValue === value ? "" : currentValue);
+                  onSelect={() => {
+                    setSelectedPlant(userPlant);
                     setOpen(false);
                   }}
                 >
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value === (userPlant.nickname || userPlant.plant.name)
+                      selectedPlant?.id === userPlant.id
                         ? "opacity-100"
                         : "opacity-0"
                     )}

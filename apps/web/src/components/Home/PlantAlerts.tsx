@@ -6,21 +6,19 @@ import { getAlerts } from "@/app/plantActions";
 import { NotificationCard } from "../Notifications";
 import { useQuery } from "@tanstack/react-query";
 import { PlantAlertsSkeleton } from "../Skeletons";
+import { usePlant } from "@/context/PlantContext";
 
 interface PlantAlertsProps {
   className?: string;
 }
 
 const PlantAlerts = ({ className }: PlantAlertsProps) => {
+  const { selectedPlant } = usePlant();
+
   const { data: alerts, isLoading } = useQuery({
-    queryKey: ["alerts"],
-    queryFn: async () => {
-      // Fetch the alerts from the API
-      // Simulate a delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      const res = await getAlerts();
-      return res;
-    },
+    queryKey: ["alerts", selectedPlant?.id],
+    queryFn: async () => await getAlerts(),	
+    enabled: !!selectedPlant,
   });
 
   return (
