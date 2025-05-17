@@ -3,7 +3,15 @@
 
 HTTPClient http;
 
-SERVER::SERVER() {}
+SERVER::SERVER()
+{
+    // Inicializa variáveis
+    airTemperatureSum = 0;
+    airHumiditySum = 0;
+    soilTemperatureSum = 0;
+    soilMoistureSum = 0;
+    readingsCount = 0;
+}
 
 bool SERVER::begin()
 {
@@ -63,22 +71,69 @@ void SERVER::send(String data)
     }
 }
 
-void SERVER::sendSensorData(float airTemperature, float airHumidity, String soilHumidity, float soilTemperature)
+// Gera um número aleatório dentro de um intervalo
+float SERVER::getRandomNumber(float min, float max)
 {
+    return min + random(1000) / 1000.0 * (max - min);
+}
+
+// Adiciona uma leitura à soma para calcular a média posteriormente
+void SERVER::addSensorReading(float airTemperature, float airHumidity, float soilTemperature, int soilMoisture)
+{
+    airTemperatureSum += airTemperature;
+    airHumiditySum += airHumidity;
+    soilTemperatureSum += soilTemperature;
+    soilMoistureSum += soilMoisture;
+    readingsCount++;
+
+    Serial.println("Leitura de sensor adicionada para média. Total de leituras: " + String(readingsCount));
+}
+
+// Envia a média dos dados coletados
+void SERVER::sendAverageSensorData()
+{
+    // Se não há leituras, não envia nada
+    if (readingsCount == 0)
+    {
+        Serial.println("Nenhuma leitura para enviar");
+        return;
+    }
+
+    // Calcula as médias
+    float avgAirTemp = airTemperatureSum / readingsCount;
+    float avgAirHumidity = airHumiditySum / readingsCount;
+    float avgSoilTemp = soilTemperatureSum / readingsCount;
+    float avgSoilMoisture = soilMoistureSum / readingsCount;
+
+    // Gera valores aleatórios para sensores que não temos
+    float lightIntensity = getRandomNumber(600, 1000); // Valor típico em lux
+    float waterLevel = getRandomNumber(70, 95);        // Percentual
+    float waterReserve = getRandomNumber(1.5, 3.0);    // Litros
+
     // Construir JSON com todos os dados dos sensores
     String jsonData = "{";
-    jsonData += "\"airTemperature\":" + String(airTemperature) + ",";
-    jsonData += "\"airHumidity\":" + String(airHumidity) + ",";
-    jsonData += "\"soilHumidity\":\"" + soilHumidity + "\",";
-    jsonData += "\"soilTemperature\":" + String(soilTemperature) + ",";
-    jsonData += "\"timestamp\":\"" + String(millis()) + "\""; // Adicionando timestamp para rastreamento
+    jsonData += "\"air_temperature\":" + String(avgAirTemp, 2) + ",";
+    jsonData += "\"air_humidity\":" + String(avgAirHumidity, 2) + ",";
+    jsonData += "\"soil_temperature\":" + String(avgSoilTemp, 2) + ",";
+    jsonData += "\"soil_moisture\":" + String(avgSoilMoisture) + ",";
+    jsonData += "\"light_intensity\":" + String(lightIntensity, 2) + ",";
+    jsonData += "\"water_level\":" + String(waterLevel, 2) + ",";
+    jsonData += "\"water_reserve\":" + String(waterReserve, 2) + ",";
+    jsonData += "\"userPlant\":\"" + String(userPlant) + "\"";
     jsonData += "}";
 
-    Serial.print("Sending data to server: ");
+    Serial.print("Sending average data to server: ");
     Serial.println(jsonData);
 
-    // Enviar o JSON para o servidor
+    // Envia o JSON para o servidor
     send(jsonData);
+
+    // Reseta os contadores após o envio
+    airTemperatureSum = 0;
+    airHumiditySum = 0;
+    soilTemperatureSum = 0;
+    soilMoistureSum = 0;
+    readingsCount = 0;
 }
 
 SERVER server;

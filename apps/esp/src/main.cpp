@@ -6,13 +6,16 @@
 
 #define SWITCHPIN 22
 
-// Intervalo de tempo para envio de dados ao servidor (15 segundos)
-const unsigned long SEND_INTERVAL = 15000;
+// Intervalo de tempo para envio de dados ao servidor (2 minutos e meio = 150000 ms)
+const unsigned long SEND_INTERVAL = 30 * 1000; // 30 segundos
 unsigned long lastSendTime = 0;
 
 void setup()
 {
     Serial.begin(9600);
+
+    // Inicializa o gerador de números aleatórios
+    randomSeed(analogRead(0));
 
     if (!server.begin())
     {
@@ -66,18 +69,20 @@ void loop()
         // Adicionando temperatura do solo no display
         oled.output(th_sensor.temperature, th_sensor.humidity, soil_sensor.soilHumidity + " " + String(soil_sensor.soilTemperature, 1) + "C");
         oled.update();
-    }
-
-    // Verifica se é hora de enviar dados ao servidor
+    } // Verifica se é hora de enviar dados ao servidor
     unsigned long currentMillis = millis();
+
+    // Adiciona leituras atuais para calcular a média posteriormente
+    server.addSensorReading(
+        th_sensor.temperature,
+        th_sensor.humidity,
+        soil_sensor.soilTemperature,
+        soil_sensor.moistureRaw);
+
     if (currentMillis - lastSendTime >= SEND_INTERVAL)
     {
-        // Envia dados para o backend
-        server.sendSensorData(
-            th_sensor.temperature,
-            th_sensor.humidity,
-            soil_sensor.soilHumidity,
-            soil_sensor.soilTemperature);
+        // Envia as médias dos dados coletados no intervalo para o backend
+        server.sendAverageSensorData();
 
         // Atualiza o tempo do último envio
         lastSendTime = currentMillis;

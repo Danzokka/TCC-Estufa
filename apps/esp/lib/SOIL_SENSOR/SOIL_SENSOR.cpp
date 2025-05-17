@@ -41,6 +41,11 @@ void SOIL_SENSOR::read()
     delay(10);                           // Allow power to settle
     moistureRaw = analogRead(sensorPin); // Read the analog value from sensor
     digitalWrite(sensorPower, LOW);      // Turn the sensor OFF
+
+    // Mapeando valor para uma escala de 0 a 100% (invertido, pois valores maiores = solo mais seco)
+    int mappedValue = map(moistureRaw, 4095, 0, 0, 100); // Inverte a escala
+    mappedValue = constrain(mappedValue, 0, 100);        // Garante que o valor esteja entre 0 e 100
+
     soilHumidity = format(moistureRaw);
 
     // Read soil temperature
@@ -63,6 +68,9 @@ void SOIL_SENSOR::read()
     Serial.println(soilHumidity);
     Serial.print("Soil Moisture Raw: ");
     Serial.println(moistureRaw);
+    Serial.print("Soil Moisture Percentage: ");
+    Serial.print(mappedValue);
+    Serial.println("%");
     Serial.print("Soil Temperature: ");
     Serial.print(soilTemperature);
     Serial.println(" °C");
