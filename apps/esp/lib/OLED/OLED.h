@@ -5,20 +5,21 @@
 #include <Adafruit_SSD1306.h>
 #include <Arduino.h>
 
-class OledDisplay {
+class OledDisplay
+{
 private:
     static const int SCREEN_WIDTH = 128;
     static const int SCREEN_HEIGHT = 64;
     static const int OLED_RESET = -1; // Mudado para -1
-    
+
     Adafruit_SSD1306 display;
-    
+
 public:
     OledDisplay();
     bool begin();
     void clear();
-    void showBitmap(const uint8_t* bitmap);
-    void animateBitmap(const uint8_t* bitmap, int speed, int switchState);
+    void showBitmap(const uint8_t *bitmap);
+    void animateBitmap(const uint8_t *bitmap, int speed, int animationStep);
     void output(float temperature, float humidity, String soilHumidity);
     void update();
 };

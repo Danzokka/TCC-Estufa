@@ -7,7 +7,7 @@
 class SOIL_SENSOR
 {
 private:
-    const uint8_t sensorPower = 15; // Define the digital sensor power pin
+    const uint8_t sensorPower = 13; // Define the digital sensor power pin
     const uint8_t sensorPin = 34;   // Define the analog sensor pin
     const uint8_t oneWirePin = 18;  // Define the digital DS18B20 sensor pin
     OneWire *oneWire;
