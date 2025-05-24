@@ -3,6 +3,7 @@
 #include <TH_SENSOR.h>
 #include <SERVER.h>
 #include <SOIL_SENSOR.h>
+#include <FLOW_SENSOR.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -25,6 +26,8 @@ float currentHumidity = 0;
 float currentSoilTemp = 0;
 int currentSoilMoisture = 0;
 String soilHumidityText = "";
+float currentFlowRate = 0;    // Taxa de fluxo atual em L/min
+float currentTotalVolume = 0; // Volume total acumulado em litros
 
 // Tarefa que roda no núcleo 0: Leitura dos sensores e envio de dados
 void Task1code(void *pvParameters)
@@ -43,6 +46,7 @@ void Task1code(void *pvParameters)
         // Leitura dos sensores
         th_sensor.read();
         soil_sensor.read();
+        flow_sensor.read(); // Lê o sensor de fluxo de água
 
         readingCounter++;
 
@@ -61,15 +65,17 @@ void Task1code(void *pvParameters)
             currentSoilTemp = soil_sensor.soilTemperature;
             currentSoilMoisture = soil_sensor.moistureRaw;
             soilHumidityText = soil_sensor.soilHumidity + " " + String(soil_sensor.soilTemperature, 1) + "C";
+            currentFlowRate = flow_sensor.flowRate;
+            currentTotalVolume = flow_sensor.totalVolume;
             xSemaphoreGive(sensorMutex);
-        }
-
-        // Adiciona leituras atuais para calcular a média posteriormente
+        } // Adiciona leituras atuais para calcular a média posteriormente
         server.addSensorReading(
             currentTemp,
             currentHumidity,
             currentSoilTemp,
-            currentSoilMoisture);
+            currentSoilMoisture,
+            currentFlowRate,
+            currentTotalVolume);
 
         // Verifica se é hora de enviar dados ao servidor
         unsigned long currentMillis = millis();
@@ -154,7 +160,8 @@ void Task2code(void *pvParameters)
             }
             else
             {
-                oled.output(currentTemp, currentHumidity, soilHumidityText);
+                // Exibe os dados dos sensores incluindo o fluxo de água
+                oled.outputWithFlow(currentTemp, currentHumidity, soilHumidityText, currentFlowRate, currentTotalVolume);
             }
             xSemaphoreGive(sensorMutex);
 
@@ -210,6 +217,12 @@ void setup()
     if (!soil_sensor.begin())
     {
         Serial.println(F("Error initializing soil sensor!"));
+        for (;;)
+            ;
+    } // Inicializa o sensor de fluxo
+    if (!flow_sensor.begin())
+    {
+        Serial.println(F("Error initializing flow sensor!"));
         for (;;)
             ;
     }

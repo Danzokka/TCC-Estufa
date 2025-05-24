@@ -78,7 +78,7 @@ float SERVER::getRandomNumber(float min, float max)
 }
 
 // Adiciona uma leitura à soma para calcular a média posteriormente
-void SERVER::addSensorReading(float airTemperature, float airHumidity, float soilTemperature, int soilMoisture)
+void SERVER::addSensorReading(float airTemperature, float airHumidity, float soilTemperature, int soilMoisture, float flowRate, float totalVolume)
 {
     airTemperatureSum += airTemperature;
     airHumiditySum += airHumidity;
@@ -97,18 +97,16 @@ void SERVER::sendAverageSensorData()
     {
         Serial.println("Nenhuma leitura para enviar");
         return;
-    }
-
-    // Calcula as médias
+    } // Calcula as médias
     float avgAirTemp = airTemperatureSum / readingsCount;
     float avgAirHumidity = airHumiditySum / readingsCount;
     float avgSoilTemp = soilTemperatureSum / readingsCount;
     float avgSoilMoisture = soilMoistureSum / readingsCount;
+    float avgFlowRate = flowRateSum / readingsCount;
 
-    // Gera valores aleatórios para sensores que não temos
+    // Gera valores aleatórios somente para sensores que não temos
     float lightIntensity = getRandomNumber(600, 1000); // Valor típico em lux
     float waterLevel = getRandomNumber(70, 95);        // Percentual
-    float waterReserve = getRandomNumber(1.5, 3.0);    // Litros
 
     // Construir JSON com todos os dados dos sensores
     String jsonData = "{";
@@ -118,7 +116,6 @@ void SERVER::sendAverageSensorData()
     jsonData += "\"soil_moisture\":" + String(avgSoilMoisture) + ",";
     jsonData += "\"light_intensity\":" + String(lightIntensity, 2) + ",";
     jsonData += "\"water_level\":" + String(waterLevel, 2) + ",";
-    jsonData += "\"water_reserve\":" + String(waterReserve, 2) + ",";
     jsonData += "\"userPlant\":\"" + String(userPlant) + "\"";
     jsonData += "}";
 
