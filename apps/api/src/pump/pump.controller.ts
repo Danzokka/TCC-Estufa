@@ -154,7 +154,6 @@ export class PumpController {
       };
     }
   }
-
   /**
    * ESP32 status update endpoint (called by ESP32 when operation completes)
    * POST /pump/update-status
@@ -185,6 +184,57 @@ export class PumpController {
       return {
         success: false,
         message: error.message || 'Failed to update status',
+      };
+    }
+  }
+
+  /**
+   * ESP32 device status endpoint (called by ESP32 periodically to report device status)
+   * POST /pump/esp32-status
+   */
+  @Post('esp32-status')
+  async receiveDeviceStatus(
+    @Body()
+    deviceStatus: {
+      type: string;
+      status: string;
+      runtime_seconds?: number;
+      volume_liters?: number;
+      device_id: string;
+    },
+  ): Promise<{
+    success: boolean;
+    message: string;
+    timestamp: string;
+  }> {
+    try {
+      // Log the device status for monitoring
+      console.log('ESP32 Device Status Update:', {
+        deviceId: deviceStatus.device_id,
+        type: deviceStatus.type,
+        status: deviceStatus.status,
+        runtime: deviceStatus.runtime_seconds,
+        volume: deviceStatus.volume_liters,
+        timestamp: new Date().toISOString(),
+      });
+
+      // In a production system, you might want to:
+      // 1. Validate the device_id against registered devices
+      // 2. Store the status in the database
+      // 3. Trigger alerts if status indicates problems
+      // 4. Update device last_seen timestamp
+
+      return {
+        success: true,
+        message: 'Device status received successfully',
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Error processing ESP32 status:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to process device status',
+        timestamp: new Date().toISOString(),
       };
     }
   }

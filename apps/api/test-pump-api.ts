@@ -14,14 +14,16 @@ async function testPumpService() {
   // Create test module
   const moduleRef = await Test.createTestingModule({
     imports: [PumpModule],
-    providers: [PrismaService],
   }).compile();
 
   const app: INestApplication = moduleRef.createNestApplication();
   await app.init();
-
   const pumpService = app.get<PumpService>(PumpService);
   const prismaService = app.get<PrismaService>(PrismaService);
+
+  console.log('Debug - PumpService:', !!pumpService);
+  console.log('Debug - PrismaService:', !!prismaService);
+  console.log('Debug - PumpService.prisma:', !!(pumpService as any).prisma);
 
   try {
     // Test 1: Register a test ESP32 device

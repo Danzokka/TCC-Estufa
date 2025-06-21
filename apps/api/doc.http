@@ -113,7 +113,7 @@ GET {{baseUrl}}/plant/<PLANT_ID>/alerts
 
 ### Pump: Register ESP32 device
 # @name registerDevice
-POST {{baseUrl}}/pump/device/register
+POST {{baseUrl}}/pump/register-device
 Content-Type: application/json
 
 {
@@ -165,14 +165,28 @@ GET {{baseUrl}}/pump/devices
 
 ### Pump: ESP32 status update (simulating ESP32 calling this endpoint)
 # @name esp32StatusUpdate
-POST {{baseUrl}}/pump/esp32/status
+POST {{baseUrl}}/pump/esp32-status
 Content-Type: application/json
 
 {
-  "deviceId": "{{deviceMac}}",
-  "isActive": true,
-  "remainingTime": 25,
-  "waterAmount": 1.2
+  "type": "pump_status",
+  "status": "on",
+  "runtime_seconds": 45,
+  "volume_liters": 1.8,
+  "device_id": "{{deviceMac}}"
+}
+
+### Pump: ESP32 status update - pump off
+# @name esp32StatusUpdateOff
+POST {{baseUrl}}/pump/esp32-status
+Content-Type: application/json
+
+{
+  "type": "pump_status",
+  "status": "off",
+  "runtime_seconds": 0,
+  "volume_liters": 0,
+  "device_id": "{{deviceMac}}"
 }
 
 ### Pump: Get device by MAC

@@ -123,14 +123,52 @@ void SERVER::sendAverageSensorData()
     Serial.println(jsonData);
 
     // Envia o JSON para o servidor
-    send(jsonData);
-
-    // Reseta os contadores após o envio
+    send(jsonData);    // Reseta os contadores após o envio
     airTemperatureSum = 0;
     airHumiditySum = 0;
     soilTemperatureSum = 0;
     soilMoistureSum = 0;
     readingsCount = 0;
+}
+
+// Envia o status da bomba para o backend
+void SERVER::sendPumpStatus(String status, unsigned long runtime, float volume)
+{
+    // Construir JSON com dados da bomba
+    String jsonData = "{";
+    jsonData += "\"type\":\"pump_status\",";
+    jsonData += "\"status\":\"" + status + "\",";
+    jsonData += "\"runtime_seconds\":" + String(runtime) + ",";
+    jsonData += "\"volume_liters\":" + String(volume, 2) + ",";
+    jsonData += "\"device_id\":\"" + String(userPlant) + "\"";
+    jsonData += "}";
+
+    Serial.print("Sending pump status to server: ");
+    Serial.println(jsonData);
+
+    // Envia o JSON para o servidor no endpoint de pump status
+    if (WiFi.status() == WL_CONNECTED)
+    {
+        http.begin(String(server) + "/pump/esp32-status");
+        http.addHeader("Content-Type", "application/json");
+        int httpResponseCode = http.POST(jsonData);
+        if (httpResponseCode > 0)
+        {
+            String response = http.getString();
+            Serial.println("Pump status response: " + String(httpResponseCode));
+            Serial.println(response);
+        }
+        else
+        {
+            Serial.print("Error sending pump status: ");
+            Serial.println(httpResponseCode);
+        }
+        http.end();
+    }
+    else
+    {
+        Serial.println("WiFi Disconnected. Cannot send pump status.");
+    }
 }
 
 SERVER server;

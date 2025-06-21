@@ -22,10 +22,10 @@ private:
 
 public:
     SERVER();
-    bool begin();
-    void send(String data);
+    bool begin();    void send(String data);
     void addSensorReading(float airTemperature, float airHumidity, float soilTemperature, int soilMoisture, float flowRate = 0, float totalVolume = 0);
     void sendAverageSensorData();
+    void sendPumpStatus(String status, unsigned long runtime, float volume);
     float getRandomNumber(float min, float max);
 };
 
