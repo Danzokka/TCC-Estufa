@@ -1,11 +1,5 @@
 ---
 applyTo: "apps/esp/**/*.{cpp,h,hpp,c,ino,json,yml,yaml,ini,md}"
-tools:
-  [
-    "mcp_brave-search_brave_web_search",
-    "mcp_context7_get-library-docs",
-    "semantic_search",
-  ]
 ---
 
 # ESP32 Development Guidelines - Arduino Framework & PlatformIO

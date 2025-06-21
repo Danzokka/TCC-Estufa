@@ -1,6 +1,5 @@
 ---
 applyTo: "**/*.{md,mdx,rst,txt,json,yaml,yml}"
-tools: ["mcp_brave-search_brave_web_search", "semantic_search"]
 ---
 
 # Documentation Best Practices Guidelines

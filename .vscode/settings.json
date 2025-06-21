@@ -1,0 +1,53 @@
+{
+  "chat.promptFiles": true,
+  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+  "github.copilot.chat.codeGeneration.instructions": [
+    {
+      "file": ".github/instructions/frontend.instructions.md"
+    },
+    {
+      "file": ".github/instructions/backend.instructions.md"
+    },
+    {
+      "file": ".github/instructions/services.instructions.md"
+    },
+    {
+      "file": ".github/instructions/ai.instructions.md"
+    },
+    {
+      "file": ".github/instructions/documentation.instructions.md"
+    },
+    {
+      "file": ".github/instructions/esp.instructions.md"
+    },
+    {
+      "file": ".github/instructions/cicd.instructions.md"
+    },
+    {
+      "file": ".github/instructions/testing.instructions.md"
+    },
+    {
+      "file": ".github/instructions/memory.instructions.md"
+    }
+  ],
+  "github.copilot.chat.testGeneration.instructions": [
+    {
+      "file": ".github/instructions/testing.instructions.md"
+    }
+  ],
+  "github.copilot.chat.reviewSelection.instructions": [
+    {
+      "file": ".github/instructions/code-review.instructions.md"
+    }
+  ],
+  "github.copilot.chat.commitMessageGeneration.instructions": [
+    {
+      "file": ".github/instructions/commit-messages.instructions.md"
+    }
+  ],
+  "github.copilot.chat.pullRequestDescriptionGeneration.instructions": [
+    {
+      "file": ".github/instructions/pull-request.instructions.md"
+    }
+  ]
+}
