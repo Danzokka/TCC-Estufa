@@ -7,6 +7,7 @@ import { UserModule } from './user/user.module';
 import { BlogModule } from './blog/blog.module';
 import { PlantModule } from './plant/plant.module';
 import { AuthModule } from './auth/auth.module';
+import { PumpModule } from './pump/pump.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
 
@@ -17,6 +18,7 @@ import { ConfigModule } from '@nestjs/config';
     BlogModule,
     PlantModule,
     AuthModule,
+    PumpModule,
     ConfigModule.forRoot({
       isGlobal: true, // Makes the configuration available globally
       envFilePath: '.env', // Path to your .env file

@@ -14,9 +14,6 @@ applyTo: "apps/web/**/*.{ts,tsx,js,jsx}"
 - [Magic UI Documentation](https://magicui.design/docs)
 - [React Query Documentation](https://tanstack.com/query/latest/docs/framework/react/overview)
 - [Next.js Project Structure](https://nextjs.org/docs/app/getting-started/project-structure)
-- [Next Auth Documentation](https://next-auth.js.org/getting-started/introduction)
-- [Chart.js Documentation](https://www.chartjs.org/docs/latest/)
-- [WebSocket API Documentation](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket)
 
 ## Tech Stack
 
@@ -25,9 +22,8 @@ applyTo: "apps/web/**/*.{ts,tsx,js,jsx}"
 - TypeScript with interfaces (not types)
 - Tailwind CSS + Shadcn UI + Magic UI for styling
 - React Query (TanStack Query) for data fetching on client side
-- Next Auth for authentication and role-based access
-- Chart.js or Recharts for data visualization
-- WebSocket for real-time sensor data
+- Iron session for authentication and role-based access
+- Recharts for data visualization
 - PWA capabilities for mobile greenhouse monitoring
 
 ## Project Architecture
@@ -56,7 +52,6 @@ apps/web/src/
 │   │   ├── automation/      # Automation controls
 │   │   └── analytics/       # Data analysis & reports
 │   ├── (auth)/             # Authentication layout group
-│   ├── api/                # API routes (minimal use)
 │   └── globals.css         # Global styles
 ├── components/             # Shared components
 │   ├── ui/                 # Shadcn UI components
@@ -73,46 +68,15 @@ apps/web/src/
 ### Naming Conventions
 
 - Use lowercase with hyphens for directories: `sensor-data`, `greenhouse-controls`
-- Components use PascalCase: `SensorWidget.tsx`, `TemperatureChart.tsx`
+- Components use lowercase with hyphens: `sensor-widget.tsx`, `temperature-chart.tsx`
 - Page-specific components go in `_components`: `src/app/dashboard/_components/`
 - Page-specific utilities go in `_lib`: `src/app/analytics/_lib/`
 
 ### Component Organization
 
 - **Server Actions**: Use `src/server/actions` for all data operations
-- **Real-time Data**: WebSocket hooks in `src/hooks/useWebSocket.ts`
-- **Charts & Visualization**: Dedicated components in `src/components/charts/`
 - **Authentication**: Protected routes use layout-level authentication
 - **PWA**: Service worker and manifest configuration
-
-## IoT-Specific Component Patterns
-
-### Real-time Data Components
-
-```typescript
-// Sensor data display with live updates
-interface SensorWidgetProps {
-  sensorId: string;
-  sensorType: "temperature" | "humidity" | "soil_moisture" | "light";
-  threshold?: { min: number; max: number };
-  showChart?: boolean;
-}
-
-// Use WebSocket for real-time updates
-const useSensorData = (sensorId: string) => {
-  // Implementation with WebSocket connection
-};
-```
-
-### Dashboard Components
-
-- **Sensor Widgets**: Real-time sensor readings with status indicators
-- **Chart Components**: Time-series data visualization
-- **Control Panels**: Actuator controls with confirmation dialogs
-- **Alert Banners**: Threshold violations and system alerts
-- **Status Indicators**: Connectivity, battery, and system health
-
-### Data Fetching for IoT
 
 #### Server Actions for Data
 
@@ -135,12 +99,10 @@ export async function triggerAutomation(automationId: string) {
 
 #### Real-time Updates
 
-- Use WebSocket connections for live sensor data
 - Implement React Query for server state management
 - Use optimistic updates for control actions
 - Handle connection drops gracefully
 
-### Mobile-First IoT Interface
 
 #### Responsive Design
 

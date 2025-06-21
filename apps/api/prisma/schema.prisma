@@ -115,3 +115,43 @@ model Like {
   @@unique([userId, blogPostId])
   @@index([blogPostId])
 }
+
+// Pump operation tracking model
+model PumpOperation {
+  id               String      @id @default(uuid())
+  greenhouseId     String      // Reference to greenhouse (will be proper foreign key later)
+  duration         Int         // Duration in seconds
+  waterAmount      Float?      // Target water amount in liters
+  reason           String?     // Reason for activation
+  startedAt        DateTime    @default(now())
+  endedAt          DateTime?   // When operation completed
+  status           String      @default("active") // active, completed, cancelled, error
+  errorMessage     String?     // Error details if status is error
+  esp32Response    String?     // Response from ESP32 device
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([greenhouseId])
+  @@index([status])
+  @@index([startedAt])
+}
+
+// Device management model for ESP32 devices
+model Device {
+  id               String      @id @default(uuid())
+  name             String
+  greenhouseId     String      // Reference to greenhouse
+  type             String      @default("esp32") // Device type
+  ipAddress        String?     // Current IP address
+  macAddress       String?     @unique // MAC address for identification
+  isOnline         Boolean     @default(false)
+  lastSeen         DateTime?   // Last communication timestamp
+  firmwareVersion  String?     // Current firmware version
+  configuration    Json?       // Device-specific configuration
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([greenhouseId])
+  @@index([type])
+  @@index([isOnline])
+}

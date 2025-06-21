@@ -102,3 +102,79 @@ GET {{baseUrl}}/plant/<PLANT_ID>/stats
 ### Buscar alertas da planta
 # @name getPlantAlerts
 GET {{baseUrl}}/plant/<PLANT_ID>/alerts
+
+### ===============================
+### PUMP CONTROL TESTS
+### ===============================
+
+@greenhouseId = test-greenhouse-1
+@deviceIp = 192.168.1.100
+@deviceMac = 24:0A:C4:12:34:56
+
+### Pump: Register ESP32 device
+# @name registerDevice
+POST {{baseUrl}}/pump/device/register
+Content-Type: application/json
+
+{
+  "name": "ESP32 Test Device",
+  "greenhouseId": "{{greenhouseId}}",
+  "ipAddress": "{{deviceIp}}",
+  "macAddress": "{{deviceMac}}",
+  "firmwareVersion": "1.0.0"
+}
+
+### Pump: Activate pump with duration
+# @name activatePump
+POST {{baseUrl}}/pump/activate
+Content-Type: application/json
+
+{
+  "greenhouseId": "{{greenhouseId}}",
+  "duration": 30,
+  "reason": "Manual activation test"
+}
+
+### Pump: Activate pump with water amount
+# @name activatePumpWithAmount
+POST {{baseUrl}}/pump/activate
+Content-Type: application/json
+
+{
+  "greenhouseId": "{{greenhouseId}}",
+  "duration": 60,
+  "waterAmount": 2.5,
+  "reason": "Water amount test - 2.5L"
+}
+
+### Pump: Get pump status
+# @name getPumpStatus
+GET {{baseUrl}}/pump/status/{{greenhouseId}}
+
+### Pump: Stop pump
+# @name stopPump
+POST {{baseUrl}}/pump/stop/{{greenhouseId}}
+
+### Pump: Get pump history
+# @name getPumpHistory
+GET {{baseUrl}}/pump/history/{{greenhouseId}}
+
+### Pump: Get all devices
+# @name getDevices
+GET {{baseUrl}}/pump/devices
+
+### Pump: ESP32 status update (simulating ESP32 calling this endpoint)
+# @name esp32StatusUpdate
+POST {{baseUrl}}/pump/esp32/status
+Content-Type: application/json
+
+{
+  "deviceId": "{{deviceMac}}",
+  "isActive": true,
+  "remainingTime": 25,
+  "waterAmount": 1.2
+}
+
+### Pump: Get device by MAC
+# @name getDeviceByMac
+GET {{baseUrl}}/pump/device/{{deviceMac}}

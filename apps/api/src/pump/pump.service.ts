@@ -1,0 +1,324 @@
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma.service';
+import { ActivatePumpDto, PumpStatusDto, PumpHistoryDto } from './dto/pump.dto';
+import axios from 'axios';
+
+@Injectable()
+export class PumpService {
+  private readonly logger = new Logger(PumpService.name);
+
+  constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Activate water pump for a specific greenhouse
+   */
+  async activatePump(activatePumpDto: ActivatePumpDto): Promise<PumpStatusDto> {
+    const { greenhouseId, duration, waterAmount, reason } = activatePumpDto;
+
+    try {
+      // Check if there's already an active pump operation for this greenhouse
+      const existingOperation = await this.prisma.pumpOperation.findFirst({
+        where: {
+          greenhouseId,
+          status: 'active',
+        },
+      });
+
+      if (existingOperation) {
+        throw new BadRequestException(
+          'Pump is already active for this greenhouse',
+        );
+      }
+
+      // Find ESP32 device for this greenhouse
+      const device = await this.prisma.device.findFirst({
+        where: {
+          greenhouseId,
+          type: 'esp32',
+          isOnline: true,
+        },
+      });
+
+      if (!device || !device.ipAddress) {
+        throw new NotFoundException(
+          'No online ESP32 device found for this greenhouse',
+        );
+      }
+
+      // Create pump operation record
+      const pumpOperation = await this.prisma.pumpOperation.create({
+        data: {
+          greenhouseId,
+          duration,
+          waterAmount,
+          reason: reason || 'manual',
+          status: 'active',
+        },
+      });
+
+      // Send command to ESP32 device
+      const esp32Response = await this.sendPumpCommand(device.ipAddress, {
+        action: 'activate',
+        duration,
+        waterAmount,
+        operationId: pumpOperation.id,
+      });
+
+      // Update operation with ESP32 response
+      await this.prisma.pumpOperation.update({
+        where: { id: pumpOperation.id },
+        data: { esp32Response: JSON.stringify(esp32Response) },
+      });
+
+      this.logger.log(
+        `Pump activated for greenhouse ${greenhouseId}, duration: ${duration}s`,
+      );
+
+      return this.mapToStatusDto(pumpOperation);
+    } catch (error) {
+      this.logger.error(
+        `Failed to activate pump for greenhouse ${greenhouseId}:`,
+        error,
+      );
+
+      // If there was a database record created, mark it as error
+      if (error.pumpOperationId) {
+        await this.prisma.pumpOperation.update({
+          where: { id: error.pumpOperationId },
+          data: {
+            status: 'error',
+            errorMessage: error.message,
+            endedAt: new Date(),
+          },
+        });
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Get current pump status for a greenhouse
+   */
+  async getPumpStatus(greenhouseId: string): Promise<PumpStatusDto | null> {
+    const operation = await this.prisma.pumpOperation.findFirst({
+      where: {
+        greenhouseId,
+        status: 'active',
+      },
+      orderBy: {
+        startedAt: 'desc',
+      },
+    });
+
+    if (!operation) {
+      return null;
+    }
+
+    return this.mapToStatusDto(operation);
+  }
+
+  /**
+   * Stop/cancel an active pump operation
+   */
+  async stopPump(greenhouseId: string): Promise<PumpStatusDto> {
+    const operation = await this.prisma.pumpOperation.findFirst({
+      where: {
+        greenhouseId,
+        status: 'active',
+      },
+    });
+
+    if (!operation) {
+      throw new NotFoundException(
+        'No active pump operation found for this greenhouse',
+      );
+    }
+
+    // Find ESP32 device
+    const device = await this.prisma.device.findFirst({
+      where: {
+        greenhouseId,
+        type: 'esp32',
+        isOnline: true,
+      },
+    });
+
+    if (device && device.ipAddress) {
+      // Send stop command to ESP32
+      try {
+        await this.sendPumpCommand(device.ipAddress, {
+          action: 'stop',
+          operationId: operation.id,
+        });
+      } catch (error) {
+        this.logger.warn(
+          `Failed to send stop command to ESP32: ${error.message}`,
+        );
+      }
+    }
+
+    // Update operation status
+    const updatedOperation = await this.prisma.pumpOperation.update({
+      where: { id: operation.id },
+      data: {
+        status: 'cancelled',
+        endedAt: new Date(),
+      },
+    });
+
+    this.logger.log(`Pump stopped for greenhouse ${greenhouseId}`);
+
+    return this.mapToStatusDto(updatedOperation);
+  }
+
+  /**
+   * Get pump operation history for a greenhouse
+   */
+  async getPumpHistory(
+    greenhouseId: string,
+    limit: number = 50,
+  ): Promise<PumpHistoryDto[]> {
+    const operations = await this.prisma.pumpOperation.findMany({
+      where: { greenhouseId },
+      orderBy: { startedAt: 'desc' },
+      take: limit,
+    });
+    return operations.map((op) => ({
+      id: op.id,
+      greenhouseId: op.greenhouseId,
+      duration: op.duration,
+      waterAmount: op.waterAmount ?? undefined,
+      reason: op.reason ?? undefined,
+      startedAt: op.startedAt,
+      endedAt: op.endedAt ?? undefined,
+      status: op.status as 'active' | 'completed' | 'cancelled' | 'error',
+      errorMessage: op.errorMessage ?? undefined,
+    }));
+  }
+
+  /**
+   * Send HTTP command to ESP32 device
+   */
+  private async sendPumpCommand(
+    esp32IpAddress: string,
+    command: any,
+  ): Promise<any> {
+    const url = `http://${esp32IpAddress}/pump/control`;
+
+    try {
+      this.logger.debug(`Sending pump command to ${url}:`, command);
+
+      const response = await axios.post(url, command, {
+        timeout: 10000, // 10 second timeout
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      this.logger.debug(`ESP32 response:`, response.data);
+      return response.data;
+    } catch (error) {
+      this.logger.error(
+        `Failed to send command to ESP32 at ${url}:`,
+        error.message,
+      );
+      throw new BadRequestException(
+        `Failed to communicate with ESP32 device: ${error.message}`,
+      );
+    }
+  }
+
+  /**
+   * Update pump operation status (called by ESP32 or internal processes)
+   */
+  async updatePumpStatus(
+    operationId: string,
+    status: string,
+    errorMessage?: string,
+  ): Promise<void> {
+    await this.prisma.pumpOperation.update({
+      where: { id: operationId },
+      data: {
+        status,
+        errorMessage,
+        endedAt: status !== 'active' ? new Date() : undefined,
+      },
+    });
+
+    this.logger.log(
+      `Pump operation ${operationId} status updated to: ${status}`,
+    );
+  }
+
+  /**
+   * Register or update ESP32 device information
+   */
+  async registerDevice(deviceInfo: {
+    name: string;
+    greenhouseId: string;
+    ipAddress: string;
+    macAddress: string;
+    firmwareVersion?: string;
+  }): Promise<void> {
+    const { name, greenhouseId, ipAddress, macAddress, firmwareVersion } =
+      deviceInfo;
+
+    await this.prisma.device.upsert({
+      where: { macAddress },
+      update: {
+        name,
+        greenhouseId,
+        ipAddress,
+        firmwareVersion,
+        isOnline: true,
+        lastSeen: new Date(),
+      },
+      create: {
+        name,
+        greenhouseId,
+        ipAddress,
+        macAddress,
+        firmwareVersion,
+        isOnline: true,
+        type: 'esp32',
+        lastSeen: new Date(),
+      },
+    });
+
+    this.logger.log(
+      `Device registered: ${name} (${macAddress}) at ${ipAddress}`,
+    );
+  }
+
+  /**
+   * Map database model to DTO
+   */
+  private mapToStatusDto(operation: any): PumpStatusDto {
+    const now = new Date();
+    const elapsed = Math.floor(
+      (now.getTime() - operation.startedAt.getTime()) / 1000,
+    );
+    const remainingTime = Math.max(0, operation.duration - elapsed);
+    const estimatedEndTime = new Date(
+      operation.startedAt.getTime() + operation.duration * 1000,
+    );
+
+    return {
+      id: operation.id,
+      greenhouseId: operation.greenhouseId,
+      isActive: operation.status === 'active',
+      remainingTime: operation.status === 'active' ? remainingTime : undefined,
+      targetWaterAmount: operation.waterAmount,
+      startedAt: operation.startedAt,
+      estimatedEndTime:
+        operation.status === 'active' ? estimatedEndTime : undefined,
+      reason: operation.reason,
+    };
+  }
+}
