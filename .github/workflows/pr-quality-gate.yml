@@ -1,0 +1,312 @@
+name: 🔍 Pull Request Quality Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '18'
+  PR_SIZE_LIMIT: 1000
+  COMPLEXITY_THRESHOLD: 50
+
+jobs:
+  pr-analysis:
+    name: 📊 Pull Request Analysis
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    outputs:
+      pr-size: ${{ steps.pr-stats.outputs.pr_size }}
+      complexity-score: ${{ steps.pr-stats.outputs.complexity_score }}
+      quality-gate: ${{ steps.quality-gate.outputs.passed }}
+      affected-apps: ${{ steps.affected-analysis.outputs.affected_apps }}
+      has-api-changes: ${{ steps.affected-analysis.outputs.has_api_changes }}
+      has-web-changes: ${{ steps.affected-analysis.outputs.has_web_changes }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📊 Analyze PR statistics
+        id: pr-stats
+        run: |
+          echo "📊 Analyzing Pull Request statistics..."
+
+          # Calculate PR size
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+          ADDED_LINES=$(git diff --shortstat $BASE_SHA..$HEAD_SHA | grep -oE '[0-9]+ insertions' | grep -oE '[0-9]+' || echo "0")
+          DELETED_LINES=$(git diff --shortstat $BASE_SHA..$HEAD_SHA | grep -oE '[0-9]+ deletions' | grep -oE '[0-9]+' || echo "0")
+          CHANGED_FILES=$(git diff --name-only $BASE_SHA..$HEAD_SHA | wc -l)
+
+          PR_SIZE=$((ADDED_LINES + DELETED_LINES))
+
+          echo "pr_size=$PR_SIZE" >> $GITHUB_OUTPUT
+          echo "added_lines=$ADDED_LINES" >> $GITHUB_OUTPUT
+          echo "deleted_lines=$DELETED_LINES" >> $GITHUB_OUTPUT
+          echo "changed_files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+
+          # Calculate complexity score (simple heuristic)
+          COMPLEXITY_SCORE=$(( (PR_SIZE / 100) + (CHANGED_FILES * 2) ))
+          echo "complexity_score=$COMPLEXITY_SCORE" >> $GITHUB_OUTPUT
+
+          # Generate PR statistics summary
+          echo "## 📊 Pull Request Statistics" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Added Lines | $ADDED_LINES |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deleted Lines | $DELETED_LINES |" >> $GITHUB_STEP_SUMMARY
+          echo "| Changed Files | $CHANGED_FILES |" >> $GITHUB_STEP_SUMMARY
+          echo "| Total Size | $PR_SIZE |" >> $GITHUB_STEP_SUMMARY
+          echo "| Complexity Score | $COMPLEXITY_SCORE |" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🎯 Analyze affected workspaces
+        id: affected-analysis
+        run: |
+          echo "🎯 Analyzing affected workspaces..."
+
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+          # Get changed files
+          git diff --name-only $BASE_SHA..$HEAD_SHA > changed_files.txt
+
+          # Check which workspaces are affected
+          API_CHANGES=$(grep -E '^apps/api/' changed_files.txt | wc -l)
+          WEB_CHANGES=$(grep -E '^apps/web/' changed_files.txt | wc -l)
+          PACKAGE_CHANGES=$(grep -E '^packages/' changed_files.txt | wc -l)
+          ROOT_CHANGES=$(grep -E '^(package\.json|turbo\.json|\.github/)' changed_files.txt | wc -l)
+
+          HAS_API_CHANGES=$([[ $API_CHANGES -gt 0 ]] && echo "true" || echo "false")
+          HAS_WEB_CHANGES=$([[ $WEB_CHANGES -gt 0 ]] && echo "true" || echo "false")
+
+          echo "has_api_changes=$HAS_API_CHANGES" >> $GITHUB_OUTPUT
+          echo "has_web_changes=$HAS_WEB_CHANGES" >> $GITHUB_OUTPUT
+
+          # Generate affected apps list
+          AFFECTED_APPS=""
+          [[ $API_CHANGES -gt 0 ]] && AFFECTED_APPS="$AFFECTED_APPS api"
+          [[ $WEB_CHANGES -gt 0 ]] && AFFECTED_APPS="$AFFECTED_APPS web"
+          
+          echo "affected_apps=${AFFECTED_APPS}" >> $GITHUB_OUTPUT
+
+          # Generate workspace impact summary
+          echo "## 🎯 Workspace Impact Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "| Workspace | Files Changed | Impact |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|---------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| API (NestJS) | $API_CHANGES | $([[ $API_CHANGES -gt 0 ]] && echo '🔄 Affected' || echo '✅ No Changes') |" >> $GITHUB_STEP_SUMMARY
+          echo "| Web (Next.js) | $WEB_CHANGES | $([[ $WEB_CHANGES -gt 0 ]] && echo '🔄 Affected' || echo '✅ No Changes') |" >> $GITHUB_STEP_SUMMARY
+          echo "| Packages | $PACKAGE_CHANGES | $([[ $PACKAGE_CHANGES -gt 0 ]] && echo '🔄 Affected' || echo '✅ No Changes') |" >> $GITHUB_STEP_SUMMARY
+          echo "| Root Config | $ROOT_CHANGES | $([[ $ROOT_CHANGES -gt 0 ]] && echo '🔄 Affected' || echo '✅ No Changes') |" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🚦 Quality gate evaluation
+        id: quality-gate
+        run: |
+          echo "🚦 Evaluating quality gates..."
+
+          PR_SIZE="${{ steps.pr-stats.outputs.pr_size }}"
+          COMPLEXITY_SCORE="${{ steps.pr-stats.outputs.complexity_score }}"
+
+          PASSED=true
+
+          # Check PR size
+          if [ "$PR_SIZE" -gt "${{ env.PR_SIZE_LIMIT }}" ]; then
+            echo "⚠️ PR size ($PR_SIZE lines) exceeds limit (${{ env.PR_SIZE_LIMIT }} lines)"
+            PASSED=false
+          else
+            echo "✅ PR size within acceptable limits"
+          fi
+
+          # Check complexity
+          if [ "$COMPLEXITY_SCORE" -gt "${{ env.COMPLEXITY_THRESHOLD }}" ]; then
+            echo "⚠️ PR complexity score ($COMPLEXITY_SCORE) is high - consider breaking into smaller PRs"
+            PASSED=false
+          else
+            echo "✅ PR complexity within acceptable range"
+          fi
+
+          echo "passed=$PASSED" >> $GITHUB_OUTPUT
+
+          if [ "$PASSED" = "true" ]; then
+            echo "## ✅ Quality Gate: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ⚠️ Quality Gate: NEEDS ATTENTION" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  code-quality:
+    name: 🔍 Code Quality Check
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    needs: pr-analysis
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: 🔍 Run linting
+        run: |
+          echo "🔍 Running ESLint..."
+          npm run lint
+
+      - name: 🎨 Check formatting
+        run: |
+          echo "🎨 Checking code formatting..."
+          npm run format:check
+
+      - name: 📝 Type checking
+        run: |
+          echo "📝 Running TypeScript type checking..."
+          npm run check-types
+
+      - name: 🔨 Verify build (affected workspaces only)
+        run: |
+          echo "🔨 Testing build process..."
+          
+          HAS_API_CHANGES="${{ needs.pr-analysis.outputs.has-api-changes }}"
+          HAS_WEB_CHANGES="${{ needs.pr-analysis.outputs.has-web-changes }}"
+          
+          if [[ "$HAS_API_CHANGES" == "true" ]]; then
+            echo "🏗️ Building API workspace..."
+            npm run build --workspace=apps/api
+          fi
+          
+          if [[ "$HAS_WEB_CHANGES" == "true" ]]; then
+            echo "🏗️ Building Web workspace..."
+            npm run build --workspace=apps/web
+          fi
+          
+          if [[ "$HAS_API_CHANGES" == "false" && "$HAS_WEB_CHANGES" == "false" ]]; then
+            echo "✅ No workspace changes detected, skipping build verification"
+          fi
+
+  security-check:
+    name: 🔒 Security & Vulnerability Check
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: 🔒 Security audit
+        run: |
+          echo "🔒 Running comprehensive security audit..."
+
+          # Run npm audit
+          npm audit --audit-level moderate || AUDIT_EXIT_CODE=$?
+
+          # Run audit-ci for detailed analysis
+          npx audit-ci --moderate || AUDIT_CI_EXIT_CODE=$?
+
+          if [ "$AUDIT_EXIT_CODE" -ne 0 ] || [ "$AUDIT_CI_EXIT_CODE" -ne 0 ]; then
+            echo "⚠️ Security vulnerabilities detected"
+            echo "🔧 Please run 'npm audit fix' to address issues"
+            exit 1
+          else
+            echo "✅ No security vulnerabilities found"
+          fi
+
+  file-changes:
+    name: 📋 File Changes Analysis
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📋 Analyze changed files
+        run: |
+          echo "📋 Analyzing file changes..."
+
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+          # Get list of changed files
+          git diff --name-only $BASE_SHA..$HEAD_SHA > changed_files.txt
+
+          # Categorize changes
+          BACKEND_CHANGES=$(grep -E '\.(ts|js|json)$' changed_files.txt | grep -E '^apps/api/' | grep -v test | wc -l)
+          FRONTEND_CHANGES=$(grep -E '\.(ts|tsx|js|jsx|json)$' changed_files.txt | grep -E '^apps/web/' | grep -v test | wc -l)
+          TEST_CHANGES=$(grep -E '\.(spec|test)\.(ts|tsx|js|jsx)$' changed_files.txt | wc -l)
+          CONFIG_CHANGES=$(grep -E '\.(yml|yaml|json|md|dockerfile)$' changed_files.txt | wc -l)
+          SCHEMA_CHANGES=$(grep -E 'schema|model|migration' changed_files.txt | wc -l)
+
+          echo "## 📋 File Changes Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Category | Files Changed |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|---------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend Code | $BACKEND_CHANGES |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend Code | $FRONTEND_CHANGES |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests | $TEST_CHANGES |" >> $GITHUB_STEP_SUMMARY
+          echo "| Configuration | $CONFIG_CHANGES |" >> $GITHUB_STEP_SUMMARY
+          echo "| Schemas/Models | $SCHEMA_CHANGES |" >> $GITHUB_STEP_SUMMARY
+
+          # Check for critical file changes
+          if [ "$SCHEMA_CHANGES" -gt 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Schema/Model changes detected** - ensure database migrations are included" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "$TEST_CHANGES" -eq 0 ] && [ "$BACKEND_CHANGES" -gt 0 -o "$FRONTEND_CHANGES" -gt 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **No test changes** - consider adding tests for new code" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  pr-summary:
+    name: 📝 PR Quality Summary
+    runs-on: ubuntu-latest
+    if: always() && github.event.pull_request.draft == false
+    needs: [pr-analysis, code-quality, security-check, file-changes]
+
+    steps:
+      - name: 📝 Generate PR summary
+        run: |
+          echo "## 🔍 Pull Request Quality Gate Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          # Check results
+          ANALYSIS_STATUS="${{ needs.pr-analysis.result }}"
+          QUALITY_STATUS="${{ needs.code-quality.result }}"
+          SECURITY_STATUS="${{ needs.security-check.result }}"
+          CHANGES_STATUS="${{ needs.file-changes.result }}"
+
+          echo "| PR Analysis | $([[ $ANALYSIS_STATUS == 'success' ]] && echo '✅' || echo '❌') $ANALYSIS_STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Quality | $([[ $QUALITY_STATUS == 'success' ]] && echo '✅' || echo '❌') $QUALITY_STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Check | $([[ $SECURITY_STATUS == 'success' ]] && echo '✅' || echo '❌') $SECURITY_STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "| File Analysis | $([[ $CHANGES_STATUS == 'success' ]] && echo '✅' || echo '❌') $CHANGES_STATUS |" >> $GITHUB_STEP_SUMMARY
+
+          # Overall assessment
+          if [[ "$ANALYSIS_STATUS" == "success" && "$QUALITY_STATUS" == "success" && "$SECURITY_STATUS" == "success" && "$CHANGES_STATUS" == "success" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🎉 **All quality checks passed!**" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Pull request is ready for review." >> $GITHUB_STEP_SUMMARY
+            echo "🔄 **Affected Workspaces**: ${{ needs.pr-analysis.outputs.affected-apps }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Some quality checks need attention**" >> $GITHUB_STEP_SUMMARY
+            echo "🔧 Please address the issues before proceeding with review." >> $GITHUB_STEP_SUMMARY
+          fi

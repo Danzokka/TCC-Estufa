@@ -1,0 +1,320 @@
+name: 🧪 CI - Quality & Build Check
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+env:
+  NODE_VERSION: '18'
+  CACHE_KEY_PREFIX: 'turbo-cache'
+  # Test environment variables
+  JWT_SECRET: test_jwt_secret_key_for_ci_testing
+  DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/portfolio_test"
+  NEXTAUTH_SECRET: test_nextauth_secret_for_ci
+  NEXTAUTH_URL: http://localhost:3000
+
+jobs:
+  lint-and-format:
+    name: 🔍 Lint & Format Check
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: 🎨 Check code formatting
+        run: npm run format:check
+
+      - name: 🔍 Run ESLint
+        run: npm run lint
+
+      - name: 📝 Check TypeScript types
+        run: npm run check-types
+
+  test-unit:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    needs: lint-and-format
+
+    strategy:
+      matrix:
+        workspace: [api, web]
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: 🗄️ Setup test database (API only)
+        if: matrix.workspace == 'api'
+        run: |
+          sudo systemctl start postgresql.service
+          sudo -u postgres createdb portfolio_test || true
+          cd apps/api && npx prisma migrate deploy --schema=./prisma/schema.prisma
+
+      - name: 🧪 Run unit tests
+        run: npm run test:unit --workspace=apps/${{ matrix.workspace }}
+
+      - name: 📊 Generate coverage report
+        run: npm run test:coverage --workspace=apps/${{ matrix.workspace }}
+
+      - name: 📈 Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./apps/${{ matrix.workspace }}/coverage/lcov.info
+          flags: ${{ matrix.workspace }}
+          name: ${{ matrix.workspace }}-coverage
+
+  test-e2e:
+    name: 🔄 E2E Tests
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    needs: lint-and-format
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: portfolio_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: 🗄️ Setup database
+        run: |
+          cd apps/api && npx prisma migrate deploy
+          cd apps/api && npx prisma db seed
+
+      - name: 🏗️ Build applications
+        run: npm run build
+
+      - name: 🔄 Run E2E tests
+        run: npm run test:e2e
+
+  build-check:
+    name: 🔨 Build Verification
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    needs: lint-and-format
+
+    strategy:
+      matrix:
+        workspace: [api, web]
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: 🔨 Build application
+        run: npm run build --workspace=apps/${{ matrix.workspace }}
+
+      - name: ✅ Verify build output
+        run: |
+          if [[ "${{ matrix.workspace }}" == "api" ]]; then
+            if [ ! -d "apps/api/dist" ]; then
+              echo "❌ API build failed - dist directory not found"
+              exit 1
+            fi
+          elif [[ "${{ matrix.workspace }}" == "web" ]]; then
+            if [ ! -d "apps/web/.next" ]; then
+              echo "❌ Web build failed - .next directory not found"
+              exit 1
+            fi
+          fi
+          echo "✅ Build successful for ${{ matrix.workspace }}"
+
+  security-audit:
+    name: 🔒 Security Audit
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: 🔒 Run security audit
+        run: npm audit --audit-level moderate
+
+      - name: 🔍 Run dependency vulnerability check
+        run: npx audit-ci --moderate
+
+  build-docker:
+    name: 🐳 Docker Build Test
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    needs: [lint-and-format, build-check, security-audit]
+
+    strategy:
+      matrix:
+        service: [api, web]
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🐳 Build Docker image (test)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/${{ matrix.service }}
+          push: false
+          load: true
+          tags: portfolio-${{ matrix.service }}:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 🧪 Test Docker image startup
+        run: |
+          echo "🚀 Testing Docker container startup..."
+
+          # Verify image was built
+          if ! docker images | grep -q portfolio-${{ matrix.service }}; then
+            echo "❌ Docker image not found"
+            echo "📋 Available images:"
+            docker images
+            exit 1
+          fi
+
+          # Test container startup based on service type
+          if [[ "${{ matrix.service }}" == "api" ]]; then
+            docker run --rm -d --name test-${{ matrix.service }} \
+              -e NODE_ENV=production \
+              -e PORT=5000 \
+              -e JWT_SECRET=${{ env.JWT_SECRET }} \
+              -e DATABASE_URL=${{ env.DATABASE_URL }} \
+              -p 5000:5000 \
+              portfolio-${{ matrix.service }}:test
+          else
+            docker run --rm -d --name test-${{ matrix.service }} \
+              -e NODE_ENV=production \
+              -e NEXTAUTH_SECRET=${{ env.NEXTAUTH_SECRET }} \
+              -e NEXTAUTH_URL=${{ env.NEXTAUTH_URL }} \
+              -p 3000:3000 \
+              portfolio-${{ matrix.service }}:test
+          fi
+
+          # Wait for container to start
+          sleep 15
+
+          # Check if container is running
+          if ! docker ps | grep -q test-${{ matrix.service }}; then
+            echo "❌ Container failed to start"
+            echo "📋 Container logs:"
+            docker logs test-${{ matrix.service }} || echo "No logs available"
+            echo "📋 Container status:"
+            docker ps -a | grep test-${{ matrix.service }} || echo "Container not found"
+            exit 1
+          fi
+
+          echo "✅ Container started successfully"
+          docker logs test-${{ matrix.service }}
+
+          # Cleanup
+          docker stop test-${{ matrix.service }}
+
+  ci-status:
+    name: ✅ CI Status Check
+    runs-on: ubuntu-latest
+    if: always() && github.event.pull_request.draft == false
+    needs: [lint-and-format, test-unit, test-e2e, build-check, security-audit, build-docker]
+    outputs:
+      ci-passed: ${{ steps.status.outputs.ci_passed }}
+
+    steps:
+      - name: ✅ Evaluate CI Status
+        id: status
+        run: |
+          echo "## 🧪 CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          # Check individual job statuses
+          LINT_STATUS="${{ needs.lint-and-format.result }}"
+          UNIT_STATUS="${{ needs.test-unit.result }}"
+          E2E_STATUS="${{ needs.test-e2e.result }}"
+          BUILD_STATUS="${{ needs.build-check.result }}"
+          SECURITY_STATUS="${{ needs.security-audit.result }}"
+          DOCKER_STATUS="${{ needs.build-docker.result }}"
+
+          echo "| Lint & Format | $([[ $LINT_STATUS == 'success' ]] && echo '✅' || echo '❌') $LINT_STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | $([[ $UNIT_STATUS == 'success' ]] && echo '✅' || echo '❌') $UNIT_STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E Tests | $([[ $E2E_STATUS == 'success' ]] && echo '✅' || echo '❌') $E2E_STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build Check | $([[ $BUILD_STATUS == 'success' ]] && echo '✅' || echo '❌') $BUILD_STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Audit | $([[ $SECURITY_STATUS == 'success' ]] && echo '✅' || echo '❌') $SECURITY_STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Build | $([[ $DOCKER_STATUS == 'success' ]] && echo '✅' || echo '❌') $DOCKER_STATUS |" >> $GITHUB_STEP_SUMMARY
+
+          # Determine overall status
+          if [[ "$LINT_STATUS" == "success" && "$UNIT_STATUS" == "success" && "$E2E_STATUS" == "success" && "$BUILD_STATUS" == "success" && "$SECURITY_STATUS" == "success" && "$DOCKER_STATUS" == "success" ]]; then
+            echo "ci_passed=true" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🎉 **All CI checks passed successfully!**" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Code quality, tests, build, security, and Docker build verified." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "ci_passed=false" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Some CI checks failed:**" >> $GITHUB_STEP_SUMMARY
+            echo "🔧 Please fix the failing checks before proceeding." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
