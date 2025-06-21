@@ -2,20 +2,21 @@
 applyTo: "**"
 ---
 
-# GitHub Copilot Memory Instructions - Portfolio CMS Platform
+# GitHub Copilot Memory Instructions - IoT Greenhouse System
 
 Your documentation is on [memory_mcp](https://github.com/modelcontextprotocol/servers/tree/main/src/memory)
 
 ## System Overview
 
-This is a modern Portfolio CMS platform built with NestJS and Next.js, designed for personal portfolio management with integrated blogging, project showcase, and review system. The system uses a Turborepo monorepo architecture with comprehensive CI/CD pipelines, automated testing, and Docker containerization.
+This is an IoT Greenhouse Monitoring and Control System built with a multi-technology stack: Next.js (web frontend), NestJS (API backend), ESP32 (hardware sensors/actuators), and Python AI/ML (data analysis and predictions). The system provides real-time monitoring, automated control, predictive analytics, and user management for greenhouse operations.
 
 **Key Quality Standards:**
-- 🔒 **Security First**: Branch protection, security scanning, dependency auditing
-- 🧪 **Test-Driven**: Unit tests (≥85% coverage), E2E tests, integration tests
-- 🚀 **CI/CD Excellence**: Automated quality gates, multi-stage deployments
-- 📊 **Monitoring**: Performance tracking, error monitoring, audit trails
-- 🏗️ **Architecture**: Monorepo with workspace isolation and smart caching
+
+- 🌱 **IoT-First**: Real-time sensor data, hardware integration, edge computing
+- 🔒 **Security**: Authentication, API security, device security, data encryption
+- 🤖 **AI-Driven**: Machine learning predictions, pattern recognition, automation
+- 📊 **Data-Rich**: Time-series data, analytics, reporting, insights
+- 🏗️ **Microservices**: Monorepo with specialized services and clear boundaries
 
 Follow these steps for each prompt called:
 
@@ -25,46 +26,55 @@ If this is the first interaction, initialize your memory with these core entitie
 
 ### Core System Entities
 
-- **Portfolio_CMS_System**: Main portfolio management platform
-- **Portfolio_CMS_CI_CD_System**: Comprehensive CI/CD infrastructure with quality gates
+- **IoT_Greenhouse_System**: Main greenhouse monitoring and control platform
+- **Greenhouse_CI_CD_System**: CI/CD infrastructure with multi-platform builds
 - **User_Developer**: The developer working on this system
 - **Conversation_Context**: Current session context
 - **Knowledge_Graph**: Technical knowledge repository
 
-### Portfolio Domain Entities
+### IoT Domain Entities
 
-- **User_Entity**: Portfolio users with rich profiles, specialties, and social links
-- **Project_Entity**: Portfolio projects with technologies, types, status, and timelines
-- **Post_Entity**: Blog posts with content, tags, comments, and likes
-- **Review_Entity**: Reviews for projects or general portfolio feedback
+- **Greenhouse_Entity**: Physical greenhouse with location, configuration, and status
+- **Plant_Entity**: Plants being monitored with species, growth stages, and requirements
+- **Sensor_Entity**: Hardware sensors (temperature, humidity, soil moisture, flow, etc.)
+- **User_Entity**: System users with roles (admin, operator, viewer) and greenhouse access
+- **Blog_Entity**: Content management for greenhouse-related posts and documentation
 
 ### Technical Architecture Entities
 
-- **Monorepo_Structure**: Turborepo with apps/web (Next.js) and apps/api (NestJS)
-- **Docker_Infrastructure**: Multi-stage containerization for dev, staging, and production
-- **Database_Layer**: Prisma ORM with PostgreSQL and rich relational models
-- **Authentication_System**: JWT + NextAuth integration with role-based access
-- **Testing_Infrastructure**: Comprehensive test suites with coverage enforcement
-- **Security_System**: CodeQL scanning, dependency auditing, container security
+- **Monorepo_Structure**: Turborepo with apps/web (Next.js), apps/api (NestJS), apps/esp (ESP32), apps/ai (Python)
+- **Docker_Infrastructure**: Containerized services for development and production
+- **Database_Layer**: Prisma ORM with PostgreSQL for relational data and time-series optimization
+- **Authentication_System**: JWT authentication with role-based access control
+- **Hardware_Layer**: ESP32 microcontrollers, sensors, actuators, and communication protocols
+- **AI_ML_System**: Python-based machine learning for predictions and insights
 
-### Content Management Entities
+### IoT Hardware Entities
 
-- **Blog_System**: Full-featured blogging with tags, comments, and likes
-- **Media_Management**: File upload system for project images and assets
-- **Admin_System**: Administrative controls with role-based permissions
+- **ESP32_Sensors**: Temperature, humidity, soil moisture, light, pH, and flow sensors
+- **ESP32_Actuators**: Water pumps, fans, heaters, LED grow lights, and servo motors
+- **Communication_Protocols**: WiFi, MQTT, HTTP, and serial communication
+- **Power_Management**: Battery backup, solar integration, and power optimization
 
-### CI/CD & Quality Entities
+### Data Management Entities
 
-- **Quality_Gates**: PR analysis, complexity scoring, automated code review
-- **Test_Automation**: Unit tests (≥85% coverage), E2E tests, integration tests
-- **Security_Scanning**: Automated vulnerability detection and compliance
-- **Performance_Monitoring**: Build optimization, caching strategies, metrics tracking
+- **Sensor_Data_System**: Real-time data collection, storage, and time-series analysis
+- **Alert_System**: Threshold-based alerts and notifications
+- **Control_System**: Automated responses and manual control interfaces
+- **Reporting_System**: Analytics, insights, and data visualization
+
+### AI/ML Entities
+
+- **Prediction_Models**: LSTM models for environmental forecasting
+- **Pattern_Recognition**: Growth pattern analysis and anomaly detection
+- **Optimization_Algorithms**: Resource usage optimization and scheduling
+- **Data_Analysis**: Statistical analysis and trend identification
 
 ## 2. Memory Retrieval
 
 - Always begin by saying "Remembering..." and retrieve relevant system context
-- Reference your technical knowledge as "memory" about the portfolio CMS architecture
-- Prioritize recent system changes and ongoing development patterns
+- Reference your technical knowledge as "memory" about the IoT greenhouse architecture
+- Prioritize recent system changes, sensor readings, and automation patterns
 
 ## 3. Technical Memory Categories
 
@@ -72,61 +82,62 @@ Monitor and store information about:
 
 ### a) System Architecture
 
-- Turborepo monorepo structure with apps/web and apps/api
-- Next.js 15+ App Router patterns with Server Components
-- NestJS modular architecture with domain-driven design and event emitters
-- Prisma ORM for database interactions with PostgreSQL
-- NextAuth for authentication with JWT and role-based access control
-- Docker multi-stage builds with development, staging, and production environments
+- Turborepo monorepo structure with apps/web, apps/api, apps/esp, and apps/ai
+- Next.js 15+ App Router with real-time dashboard and PWA capabilities
+- NestJS modular architecture with IoT-specific modules (sensor, plant, greenhouse)
+- ESP32 firmware with sensor libraries and communication protocols
+- Python AI/ML services with TensorFlow/PyTorch and data processing pipelines
+- Prisma ORM with PostgreSQL optimized for time-series data and relationships
 
-### b) CI/CD & Quality Infrastructure
+### b) IoT Hardware & Communication
 
-- **GitHub Actions Workflows**: portfolio-ci.yml, pr-quality-gate.yml, deploy.yml, cleanup.yml
-- **Quality Gates**: PR size analysis, complexity scoring, code review automation
-- **Testing Strategy**: Unit tests (Jest), E2E tests (Playwright), integration tests
-- **Security Scanning**: CodeQL analysis, dependency auditing, container scanning
-- **Branch Protection**: Required status checks, review requirements, merge restrictions
-- **Performance Optimization**: Turborepo caching, Docker layer optimization
-- **Automated Deployments**: Staging and production with health checks and rollback
+- **ESP32 Development**: PlatformIO configuration, sensor libraries, and firmware updates
+- **Sensor Integration**: Calibration, data validation, and error handling
+- **Communication Protocols**: MQTT broker setup, WiFi configuration, and data transmission
+- **Hardware Reliability**: Watchdog timers, error recovery, and fault tolerance
+- **Power Management**: Deep sleep modes, battery monitoring, and solar integration
+- **Over-the-Air Updates**: Firmware deployment and version management
 
-### c) Testing & Quality Assurance
+### c) Data Pipeline & Analytics
 
-- **Unit Testing**: Jest with ≥85% coverage requirement across all workspaces
-- **E2E Testing**: Playwright for critical user flows and UI interactions
-- **Integration Testing**: API endpoint testing and database interaction validation
-- **Code Quality**: ESLint, Prettier, TypeScript strict mode enforcement
-- **Security Testing**: Automated vulnerability scanning and compliance checks
-- **Performance Testing**: Build time optimization and runtime performance monitoring
+- **Real-time Data**: WebSocket connections, live dashboards, and streaming data
+- **Time-series Storage**: Efficient database design for sensor data and historical analysis
+- **Data Processing**: Preprocessing, cleaning, and validation pipelines
+- **ML Predictions**: Model training, inference, and continuous learning
+- **Visualization**: Charts, graphs, and interactive dashboards
+- **Alerts & Notifications**: Threshold monitoring and automated responses
 
-### d) Data Models & Relationships
+### d) User Interface & Experience
 
-- Core entities: User, Project, Post, Review, Technology, Tag, Comment, Like
-- Rich user profiles with specialties, technologies, and social links
-- Project management with technologies, types, status tracking, and timelines
-- Blog system with tagging, commenting, and liking functionality
+- **Dashboard Design**: Real-time monitoring, control panels, and responsive design
+- **Mobile Optimization**: PWA features, offline capabilities, and touch interfaces
+- **Data Visualization**: Interactive charts, graphs, and sensor readings
+- **Control Interfaces**: Manual overrides, scheduling, and automation settings
+- **User Management**: Role-based access, greenhouse permissions, and audit logs
 
-### e) API Patterns
+### e) API Patterns & Integration
 
-- RESTful endpoints with NestJS controllers and services
-- JWT authentication with AuthGuard and AdminGuard
-- Request/response patterns with DTOs and validation
-- File upload system for project images and media
-- Error handling and logging strategies
+- **RESTful APIs**: Sensor data endpoints, control commands, and status queries
+- **Real-time APIs**: WebSocket connections and Server-Sent Events
+- **Authentication**: JWT with device authentication and API key management
+- **Data Validation**: Sensor data verification and anomaly detection
+- **External Integrations**: Weather APIs, notification services, and cloud storage
 
-### f) Development Patterns
+### f) AI/ML & Automation
 
-- Service-Controller-Module organization in NestJS
-- Server actions and API routes in Next.js
-- Prisma ORM patterns with relations and transactions
-- Component composition with Shadcn UI and Tailwind CSS
-- Test-driven development with comprehensive coverage
+- **Predictive Models**: Environmental forecasting and plant growth predictions
+- **Automation Rules**: Condition-based actions and scheduling systems
+- **Pattern Recognition**: Anomaly detection and trend analysis
+- **Optimization**: Resource usage optimization and energy efficiency
+- **Continuous Learning**: Model retraining and performance monitoring
 
-### g) Business Logic
+### g) Business Logic & Domain
 
-- Role-based access control (regular users vs admins)
-- Project lifecycle management with status tracking
-- Content publishing workflow for posts (draft → published)
-- Review system supporting both project-specific and general portfolio reviews
+- **Greenhouse Operations**: Multi-greenhouse support, zone management, and crop rotation
+- **Plant Management**: Species-specific care, growth tracking, and harvest planning
+- **User Roles**: Admin, operator, and viewer permissions with greenhouse access
+- **Maintenance Scheduling**: Equipment maintenance, calibration, and replacement tracking
+- **Reporting & Analytics**: Performance metrics, yield analysis, and cost tracking
 
 ## 4. Memory Update Strategy
 
@@ -134,43 +145,43 @@ When new information is encountered:
 
 ### a) Technical Entities
 
-- Create entities for new modules, services, or components
-- Document new API endpoints and their purposes
-- Record new integration patterns or external services
-- Store performance optimization techniques
-- Track CI/CD pipeline improvements and workflow updates
+- Create entities for new sensors, actuators, or hardware components
+- Document new communication protocols and integration patterns
+- Record new ML models, algorithms, and prediction accuracy
+- Store automation rules and their performance metrics
+- Track firmware updates and hardware configuration changes
 
-### b) Quality & Testing Entities
+### b) Data & Analytics Entities
 
-- Document new test patterns and coverage improvements
-- Record quality gate configurations and thresholds
-- Store security scanning results and remediation strategies
-- Track performance benchmarks and optimization outcomes
-- Monitor deployment success rates and rollback procedures
+- Document new data processing pipelines and analytics methods
+- Record sensor calibration data and accuracy improvements
+- Store successful automation patterns and their outcomes
+- Track system performance metrics and optimization results
+- Monitor prediction accuracy and model performance over time
 
-### c) Business Rules
+### c) IoT Operations & Automation
 
-- Document project categorization and technology tagging
-- Record user profile management and authentication flows
-- Store content publishing and moderation workflows
-- Track review and feedback management patterns
-- Monitor admin dashboard usage and feature adoption
+- Document greenhouse operation patterns and automation rules
+- Record successful control strategies and their effectiveness
+- Store environmental optimization techniques and results
+- Track equipment maintenance schedules and procedures
+- Monitor energy usage patterns and efficiency improvements
 
 ### d) System Relationships
 
-- Connect new components to existing architecture
-- Map data flow between frontend and backend services
-- Document dependency relationships between modules
-- Record configuration dependencies and environment variables
-- Track CI/CD workflow dependencies and trigger conditions
+- Connect sensor data to plant health and growth patterns
+- Map environmental conditions to automation responses
+- Document hardware dependencies and communication protocols
+- Record configuration relationships between services
+- Track data flow between ESP32, API, web interface, and AI services
 
 ### e) Development Context
 
-- Store recent code changes and their motivations
-- Record debugging sessions and solutions found
-- Document refactoring decisions and architectural evolution
-- Track testing strategies and coverage improvements
-- Monitor performance impacts of code changes
+- Store recent hardware changes and firmware updates
+- Record debugging sessions for sensor or connectivity issues
+- Document calibration procedures and accuracy improvements
+- Track AI model training sessions and performance metrics
+- Monitor system performance and optimization opportunities
 
 ## 5. Contextual Observations
 
@@ -178,117 +189,118 @@ Always maintain observations about:
 
 ### System State
 
-- Current development focus areas
-- Recent bug fixes and their root causes
-- Performance optimization opportunities
-- UI/UX improvements and user feedback
-- CI/CD pipeline health and execution times
+- Current sensor readings and environmental conditions
+- Recent automation actions and their effectiveness
+- Hardware status and connectivity health
+- AI model predictions and accuracy trends
+- User interaction patterns with the system
 
 ### Code Quality
 
-- Consistent error handling patterns across modules
-- Proper validation strategies for forms and APIs
-- Authentication and authorization implementation
-- Testing coverage and quality patterns
-- Security compliance and vulnerability management
+- Consistent error handling across all services (ESP32, API, web, AI)
+- Proper data validation for sensor readings and user inputs
+- Authentication and authorization for device and user access
+- Testing coverage for hardware interfaces and ML models
+- Security compliance for IoT devices and data transmission
 
 ### Development Operations
 
-- Build performance and optimization opportunities
-- Test execution times and reliability
-- Deployment success rates and rollback frequency
-- Resource utilization and scaling needs
-- Monitoring and alerting effectiveness
+- Build performance across multiple platforms (ESP32, Node.js, Python)
+- Hardware deployment and OTA update success rates
+- AI model training and inference performance
+- Database query optimization for time-series data
+- Monitoring and alerting for system health and anomalies
 
 ### Business Requirements
 
-- Portfolio presentation and showcase needs
-- Content management and publishing workflows
-- User engagement features (comments, likes, reviews)
-- Admin dashboard and moderation capabilities
-- Analytics and reporting requirements
+- Real-time monitoring and control capabilities
+- Predictive analytics and automation intelligence
+- Multi-user access with appropriate permissions
+- Maintenance scheduling and equipment tracking
+- Reporting and analytics for greenhouse operations
 
-## 6. CI/CD Workflow Patterns
+## 6. IoT System Workflow Patterns
 
 Document and maintain knowledge about:
 
-### Workflow Architecture
+### Data Flow Architecture
 
-- **portfolio-ci.yml**: Main CI pipeline with lint, test, build, and security checks
-- **pr-quality-gate.yml**: PR analysis with size limits, complexity scoring, and impact analysis
-- **deploy.yml**: Automated deployment to staging and production with health checks
-- **cleanup.yml**: Maintenance workflow for cache cleanup and resource optimization
+- **Sensor Data Collection**: ESP32 → MQTT/HTTP → NestJS API → Database
+- **Real-time Updates**: WebSocket connections for live dashboard updates
+- **AI Analysis Pipeline**: Historical data → Python ML models → Predictions → Actions
+- **Control Commands**: Web interface → API → ESP32 actuators → Physical changes
 
-### Quality Standards
+### Hardware Management
 
-- **Code Quality**: ESLint, Prettier, TypeScript strict mode with error blocking
-- **Test Coverage**: Minimum 85% coverage requirement across all workspaces
-- **Security**: CodeQL analysis, dependency audit, container vulnerability scanning
-- **Performance**: Build time monitoring, cache hit rates, bundle size tracking
+- **Device Registration**: ESP32 authentication and configuration management
+- **Firmware Updates**: OTA deployment with version control and rollback
+- **Sensor Calibration**: Automated and manual calibration procedures
+- **Fault Tolerance**: Watchdog timers, error recovery, and graceful degradation
 
-### Branch Protection
+### Automation Patterns
 
-- **Required Status Checks**: All CI jobs must pass before merge
-- **Review Requirements**: Code review mandatory for main and develop branches
-- **Merge Restrictions**: Squash merging preferred, linear history maintained
-- **Protection Rules**: Dismiss stale reviews, require up-to-date branches
+- **Threshold-based Actions**: Temperature, humidity, soil moisture triggers
+- **Scheduled Operations**: Watering schedules, lighting cycles, maintenance tasks
+- **Predictive Controls**: ML-driven preemptive actions based on forecasts
+- **Manual Overrides**: User-initiated actions and emergency controls
 
-### Testing Strategy
+### Data Management
 
-- **Unit Tests**: Jest with mocking strategies for isolated component testing
-- **Integration Tests**: API endpoint testing with database interactions
-- **E2E Tests**: Playwright for critical user journeys and UI workflows
-- **Security Tests**: Automated vulnerability scanning and compliance validation
+- **Time-series Storage**: Efficient storage and retrieval of sensor data
+- **Data Aggregation**: Hourly, daily, and weekly summaries for analysis
+- **Backup and Recovery**: Data protection and disaster recovery procedures
+- **Privacy and Security**: Data encryption and access control
 
-### Deployment Pipeline
+### User Experience
 
-- **Staging Environment**: Auto-deploy on develop branch with smoke tests
-- **Production Deployment**: Manual approval gate with comprehensive health checks
-- **Rollback Strategy**: Automated rollback on health check failures
-- **Blue-Green Deployment**: Zero-downtime deployments with traffic switching
+- **Dashboard Design**: Real-time widgets, charts, and control interfaces
+- **Mobile Optimization**: Responsive design and PWA capabilities
+- **Notification System**: Alerts, warnings, and status updates
+- **Role-based Access**: Different interfaces for admins, operators, and viewers
 
-### Monitoring & Observability
+### AI/ML Pipeline
 
-- **Build Metrics**: Execution time, success rates, resource utilization
-- **Test Metrics**: Coverage trends, flaky test detection, execution performance
-- **Deployment Metrics**: Success rates, rollback frequency, deployment duration
-- **Security Metrics**: Vulnerability detection, dependency freshness, compliance status
+- **Data Preprocessing**: Cleaning, normalization, and feature engineering
+- **Model Training**: LSTM models for environmental prediction
+- **Inference Engine**: Real-time predictions and pattern recognition
+- **Continuous Learning**: Model updates based on new data and performance
 
 ## 7. Relationship Patterns
 
 Maintain these key relationships in memory:
 
-- **User** `has_profile` **UserProfile** (with specialties, technologies, social links)
-- **User** `creates` **Project** (portfolio project ownership)
-- **User** `writes` **Post** (blog content authorship)
-- **User** `submits` **Review** (feedback on projects or portfolio)
-- **Project** `uses` **Technology** (many-to-many project technologies)
-- **Project** `belongs_to` **ProjectType** (categorization of projects)
-- **Project** `has` **Review** (project-specific feedback)
-- **Post** `tagged_with` **Tag** (content categorization)
-- **Post** `receives` **Comment** (user engagement)
-- **Post** `receives` **Like** (user appreciation)
-- **User** `specializes_in` **Especiality** (areas of expertise)
-- **User** `knows` **Technology** (skill associations)
-- **System** `supports` **AdminAccess** (role-based permissions)
-- **Database** `stores` **MediaFiles** (project images and assets)
+- **Greenhouse** `contains` **Plant** (greenhouse plant inventory)
+- **Plant** `monitored_by` **Sensor** (plant-specific sensor assignments)
+- **Sensor** `generates` **SensorData** (time-series data relationships)
+- **User** `manages` **Greenhouse** (user access and permissions)
+- **User** `creates` **Blog** (content management for greenhouse documentation)
+- **SensorData** `triggers` **Automation** (condition-based actions)
+- **AI_Model** `analyzes` **SensorData** (predictive analytics)
+- **ESP32_Device** `hosts` **Sensor** (hardware sensor mapping)
+- **Automation** `controls` **Actuator** (automated responses)
+- **Alert** `notifies` **User** (threshold-based notifications)
+- **Report** `summarizes` **GrowthData** (analytics and insights)
+- **MaintenanceTask** `schedules` **Equipment** (maintenance tracking)
 
-This memory framework ensures comprehensive understanding of the portfolio CMS platform's technical architecture, business logic, and development patterns, enabling more effective code assistance and architectural guidance.
+This memory framework ensures comprehensive understanding of the IoT greenhouse system's technical architecture, hardware integration, automation logic, and development patterns, enabling more effective assistance with sensor programming, data analysis, automation design, and system optimization.
 
 ## Additional Memory Context
 
-### Quality Assurance Excellence
+### IoT Excellence Standards
 
-- **Test-Driven Development**: All new features require tests before implementation
-- **Coverage Enforcement**: Automated blocking of PRs below 85% test coverage
-- **Quality Gates**: Multi-dimensional PR analysis including size, complexity, and impact
-- **Security First**: Proactive vulnerability scanning and dependency auditing
+- **Real-time Performance**: Sub-second response times for critical alerts and controls
+- **Hardware Reliability**: 99.9% uptime with fault tolerance and automatic recovery
+- **Data Integrity**: Validated sensor readings with anomaly detection and correction
+- **Security First**: Device authentication, encrypted communication, and secure APIs
+- **Scalability**: Support for multiple greenhouses and hundreds of sensors
 
-### CI/CD Best Practices
+### Development Best Practices
 
-- **Workspace Isolation**: Turborepo enables efficient testing of only affected packages
-- **Smart Caching**: Aggressive caching strategies for faster build and test execution
-- **Progressive Deployment**: Staging → production pipeline with comprehensive validation
+- **Hardware Abstraction**: Clean interfaces between firmware and higher-level services
+- **Microservice Architecture**: Independent services for different system components
+- **Test-Driven Development**: Comprehensive testing including hardware-in-the-loop testing
+- **Continuous Integration**: Multi-platform builds and automated deployment pipelines
+- **Documentation**: Comprehensive documentation for setup, configuration, and maintenance
 - **Automated Rollback**: Health check failures trigger automatic rollback procedures
 
 ### Development Workflow Integration

@@ -1,0 +1,136 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement for the IoT Greenhouse System
+title: "[FEATURE] "
+labels: ["enhancement", "needs-triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please provide as much detail as possible to help us understand your request.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of the system would this feature affect?
+      options:
+        - Web Frontend (Next.js)
+        - API Backend (NestJS)
+        - AI Service (Python/PyTorch)
+        - ESP32 Firmware
+        - Database Schema
+        - CI/CD Pipeline
+        - Docker/Infrastructure
+        - Documentation
+        - Mobile PWA
+        - Admin Dashboard
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Low - Nice to have
+        - Medium - Would improve workflow
+        - High - Critical for project success
+        - Urgent - Blocking current work
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Description
+      description: What problem does this feature solve? What's the current pain point?
+      placeholder: Describe the problem or limitation you're experiencing
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: What would you like to happen? How should this feature work?
+      placeholder: Describe your proposed solution in detail
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative solutions or workarounds?
+      placeholder: Describe any alternative solutions you've thought about
+
+  - type: textarea
+    id: benefits
+    attributes:
+      label: Benefits
+      description: What are the expected benefits of this feature?
+      placeholder: |
+        - Improved user experience
+        - Better performance
+        - Reduced development time
+        - Enhanced security
+        - etc.
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: What specific requirements must be met for this feature to be considered complete?
+      placeholder: |
+        - [ ] User can...
+        - [ ] System should...
+        - [ ] API endpoint returns...
+        - [ ] Tests are written for...
+
+  - type: textarea
+    id: technical-considerations
+    attributes:
+      label: Technical Considerations
+      description: Any technical details, constraints, or implementation notes?
+      placeholder: |
+        - Database schema changes needed
+        - API changes required
+        - Breaking changes introduced
+        - Performance impact
+        - Security considerations
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Mockups/Examples
+      description: If applicable, add mockups, screenshots, or examples
+      placeholder: Paste mockups, links to similar features, or example code here
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Are you willing to contribute to this feature?
+      options:
+        - label: I can help with design/planning
+        - label: I can help with frontend implementation
+        - label: I can help with backend implementation
+        - label: I can help with testing
+        - label: I can help with documentation
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm you have completed these steps
+      options:
+        - label: I have searched existing issues and PRs to avoid duplicates
+          required: true
+        - label: I have provided a clear and descriptive title
+          required: true
+        - label: I have described the problem and proposed solution clearly
+          required: true
+        - label: This feature aligns with the project's goals and scope
+          required: true

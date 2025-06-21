@@ -1,11 +1,11 @@
 ---
 applyTo: "apps/web/**/*.{ts,tsx,js,jsx}"
-tools: ["fetch", "get-library-docs "]
 ---
 
-# Frontend Development Guidelines - Next.js + React
+# Frontend Development Guidelines - IoT Greenhouse System
 
 ## Links
+
 - [Next.js Documentation](https://nextjs.org/docs)
 - [React Documentation](https://react.dev/)
 - [TypeScript Documentation](https://www.typescriptlang.org/docs/)
@@ -15,67 +15,260 @@ tools: ["fetch", "get-library-docs "]
 - [React Query Documentation](https://tanstack.com/query/latest/docs/framework/react/overview)
 - [Next.js Project Structure](https://nextjs.org/docs/app/getting-started/project-structure)
 - [Next Auth Documentation](https://next-auth.js.org/getting-started/introduction)
+- [Chart.js Documentation](https://www.chartjs.org/docs/latest/)
+- [WebSocket API Documentation](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket)
 
 ## Tech Stack
 
-- Next.js 15+ com App Router (NUNCA use pages router)
-- React 19+ com Server Components
-- TypeScript com interfaces (não types)
-- Tailwind CSS + Shadcn UI + Magic UI
-- React Query (TanStack Query) para data fetching no client side
-- Next Auth para autenticação
+- Next.js 15+ with App Router (NEVER use pages router)
+- React 19+ with Server Components
+- TypeScript with interfaces (not types)
+- Tailwind CSS + Shadcn UI + Magic UI for styling
+- React Query (TanStack Query) for data fetching on client side
+- Next Auth for authentication and role-based access
+- Chart.js or Recharts for data visualization
+- WebSocket for real-time sensor data
+- PWA capabilities for mobile greenhouse monitoring
 
-## Estrutura e Padrões
+## Project Architecture
 
-- Siga a estrutura de diretórios do Next.js App Router assim como esta no link
-- Use nomes de diretórios em lowercase com hífens (ex: `components/auth-wizard`)
-- Prefira named exports para componentes
-- Server Actions ficara na pasta `src/server/actions`
-- Use `src` como raiz do código fonte
-- Todos componentes usados apenas pela pagina em si ficara na pasta dele em uma pasta `_components` (ex: `src/app/projects/_components/ProjectCard.tsx`)
-- Todas as funcoes de lib usados apenas por ele, ficara na pasta dele em uma pasta `_lib` (ex: `src/app/projects/_lib/format.ts`)
-- Use `src/server/actions` para server actions que buscam dados
-- Use `src/server/actions` para server actions que executam ações (ex: criar, atualizar, deletar)
-- Use `src/server/actions` para server actions que executam ações de autenticação (ex: login, logout)
-- Use `src/server/functions` para funções utilitárias do servidor que não são server actions
-- Use `src/server/middleware` para middlewares do Next.js
-- Todas as rotas deverão ter um `layout.tsx` para definir o layout da página, podendo ser root ou apenas implementando do layout geral.
-- Rotas protegidas serão protegidas inicialmente no layout da rota.
+This is an IoT Greenhouse Monitoring and Control System with:
 
-### Componentes
+- **Real-time Dashboard**: Live sensor readings, charts, and controls
+- **Greenhouse Management**: Multi-greenhouse support with zone controls
+- **Plant Monitoring**: Species-specific tracking and care schedules
+- **Automation Control**: Threshold-based and scheduled automations
+- **User Management**: Role-based access (admin, operator, viewer)
+- **Analytics & Reporting**: Historical data analysis and insights
+- **Mobile-First Design**: Responsive PWA for on-the-go monitoring
 
-- Use functional components com TypeScript interfaces
-- Prefira React Server Components quando possível
-- Use 'use client' apenas quando necessário (interações, hooks, browser APIs)
-- Implemente componentes responsivos mobile-first
-- Use React.memo para evitar re-renders desnecessários
+## Directory Structure & Patterns
 
-### Data Fetching
+### Core Structure
 
-- Qualquer requisição de dados deve ser feita com server actions
-- Use server actions para buscar dados, NÃO use API routes
-- Implemente axios para a minha api interna do NestJS
-- Use fetch cacheando caso não seja uma api do NestJS
-- Implemente React Query para cache e sincronização no client side
-- Use Suspense boundaries com fallbacks apropriados
-- Prefira uncontrolled components com react-hook-form
+```
+apps/web/src/
+├── app/                     # Next.js App Router pages
+│   ├── (dashboard)/         # Main dashboard layout group
+│   │   ├── dashboard/       # Real-time dashboard
+│   │   ├── greenhouses/     # Greenhouse management
+│   │   ├── plants/          # Plant monitoring
+│   │   ├── automation/      # Automation controls
+│   │   └── analytics/       # Data analysis & reports
+│   ├── (auth)/             # Authentication layout group
+│   ├── api/                # API routes (minimal use)
+│   └── globals.css         # Global styles
+├── components/             # Shared components
+│   ├── ui/                 # Shadcn UI components
+│   ├── charts/             # Chart components
+│   ├── dashboard/          # Dashboard widgets
+│   ├── forms/              # Form components
+│   └── layout/             # Layout components
+├── hooks/                  # Custom React hooks
+├── lib/                    # Utility functions
+├── types/                  # TypeScript type definitions
+└── context/                # React context providers
+```
 
-### Styling
+### Naming Conventions
 
-- Use Tailwind CSS com abordagem mobile-first
-- Implemente design system com Shadcn UI
-- Use cn() utility para concatenar classes condicionalmente
+- Use lowercase with hyphens for directories: `sensor-data`, `greenhouse-controls`
+- Components use PascalCase: `SensorWidget.tsx`, `TemperatureChart.tsx`
+- Page-specific components go in `_components`: `src/app/dashboard/_components/`
+- Page-specific utilities go in `_lib`: `src/app/analytics/_lib/`
 
-### Performance
+### Component Organization
 
-- Minimize bundle size com dynamic imports
-- Use Next.js Image component para otimização
-- Implemente loading states e skeleton screens
-- Use `useMemo`, `useCallback` para otimizações
+- **Server Actions**: Use `src/server/actions` for all data operations
+- **Real-time Data**: WebSocket hooks in `src/hooks/useWebSocket.ts`
+- **Charts & Visualization**: Dedicated components in `src/components/charts/`
+- **Authentication**: Protected routes use layout-level authentication
+- **PWA**: Service worker and manifest configuration
 
-### Formulários
+## IoT-Specific Component Patterns
 
-- Use react-hook-form com uncontrolled components
-- Implemente validação com Zod schemas
-- Use defaultValues para evitar re-renders
-- Integre com TypeScript para type safety
+### Real-time Data Components
+
+```typescript
+// Sensor data display with live updates
+interface SensorWidgetProps {
+  sensorId: string;
+  sensorType: "temperature" | "humidity" | "soil_moisture" | "light";
+  threshold?: { min: number; max: number };
+  showChart?: boolean;
+}
+
+// Use WebSocket for real-time updates
+const useSensorData = (sensorId: string) => {
+  // Implementation with WebSocket connection
+};
+```
+
+### Dashboard Components
+
+- **Sensor Widgets**: Real-time sensor readings with status indicators
+- **Chart Components**: Time-series data visualization
+- **Control Panels**: Actuator controls with confirmation dialogs
+- **Alert Banners**: Threshold violations and system alerts
+- **Status Indicators**: Connectivity, battery, and system health
+
+### Data Fetching for IoT
+
+#### Server Actions for Data
+
+```typescript
+// Server actions for greenhouse data
+"use server";
+
+export async function getGreenhouseData(id: string) {
+  // Fetch from NestJS API with proper error handling
+}
+
+export async function getSensorReadings(sensorId: string, timeRange: string) {
+  // Time-series data with pagination
+}
+
+export async function triggerAutomation(automationId: string) {
+  // Control actions with confirmation
+}
+```
+
+#### Real-time Updates
+
+- Use WebSocket connections for live sensor data
+- Implement React Query for server state management
+- Use optimistic updates for control actions
+- Handle connection drops gracefully
+
+### Mobile-First IoT Interface
+
+#### Responsive Design
+
+- **Dashboard Layout**: Grid system that adapts to screen size
+- **Touch-Friendly Controls**: Large buttons for actuator controls
+- **Swipe Gestures**: Navigate between greenhouse zones
+- **Offline Capabilities**: Show cached data when connection is lost
+
+#### PWA Features
+
+- **Push Notifications**: Critical alerts and threshold violations
+- **Home Screen Installation**: Quick access to greenhouse monitoring
+- **Offline Support**: Cache essential data and controls
+- **Background Sync**: Update data when connection is restored
+
+### Performance Optimizations
+
+#### Data Visualization
+
+- **Chart Performance**: Use canvas-based charts for large datasets
+- **Data Aggregation**: Show hourly/daily summaries for historical data
+- **Lazy Loading**: Load chart data on demand
+- **Memory Management**: Clean up WebSocket connections properly
+
+#### Real-time Updates
+
+- **Throttling**: Limit update frequency to prevent UI flooding
+- **Selective Updates**: Only update changed sensor values
+- **Background Processing**: Use Web Workers for data processing
+- **Connection Management**: Implement reconnection logic
+
+### Security & Authentication
+
+#### IoT-Specific Security
+
+- **Device Authentication**: Secure API keys for ESP32 devices
+- **Role-Based Access**: Different permissions for greenhouse operations
+- **Audit Logging**: Track all control actions and configuration changes
+- **Rate Limiting**: Prevent abuse of control endpoints
+
+#### User Experience
+
+- **Multi-Factor Authentication**: Enhanced security for admin users
+- **Session Management**: Handle long-running monitoring sessions
+- **Emergency Access**: Quick access for critical situations
+- **Guest Mode**: Read-only access for visitors
+
+### Error Handling & Reliability
+
+#### IoT-Specific Error Handling
+
+- **Sensor Failures**: Display last known values with timestamps
+- **Connectivity Issues**: Show offline indicators and cached data
+- **Control Failures**: Retry mechanisms with user feedback
+- **Data Validation**: Validate sensor readings for anomalies
+
+#### User Feedback
+
+- **Loading States**: Show real-time data loading indicators
+- **Error Boundaries**: Graceful failure handling for components
+- **Success Feedback**: Confirm successful control actions
+- **Status Messages**: Clear communication about system state
+
+## Code Examples
+
+### Sensor Widget Component
+
+```typescript
+interface SensorWidgetProps {
+  sensor: {
+    id: string;
+    name: string;
+    type: SensorType;
+    value: number;
+    unit: string;
+    status: 'online' | 'offline' | 'error';
+    lastUpdate: Date;
+  };
+  thresholds?: {
+    min: number;
+    max: number;
+    optimal: { min: number; max: number };
+  };
+}
+
+export function SensorWidget({ sensor, thresholds }: SensorWidgetProps) {
+  const { data: liveData } = useSensorData(sensor.id);
+  const isOutOfRange = thresholds && (
+    liveData.value < thresholds.min ||
+    liveData.value > thresholds.max
+  );
+
+  return (
+    <Card className={cn("p-4", isOutOfRange && "border-red-500 bg-red-50")}>
+      {/* Widget implementation */}
+    </Card>
+  );
+}
+```
+
+### Control Panel Component
+
+```typescript
+interface ControlPanelProps {
+  actuator: {
+    id: string;
+    name: string;
+    type: 'pump' | 'fan' | 'heater' | 'light';
+    status: 'on' | 'off' | 'auto';
+    isOnline: boolean;
+  };
+}
+
+export function ControlPanel({ actuator }: ControlPanelProps) {
+  const [isPending, startTransition] = useTransition();
+
+  const handleControl = (action: 'on' | 'off' | 'auto') => {
+    startTransition(async () => {
+      await controlActuator(actuator.id, action);
+    });
+  };
+
+  return (
+    <Card className="p-4">
+      {/* Control implementation with confirmation */}
+    </Card>
+  );
+}
+```
+
+This frontend architecture ensures a robust, real-time, and user-friendly interface for greenhouse monitoring and control, with proper error handling, security, and mobile optimization.

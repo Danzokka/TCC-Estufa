@@ -1,0 +1,138 @@
+name: 📚 Documentation
+description: Report missing, unclear, or incorrect documentation
+title: "[DOCS] "
+labels: ["documentation", "needs-triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve our documentation! Clear docs make the project more accessible to everyone.
+
+  - type: dropdown
+    id: doc-type
+    attributes:
+      label: Documentation Type
+      description: What type of documentation needs attention?
+      options:
+        - API Documentation
+        - Setup/Installation Guide
+        - Development Guide
+        - User Guide
+        - Architecture Documentation
+        - Code Comments
+        - README Updates
+        - Tutorial/Example
+        - Troubleshooting Guide
+        - Deployment Guide
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of the system does this documentation relate to?
+      options:
+        - Web Frontend (Next.js)
+        - API Backend (NestJS)
+        - AI Service (Python/PyTorch)
+        - ESP32 Firmware
+        - Database (Prisma/PostgreSQL)
+        - CI/CD Pipeline
+        - Docker/Infrastructure
+        - Project Setup
+        - General/Overview
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: Issue Type
+      description: What's the problem with the current documentation?
+      options:
+        - Missing - Documentation doesn't exist
+        - Unclear - Documentation is confusing or hard to follow
+        - Incorrect - Documentation contains errors
+        - Outdated - Documentation is out of sync with current code
+        - Incomplete - Documentation is missing important details
+        - Hard to find - Documentation exists but is difficult to locate
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-docs
+    attributes:
+      label: Current Documentation
+      description: Link to or describe the current documentation (if any)
+      placeholder: |
+        - Link: https://...
+        - File: path/to/file.md
+        - Section: "Getting Started" in README
+        - None exists
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Description
+      description: What specific issue did you encounter with the documentation?
+      placeholder: Describe what's missing, unclear, or incorrect
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Documentation
+      description: What should the documentation explain or how should it be improved?
+      placeholder: Describe what good documentation would look like for this topic
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: User Context
+      description: Who would benefit from this documentation? What's their background?
+      placeholder: |
+        - New developers joining the project
+        - Users setting up the system
+        - Contributors working on specific features
+        - DevOps engineers deploying the system
+
+  - type: textarea
+    id: suggestions
+    attributes:
+      label: Suggestions
+      description: Do you have specific suggestions for improving the documentation?
+      placeholder: |
+        - Add step-by-step instructions
+        - Include code examples
+        - Add diagrams or screenshots
+        - Provide troubleshooting section
+        - Link to related documentation
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Are you willing to help improve this documentation?
+      options:
+        - label: I can help write the documentation
+        - label: I can provide technical review
+        - label: I can help with screenshots/diagrams
+        - label: I can test the documentation accuracy
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm you have completed these steps
+      options:
+        - label: I have searched existing documentation issues to avoid duplicates
+          required: true
+        - label: I have provided a clear and descriptive title
+          required: true
+        - label: I have explained the problem and expected solution clearly
+          required: true

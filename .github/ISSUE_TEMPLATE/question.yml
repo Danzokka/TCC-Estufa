@@ -1,0 +1,128 @@
+name: ❓ Question / Help
+description: Ask a question or get help with the IoT Greenhouse System
+title: "[QUESTION] "
+labels: ["question", "help-wanted"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Need help with something? We're here to assist! Please provide as much context as possible so we can help you effectively.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of the system does your question relate to?
+      options:
+        - Web Frontend (Next.js)
+        - API Backend (NestJS)
+        - AI Service (Python/PyTorch)
+        - ESP32 Firmware
+        - Database (Prisma/PostgreSQL)
+        - CI/CD Pipeline
+        - Docker/Infrastructure
+        - Project Setup
+        - Deployment
+        - General Architecture
+        - Hardware Setup
+        - Troubleshooting
+    validations:
+      required: true
+
+  - type: dropdown
+    id: experience
+    attributes:
+      label: Experience Level
+      description: What's your experience level with this technology?
+      options:
+        - Beginner - New to this technology
+        - Intermediate - Some experience
+        - Advanced - Experienced but stuck on specific issue
+        - Expert - Helping others or discussing advanced topics
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to know? Be as specific as possible.
+      placeholder: Describe your question or what you're trying to achieve
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What are you trying to accomplish? What's your use case?
+      placeholder: |
+        - Setting up development environment
+        - Implementing a specific feature
+        - Troubleshooting an issue
+        - Understanding how something works
+        - Deploying to production
+
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What Have You Tried?
+      description: What steps have you already taken to solve this?
+      placeholder: |
+        - Searched documentation
+        - Tried specific approaches
+        - Consulted online resources
+        - Asked in community forums
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Outcome
+      description: What do you expect to happen or what result are you looking for?
+      placeholder: Describe what success looks like for your question
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Information
+      description: Please provide relevant environment details
+      placeholder: |
+        - OS: [e.g. Windows 11, macOS, Ubuntu 22.04]
+        - Node.js version: [e.g. 18.17.0]
+        - Python version: [e.g. 3.9.0] (if AI-related)
+        - Docker version: [e.g. 24.0.0] (if relevant)
+        - ESP32 board: [e.g. ESP32-WROOM-32] (if hardware-related)
+
+  - type: textarea
+    id: code
+    attributes:
+      label: Relevant Code
+      description: Share any relevant code snippets (please format with code blocks)
+      placeholder: |
+        ```typescript
+        // Your code here
+        ```
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Messages / Logs
+      description: If you're encountering errors, please share the error messages or logs
+      placeholder: |
+        ```
+        Error message or logs here
+        ```
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm you have completed these steps
+      options:
+        - label: I have searched existing issues and discussions
+          required: true
+        - label: I have checked the documentation
+          required: true
+        - label: I have provided sufficient context for my question
+          required: true
+        - label: I have formatted code snippets properly
+          required: false
