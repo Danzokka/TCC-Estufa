@@ -1,7 +1,7 @@
 "use client";
 import { LogOut } from "lucide-react";
 import { redirect } from "next/navigation";
-import { logout } from "@/app/actions";
+import { logout } from "@/server/actions/session";
 
 const LogoutButton = () => {
   const handleLogout = async () => {

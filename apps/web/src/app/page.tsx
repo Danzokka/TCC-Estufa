@@ -1,7 +1,7 @@
 import PlantAlerts from "@/components/Home/PlantAlerts";
 import { PlantDays, PlantStats } from "@/components/Home/PlantData";
 import React from "react";
-import { getSession } from "./actions";
+import { getSession } from "@/server/actions/session";
 import { redirect } from "next/navigation";
 import PlantSelect from "@/components/Home/PlantSelect";
 import { PlantProvider } from "@/context/PlantContext";

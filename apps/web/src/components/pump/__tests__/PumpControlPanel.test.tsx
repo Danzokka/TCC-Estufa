@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { PumpControlPanel } from "../PumpControlPanel";
 import { mockPumpStatus, mockActivePumpStatus } from "@/__mocks__/pumpData";
-import * as pumpActions from "@/app/actions/pump";
+import * as pumpActions from "@/server/actions/pump";
 
 // Mock the pump actions
 jest.mock("@/app/actions/pump");

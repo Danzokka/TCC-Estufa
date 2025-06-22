@@ -8,7 +8,7 @@ import {
   ReactNode,
 } from "react";
 import { UserPlant } from "@/@types/plant";
-import { getUserPlants } from "@/app/plantActions";
+import { getUserPlants } from "@/server/actions/plant";
 import { useQuery } from "@tanstack/react-query";
 
 interface PlantContextType {

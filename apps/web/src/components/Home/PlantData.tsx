@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { PlantDaysSkeleton, WaterChartSkeleton } from "../Skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getPlantData, getPlantStats } from "@/app/plantActions";
+import { getPlantData, getPlantStats } from "@/server/actions/plant";
 import { usePlant } from "@/context/PlantContext";
 
 export const PlantDays = () => {

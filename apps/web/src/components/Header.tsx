@@ -5,7 +5,7 @@ import ThemeSwitcher from "./ThemeSwitcher";
 import { SidebarTrigger } from "./ui/sidebar";
 import Notification from "./Notifications";
 import Logo from "./Logo";
-import { getSession } from "@/app/actions";
+import { getSession } from "@/server/actions/session";
 import UserMenu from "./UserMenu";
 
 const NavLink = ({

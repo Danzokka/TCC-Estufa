@@ -1,4 +1,4 @@
-import { PumpStatus, PumpOperation } from "@/app/actions/pump";
+import { PumpStatus, PumpOperation } from "@/server/actions/pump";
 
 export const mockPumpStatus: PumpStatus = {
   id: "pump-status-1",

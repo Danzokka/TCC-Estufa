@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +20,7 @@ import {
   stopPump,
   getPumpStatus,
   type PumpStatus,
-} from "@/app/actions/pump";
+} from "@/server/actions/pump";
 
 interface PumpControlPanelProps {
   greenhouseId: string;
@@ -65,8 +64,9 @@ export function PumpControlPanel({
 
       toast.success(`Water pump is now running for ${duration} seconds`);
 
-      // Refresh status after activation
+      // Refresh status after activation and start polling
       await refreshPumpStatus();
+      pollPumpStatus(); // Start polling for active pump
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       setError(errorMessage);
@@ -98,23 +98,25 @@ export function PumpControlPanel({
       setIsLoading(false);
     }
   };
-
   const refreshPumpStatus = async () => {
     try {
       const result = await getPumpStatus(greenhouseId);
       if (result.success && result.data) {
         setStatus(result.data);
         onStatusChange?.(result.data);
+        return result.data;
       }
     } catch (err) {
       console.error("Failed to refresh pump status:", err);
     }
+    return null;
   };
+
   const pollPumpStatus = async () => {
-    await refreshPumpStatus();
+    const updatedStatus = await refreshPumpStatus();
 
     // Continue polling if pump is still active
-    if (status?.isActive) {
+    if (updatedStatus?.isActive) {
       setTimeout(pollPumpStatus, 2000); // Poll every 2 seconds
     }
   };

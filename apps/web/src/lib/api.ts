@@ -1,4 +1,4 @@
-import { getSession } from "@/app/actions";
+import { getSession } from "@/server/actions/session";
 import axios from "axios";
 
 // Create axios instance with base configuration

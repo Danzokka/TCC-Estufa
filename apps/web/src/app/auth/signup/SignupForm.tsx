@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { signup } from "../authActions";
+import { signup } from "@/server/actions/auth";
 import { redirect } from "next/navigation";
 const formSchema = z.object({
   username: z.string().min(3, {
