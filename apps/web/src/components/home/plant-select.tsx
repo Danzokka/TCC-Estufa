@@ -18,7 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { usePlant } from "@/context/PlantContext";
+import { usePlant } from "@/context/plant-provider";
 
 export default function PlantSelect() {
   const [open, setOpen] = React.useState(false);

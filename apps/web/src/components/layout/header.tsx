@@ -1,12 +1,12 @@
 import React from "react";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 import Link from "next/link";
-import ThemeSwitcher from "./ThemeSwitcher";
-import { SidebarTrigger } from "./ui/sidebar";
+import ThemeSwitcher from "./theme-switcher";
+import { SidebarTrigger } from "../ui/sidebar";
 import Notification from "./Notifications";
-import Logo from "./Logo";
+import Logo from "../icons/logo";
 import { getSession } from "@/server/actions/session";
-import UserMenu from "./UserMenu";
+import UserMenu from "./user-menu";
 
 const NavLink = ({
   href,

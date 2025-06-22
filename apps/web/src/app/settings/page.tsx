@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import ThemeSwitcher from "@/components/ThemeSwitcher";
+import ThemeSwitcher from "@/components/layout/theme-switcher";
 import {
   Settings2,
   Bell,

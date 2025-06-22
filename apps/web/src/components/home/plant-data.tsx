@@ -4,13 +4,13 @@ import Image from "next/image";
 import React from "react";
 import { Card } from "@/components/ui/card";
 import { Droplet, Sprout, Thermometer } from "lucide-react";
-import WaterChart from "@/components/Home/WaterChart";
+import WaterChart from "@/components/home/water-chart";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
-import { PlantDaysSkeleton, WaterChartSkeleton } from "../Skeletons";
+import { PlantDaysSkeleton, WaterChartSkeleton } from "../layout/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getPlantData, getPlantStats } from "@/server/actions/plant";
-import { usePlant } from "@/context/PlantContext";
+import { usePlant } from "@/context/plant-provider";
 
 export const PlantDays = () => {
   const { selectedPlant } = usePlant();
@@ -110,7 +110,11 @@ export const PlantStats = () => {
     <div className="w-full lg:w-[calc(100vw/3)] flex flex-col gap-4 lg:gap-8">
       <Card className="gap-8 p-8">
         <h2 className="text-xl font-bold w-full text-left">Nível de Água</h2>
-        {isLoading ? <WaterChartSkeleton /> : <WaterChart data={plantStats?.water_level} />}
+        {isLoading ? (
+          <WaterChartSkeleton />
+        ) : (
+          <WaterChart data={plantStats?.water_level} />
+        )}
       </Card>
       <div className="flex flex-col lg:flex-row w-full gap-4">
         {stats.map((stat, index) => (

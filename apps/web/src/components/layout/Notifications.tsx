@@ -6,7 +6,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Bell, Sun, Sprout, Droplet, Thermometer } from "lucide-react";
-import { AnimatedList } from "./magicui/animated-list";
+import { AnimatedList } from "../magicui/animated-list";
 import { NotificationType } from "@/data/notifications";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getNotifications } from "@/server/actions/plant";

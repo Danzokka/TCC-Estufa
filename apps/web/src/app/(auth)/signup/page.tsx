@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import React from "react";
-import SignupForm from "./SignupForm";
+import SignupForm from "./signup-form";
 
 const page = () => {
   return (

@@ -11,7 +11,7 @@ import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { SessionData } from "@/server/schema/session";
 import Link from "next/link";
 import { ChartNoAxesColumn, Settings, User2 } from "lucide-react";
-import LogoutButton from "./Logout";
+import LogoutButton from "./logout";
 
 interface UserMenuProps {
   user: SessionData;

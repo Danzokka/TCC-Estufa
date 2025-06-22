@@ -1,9 +1,9 @@
 import React from "react";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 import Link from "next/link";
-import Github from "./icons/Github";
-import Instagram from "./icons/Instagram";
-import Logo from "./Logo";
+import Github from "../icons/github";
+import Instagram from "../icons/instagram";
+import Logo from "../icons/logo";
 
 const SocialLinks = ({
   href,
@@ -13,10 +13,13 @@ const SocialLinks = ({
   icon: React.ReactNode;
 }) => {
   return (
-    <Button variant="ghost" className="p-0 rounded-full hover:scale-110" size={"icon"} asChild>
-      <Link href={href}>
-        {icon}
-      </Link>
+    <Button
+      variant="ghost"
+      className="p-0 rounded-full hover:scale-110"
+      size={"icon"}
+      asChild
+    >
+      <Link href={href}>{icon}</Link>
     </Button>
   );
 };
@@ -29,14 +32,14 @@ const Footer = () => {
     },
     {
       href: "https://instagram.com",
-      icon: <Instagram className="h-5 w-5" />, 
+      icon: <Instagram className="h-5 w-5" />,
     },
   ];
   return (
     <footer className="">
       <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 md:px-8">
         <div className="flex justify-center text-primary">
-          <Logo className="flex w-full items-center justify-center" showTitle/>
+          <Logo className="flex w-full items-center justify-center" showTitle />
         </div>
 
         <p className="mx-auto mt-6 max-w-md text-center leading-relaxed text-foreground/75">

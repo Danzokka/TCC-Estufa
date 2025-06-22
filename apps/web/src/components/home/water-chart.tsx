@@ -9,7 +9,7 @@ import {
 } from "recharts";
 
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
-import { WaterChartSkeleton } from "../Skeletons";
+import { WaterChartSkeleton } from "../layout/skeletons";
 import { useMemo } from "react";
 
 const chartConfig = {
@@ -41,7 +41,7 @@ export default function WaterChart({ data }: { data: number | undefined }) {
       <RadialBarChart
         data={chartData}
         startAngle={180}
-        endAngle={180 - (data * 3.6)} // Transforma a porcentagem em graus (100% = 360 graus, então 1% = 3.6 graus)
+        endAngle={180 - data * 3.6} // Transforma a porcentagem em graus (100% = 360 graus, então 1% = 3.6 graus)
         innerRadius={80}
         outerRadius={110}
       >

@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { PumpControlPanel } from "../PumpControlPanel";
+import { PumpControlPanel } from "../pump-control-panel";
 import { mockPumpStatus, mockActivePumpStatus } from "@/__mocks__/pumpData";
 import * as pumpActions from "@/server/actions/pump";
 

@@ -1,6 +1,6 @@
 import { Card } from '@/components/ui/card'
 import React from 'react'
-import LoginForm from './LoginForm'
+import LoginForm from './login-form'
 
 const page = () => {
   return (

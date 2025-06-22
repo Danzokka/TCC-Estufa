@@ -3,10 +3,10 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import { AnimatedList } from "../magicui/animated-list";
 import { getAlerts } from "@/server/actions/plant";
-import { NotificationCard } from "../Notifications";
+import { NotificationCard } from "../layout/Notifications";
 import { useQuery } from "@tanstack/react-query";
-import { PlantAlertsSkeleton } from "../Skeletons";
-import { usePlant } from "@/context/PlantContext";
+import { PlantAlertsSkeleton } from "../layout/skeletons";
+import { usePlant } from "@/context/plant-provider";
 
 interface PlantAlertsProps {
   className?: string;
@@ -17,7 +17,7 @@ const PlantAlerts = ({ className }: PlantAlertsProps) => {
 
   const { data: alerts, isLoading } = useQuery({
     queryKey: ["alerts", selectedPlant?.id],
-    queryFn: async () => await getAlerts(),	
+    queryFn: async () => await getAlerts(),
     enabled: !!selectedPlant,
   });
 

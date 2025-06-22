@@ -1,7 +1,7 @@
 "use client";
 
-import InstallPrompt from "./components/InstallPrompt";
-import PushNotificationManager from "./components/PushNotificationManager";
+import InstallPrompt from "./components/install-prompt";
+import PushNotificationManager from "./components/push-notification-manager";
 import React, { useEffect, useState } from "react";
 
 export default function Page() {

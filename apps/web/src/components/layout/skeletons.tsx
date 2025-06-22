@@ -1,5 +1,5 @@
 import React from "react";
-import { Skeleton } from "./ui/skeleton";
+import { Skeleton } from "../ui/skeleton";
 
 export const PlantDaysSkeleton = () => {
   return (
@@ -37,4 +37,4 @@ export const PlantAlertsSkeleton = () => {
       <Skeleton className="h-52 w-full bg-secondary text-white dark:text-primary px-4 py-1" />
     </div>
   );
-}
+};

@@ -4,7 +4,7 @@
 import "@testing-library/jest-dom";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { PumpControlPanel } from "../PumpControlPanel";
+import { PumpControlPanel } from "../pump-control-panel";
 
 // Simple mock for pump actions
 const mockActivatePump = jest.fn();

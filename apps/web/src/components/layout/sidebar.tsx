@@ -12,23 +12,30 @@ import {
   SidebarMenuButton,
   SidebarHeader,
 } from "@/components/ui/sidebar";
-import { ChartNoAxesColumn, Download, Globe, Home, MessagesSquare, Settings, User } from "lucide-react";
+import {
+  ChartNoAxesColumn,
+  Download,
+  Globe,
+  Home,
+  MessagesSquare,
+  Settings,
+  User,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import Logo from "./Logo";
+import Logo from "../icons/logo";
 
 const items = [
   { title: "Home", url: "/", icon: Home },
   { title: "Sobre", url: "/about", icon: Globe },
   { title: "Blog", url: "/blog", icon: MessagesSquare },
   { title: "Instalação", url: "/install", icon: Download },
-  { title: "Dashboard", url: "/dashboard", icon: ChartNoAxesColumn},
+  { title: "Dashboard", url: "/dashboard", icon: ChartNoAxesColumn },
   { title: "Perfil", url: "/profile", icon: User },
   { title: "Configurações", url: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
-
   const pathname = usePathname();
 
   const { open, setOpen, isMobile } = useSidebar();
@@ -57,7 +64,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarHeader>
-            <Logo showTitle/>
+            <Logo showTitle />
           </SidebarHeader>
           <SidebarGroupLabel>Navegação</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -65,7 +72,10 @@ export function AppSidebar() {
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <Link href={item.url} className={`flex items-center gap-2 ${pathname === item.url ? "text-primary" : "text-foreground"}`}>
+                    <Link
+                      href={item.url}
+                      className={`flex items-center gap-2 ${pathname === item.url ? "text-primary" : "text-foreground"}`}
+                    >
                       <item.icon />
                       <span>{item.title}</span>
                     </Link>

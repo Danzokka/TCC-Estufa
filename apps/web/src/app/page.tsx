@@ -1,10 +1,10 @@
-import PlantAlerts from "@/components/Home/PlantAlerts";
-import { PlantDays, PlantStats } from "@/components/Home/PlantData";
+import PlantAlerts from "@/components/home/plant-alerts";
+import { PlantDays, PlantStats } from "@/components/home/plant-data";
 import React from "react";
 import { getSession } from "@/server/actions/session";
 import { redirect } from "next/navigation";
-import PlantSelect from "@/components/Home/PlantSelect";
-import { PlantProvider } from "@/context/PlantContext";
+import PlantSelect from "@/components/home/plant-select";
+import { PlantProvider } from "@/context/plant-provider";
 
 const Home = async () => {
   const session = await getSession();
