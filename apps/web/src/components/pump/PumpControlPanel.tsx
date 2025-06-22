@@ -16,18 +16,12 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Droplets, Power, Clock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-
-interface PumpStatus {
-  id: string;
-  greenhouseId: string;
-  isActive: boolean;
-  remainingTime?: number;
-  targetWaterAmount?: number;
-  currentWaterAmount?: number;
-  startedAt?: Date;
-  estimatedEndTime?: Date;
-  reason?: string;
-}
+import {
+  activatePump,
+  stopPump,
+  getPumpStatus,
+  type PumpStatus,
+} from "@/app/actions/pump";
 
 interface PumpControlPanelProps {
   greenhouseId: string;
@@ -48,8 +42,7 @@ export function PumpControlPanel({
   const [reason, setReason] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const activatePump = async () => {
+  const handleActivatePump = async () => {
     if (!greenhouseId) {
       setError("Greenhouse ID is required");
       return;
@@ -59,31 +52,21 @@ export function PumpControlPanel({
     setError(null);
 
     try {
-      const response = await fetch("/api/pump/activate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          greenhouseId,
-          duration,
-          waterAmount: waterAmount || undefined,
-          reason: reason || "Manual activation",
-        }),
+      const result = await activatePump({
+        greenhouseId,
+        duration,
+        waterAmount: waterAmount || undefined,
+        notes: reason || "Manual activation",
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to activate pump");
+      if (!result.success) {
+        throw new Error(result.message);
       }
 
-      const newStatus: PumpStatus = await response.json();
-      setStatus(newStatus);
-      onStatusChange?.(newStatus);
       toast.success(`Water pump is now running for ${duration} seconds`);
 
-      // Start polling for status updates
-      pollPumpStatus();
+      // Refresh status after activation
+      await refreshPumpStatus();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       setError(errorMessage);
@@ -92,27 +75,21 @@ export function PumpControlPanel({
       setIsLoading(false);
     }
   };
-
-  const stopPump = async () => {
+  const handleStopPump = async () => {
     if (!greenhouseId) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/pump/stop/${greenhouseId}`, {
-        method: "POST",
-      });
+      const result = await stopPump(greenhouseId);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to stop pump");
+      if (!result.success) {
+        throw new Error(result.message);
       }
 
-      const newStatus: PumpStatus = await response.json();
-      setStatus(newStatus);
-      onStatusChange?.(newStatus);
       toast.success("Water pump has been stopped");
+      await refreshPumpStatus();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       setError(errorMessage);
@@ -122,21 +99,23 @@ export function PumpControlPanel({
     }
   };
 
-  const pollPumpStatus = async () => {
+  const refreshPumpStatus = async () => {
     try {
-      const response = await fetch(`/api/pump/status/${greenhouseId}`);
-      if (response.ok) {
-        const currentStatus: PumpStatus = await response.json();
-        setStatus(currentStatus);
-        onStatusChange?.(currentStatus);
-
-        // Continue polling if pump is still active
-        if (currentStatus.isActive) {
-          setTimeout(pollPumpStatus, 2000); // Poll every 2 seconds
-        }
+      const result = await getPumpStatus(greenhouseId);
+      if (result.success && result.data) {
+        setStatus(result.data);
+        onStatusChange?.(result.data);
       }
     } catch (err) {
-      console.error("Failed to poll pump status:", err);
+      console.error("Failed to refresh pump status:", err);
+    }
+  };
+  const pollPumpStatus = async () => {
+    await refreshPumpStatus();
+
+    // Continue polling if pump is still active
+    if (status?.isActive) {
+      setTimeout(pollPumpStatus, 2000); // Poll every 2 seconds
     }
   };
 
@@ -172,14 +151,12 @@ export function PumpControlPanel({
                 {formatTime(status.remainingTime)}
               </Badge>
             )}
-          </div>
-
-          {status?.reason && (
+          </div>{" "}
+          {status?.notes && (
             <p className="text-sm text-muted-foreground">
-              Reason: {status.reason}
+              Reason: {status.notes}
             </p>
           )}
-
           {status?.targetWaterAmount && (
             <p className="text-sm text-muted-foreground">
               Target: {status.targetWaterAmount}L
@@ -188,7 +165,6 @@ export function PumpControlPanel({
             </p>
           )}
         </div>
-
         {/* Error Display */}
         {error && (
           <Alert variant="destructive">
@@ -196,7 +172,6 @@ export function PumpControlPanel({
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-
         {/* Control Form */}
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -247,24 +222,26 @@ export function PumpControlPanel({
             />
           </div>
         </div>
-
         {/* Control Buttons */}
         <div className="flex gap-2">
+          {" "}
           <Button
-            onClick={activatePump}
+            onClick={handleActivatePump}
             disabled={status?.isActive || isLoading}
             className="flex-1"
           >
             {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <Loader2
+                className="h-4 w-4 animate-spin mr-2"
+                data-testid="loading-spinner"
+              />
             ) : (
               <Power className="h-4 w-4 mr-2" />
             )}
             Activate Pump
           </Button>
-
           <Button
-            onClick={stopPump}
+            onClick={handleStopPump}
             variant="outline"
             disabled={!status?.isActive || isLoading}
             className="flex-1"
@@ -276,12 +253,11 @@ export function PumpControlPanel({
             )}
             Stop Pump
           </Button>
-        </div>
-
+        </div>{" "}
         {/* Additional Info */}
-        {status?.startedAt && (
+        {status?.startTime && (
           <div className="text-sm text-muted-foreground">
-            Started at: {new Date(status.startedAt).toLocaleString()}
+            Started at: {new Date(status.startTime).toLocaleString()}
           </div>
         )}
       </CardContent>

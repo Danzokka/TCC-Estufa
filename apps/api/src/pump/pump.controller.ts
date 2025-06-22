@@ -51,6 +51,16 @@ export class PumpController {
     data: PumpStatusDto | null;
   }> {
     try {
+      // Validate UUID format
+      const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(greenhouseId)) {
+        return {
+          success: false,
+          message: 'Invalid UUID format',
+          data: null,
+        };
+      }
       const status = await this.pumpService.getPumpStatus(greenhouseId);
       return {
         success: true,
@@ -76,6 +86,15 @@ export class PumpController {
     data?: PumpStatusDto;
   }> {
     try {
+      // Validate UUID format
+      const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(greenhouseId)) {
+        return {
+          success: false,
+          message: 'Invalid UUID format',
+        };
+      }
       const result = await this.pumpService.stopPump(greenhouseId);
       return {
         success: true,
@@ -104,7 +123,18 @@ export class PumpController {
     data: PumpHistoryDto[];
   }> {
     try {
-      const limitNum = limit ? parseInt(limit, 10) : 50;
+      // Validate UUID format
+      const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(greenhouseId)) {
+        return {
+          success: false,
+          message: 'Invalid UUID format',
+          data: [],
+        };
+      }
+      const parsedLimit = limit ? parseInt(limit, 10) : 50;
+      const limitNum = isNaN(parsedLimit) ? 50 : parsedLimit;
       const history = await this.pumpService.getPumpHistory(
         greenhouseId,
         limitNum,
@@ -142,6 +172,19 @@ export class PumpController {
     message: string;
   }> {
     try {
+      // Validate required fields
+      if (
+        !deviceInfo.name ||
+        !deviceInfo.greenhouseId ||
+        !deviceInfo.ipAddress ||
+        !deviceInfo.macAddress
+      ) {
+        return {
+          success: false,
+          message:
+            'Missing required fields: name, greenhouseId, ipAddress, macAddress are required',
+        };
+      }
       await this.pumpService.registerDevice(deviceInfo);
       return {
         success: true,

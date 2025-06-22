@@ -1,10 +1,6 @@
 "use server";
 
 import webpush from "web-push";
-import { SessionData } from "./lib";
-import { getIronSession } from "iron-session";
-import { cookies } from "next/headers";
-import { sessionOptions, defaultSession } from "./lib";
 
 webpush.setVapidDetails(
   "https://example.com",
@@ -49,32 +45,3 @@ export async function sendNotification(message: string) {
   }
 }
 
-export async function getSession() {
-  const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-
-  if (!session.isLoggedIn) {
-    session.isLoggedIn = defaultSession.isLoggedIn;
-  }
-
-  return session;
-}
-
-export async function login(user: SessionData) {
-  const session = await getSession();
-
-  session.isLoggedIn = true;
-  session.userid = user.userid;
-  session.email = user.email;
-  session.username = user.username;
-  session.name = user.name;
-  session.image = user.image;
-  session.token = user.token;
-
-  await session.save();
-}
-
-export async function logout() {
-  const session = await getSession();
-
-  session.destroy();
-}
