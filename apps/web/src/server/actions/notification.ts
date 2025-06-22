@@ -2,6 +2,15 @@
 
 import webpush from "web-push";
 
+// Define the browser PushSubscription interface with keys
+interface BrowserPushSubscription {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
 webpush.setVapidDetails(
   "https://example.com",
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
@@ -10,8 +19,17 @@ webpush.setVapidDetails(
 
 let subscription: webpush.PushSubscription | null = null;
 
-export async function subscribeUser(sub: PushSubscription) {
-  subscription = sub;
+export async function subscribeUser(sub: BrowserPushSubscription) {
+  // Convert browser PushSubscription to web-push compatible format
+  const webpushSubscription: webpush.PushSubscription = {
+    endpoint: sub.endpoint,
+    keys: {
+      p256dh: sub.keys.p256dh,
+      auth: sub.keys.auth,
+    },
+  };
+
+  subscription = webpushSubscription;
   // In a production environment, you would want to store the subscription in a database
   // For example: await db.subscriptions.create({ data: sub })
   return { success: true };
@@ -44,4 +62,3 @@ export async function sendNotification(message: string) {
     return { success: false, error: "Failed to send notification" };
   }
 }
-

@@ -1,16 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "@/context/session-provider";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { login } from "@/server/actions/auth";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { login } = useSession();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {

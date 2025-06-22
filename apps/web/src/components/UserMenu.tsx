@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { SessionData } from "@/app/lib";
+import { SessionData } from "@/server/schema/session";
 import Link from "next/link";
 import { ChartNoAxesColumn, Settings, User2 } from "lucide-react";
 import LogoutButton from "./Logout";

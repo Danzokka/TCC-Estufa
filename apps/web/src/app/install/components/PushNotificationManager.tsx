@@ -6,7 +6,7 @@ import {
   subscribeUser,
   unsubscribeUser,
   sendNotification,
-} from "@/app/actions";
+} from "@/server/actions/notification"; 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
