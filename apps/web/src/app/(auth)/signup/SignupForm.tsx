@@ -46,7 +46,7 @@ const SignupForm = () => {
   // 2. Define a submit handler.
   async function onSubmit(values: z.infer<typeof formSchema>) {
     await signup(values.username, values.name, values.email, values.password);
-    redirect("/auth/login");
+    redirect("/login");
   }
 
   return (
@@ -117,11 +117,11 @@ const SignupForm = () => {
           <p className="w-full text-left text-sm text-foreground/65">
             Já possui um cadastro?{" "}
             <Link
-              href="/auth/login"
+              href="/login"
               className="text-foreground hover:underline"
             >
               Clique aqui
-            </Link>{" "}
+            </Link>
             para acessar sua conta
           </p>
           <Button

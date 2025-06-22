@@ -8,8 +8,8 @@ const FooterHandler = () => {
 
   const showFooter =
     pathname !== "/install" &&
-    pathname !== "/auth/login" &&
-    pathname !== "/auth/signup";
+    pathname !== "/login" &&
+    pathname !== "/signup";
 
   if (!showFooter) {
     return null;

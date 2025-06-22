@@ -6,7 +6,7 @@ import { logout } from "@/server/actions/session";
 const LogoutButton = () => {
   const handleLogout = async () => {
     await logout();
-    redirect("/auth/login");
+    redirect("/login");
   };
   return (
     <div

@@ -34,7 +34,7 @@ export default function LoginForm() {
         <h1 className="text-2xl font-bold">Sign in to your account</h1>
         <p className="mt-2 text-sm text-gray-500">
           Or{" "}
-          <Link href="/auth/signup" className="text-blue-600 hover:underline">
+          <Link href="/signup" className="text-blue-600 hover:underline">
             create an account
           </Link>
         </p>

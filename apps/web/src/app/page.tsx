@@ -10,7 +10,7 @@ const Home = async () => {
   const session = await getSession();
 
   if (!session.isLoggedIn) {
-    redirect("/auth/login");
+    redirect("/login");
   }
 
   return (

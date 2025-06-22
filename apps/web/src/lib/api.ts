@@ -43,7 +43,7 @@ api.interceptors.response.use(
 
       // Redirect to login page, session will be cleared by the server
       if (typeof window !== "undefined") {
-        window.location.href = "/auth/login";
+        window.location.href = "/login";
       }
     }
 

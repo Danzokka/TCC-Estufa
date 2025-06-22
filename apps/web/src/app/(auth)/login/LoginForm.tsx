@@ -78,11 +78,11 @@ const LoginForm = () => {
           <p className="w-full text-left text-sm text-foreground/65">
             Não tem uma conta?{" "}
             <Link
-              href="/auth/signup"
+              href="/signup"
               className="text-foreground hover:underline"
             >
               Clique aqui
-            </Link>{" "}
+            </Link>
             para criar sua conta
           </p>
           <Button

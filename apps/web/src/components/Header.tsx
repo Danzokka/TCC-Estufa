@@ -70,7 +70,7 @@ const Header = async () => {
                   asChild
                   variant="secondary"
                 >
-                  <Link href="/auth/login">Login</Link>
+                  <Link href="/login">Login</Link>
                 </Button>
               )}
             </div>
