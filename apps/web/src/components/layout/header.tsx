@@ -3,7 +3,7 @@ import { Button } from "../ui/button";
 import Link from "next/link";
 import ThemeSwitcher from "./theme-switcher";
 import { SidebarTrigger } from "../ui/sidebar";
-import Notification from "./Notifications";
+import Notification from "./notifications";
 import Logo from "../icons/logo";
 import { getSession } from "@/server/actions/session";
 import UserMenu from "./user-menu";

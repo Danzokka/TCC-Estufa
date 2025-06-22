@@ -3,7 +3,7 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import { AnimatedList } from "../magicui/animated-list";
 import { getAlerts } from "@/server/actions/plant";
-import { NotificationCard } from "../layout/Notifications";
+import { NotificationCard } from "../layout/notifications";
 import { useQuery } from "@tanstack/react-query";
 import { PlantAlertsSkeleton } from "../layout/skeletons";
 import { usePlant } from "@/context/plant-provider";

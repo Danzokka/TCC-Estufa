@@ -5,6 +5,7 @@ import { getSession } from "@/server/actions/session";
 import { redirect } from "next/navigation";
 import PlantSelect from "@/components/home/plant-select";
 import { PlantProvider } from "@/context/plant-provider";
+import { PumpQuickControl } from "@/components/pump/pump-quick-control";
 
 const Home = async () => {
   const session = await getSession();
@@ -21,6 +22,12 @@ const Home = async () => {
           <PlantSelect />
           <PlantDays />
           <PlantStats />
+
+          {/* Quick Pump Control */}
+          <div className="w-full">
+            <PumpQuickControl greenhouseId="greenhouse-1" />
+          </div>
+
           <PlantAlerts />
         </div>
       </div>

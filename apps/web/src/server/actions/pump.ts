@@ -72,7 +72,7 @@ export async function activatePump(params: PumpActivationParams): Promise<{
   data?: PumpOperation;
 }> {
   try {
-    const response = await api.post("/api/pump/activate", params);
+    const response = await api.post("/pump/activate", params);
 
     // Revalidate pump status cache
     revalidateTag(`pump-status-${params.greenhouseId}`);
@@ -103,7 +103,7 @@ export async function getPumpStatus(greenhouseId: string): Promise<{
   message?: string;
 }> {
   try {
-    const response = await api.get(`/api/pump/status/${greenhouseId}`);
+    const response = await api.get(`/pump/status/${greenhouseId}`);
 
     return {
       success: true,
@@ -127,7 +127,7 @@ export async function stopPump(greenhouseId: string): Promise<{
   message: string;
 }> {
   try {
-    await api.post(`/api/pump/stop`, { greenhouseId });
+    await api.post(`/pump/stop`, { greenhouseId });
 
     // Revalidate pump status cache
     revalidateTag(`pump-status-${greenhouseId}`);
@@ -165,7 +165,7 @@ export async function getPumpHistory(
   message?: string;
 }> {
   try {
-    const response = await api.get(`/api/pump/history/${greenhouseId}`, {
+    const response = await api.get(`/pump/history/${greenhouseId}`, {
       params: { page, limit },
     });
 
@@ -198,7 +198,7 @@ export async function registerPumpDevice(deviceData: {
   data?: DeviceRegistration;
 }> {
   try {
-    const response = await api.post("/api/pump/device/register", deviceData);
+    const response = await api.post("/pump/device/register", deviceData);
 
     // Revalidate device list cache
     revalidateTag("pump-devices");

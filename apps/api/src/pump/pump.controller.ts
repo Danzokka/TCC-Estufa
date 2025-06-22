@@ -26,6 +26,7 @@ export class PumpController {
     data?: PumpStatusDto;
   }> {
     try {
+      console.log('Activating pump with data:', activatePumpDto);
       const result = await this.pumpService.activatePump(activatePumpDto);
       return {
         success: true,
