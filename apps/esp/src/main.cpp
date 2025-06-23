@@ -10,10 +10,11 @@
 #include <freertos/task.h>
 
 #define SWITCHPIN 22
-#define CONFIG_BUTTON_PIN 0  // Boot button for configuration mode
+#define CONFIG_BUTTON_PIN 0 // Boot button for configuration mode
 
 // System modes
-enum SystemMode {
+enum SystemMode
+{
     MODE_CONFIGURATION,
     MODE_NORMAL_OPERATION,
     MODE_SETUP
@@ -23,7 +24,7 @@ SystemMode currentMode = MODE_SETUP;
 
 // Function declarations
 void handleConfigurationMode();
-void handleNormalDisplayMode(int& switchState, int& lastSwitchState, bool& needUpdate, int& animationStep);
+void handleNormalDisplayMode(int &switchState, int &lastSwitchState, bool &needUpdate, int &animationStep);
 void checkForConfiguration();
 
 // Intervalo de tempo para envio de dados ao servidor (2 minutos e meio = 150000 ms)
@@ -72,7 +73,7 @@ void Task1code(void *pvParameters)
         {
             Serial.print("Core 0: Leituras realizadas: ");
             Serial.println(readingCounter);
-        }        // Adquire o mutex para atualizar dados compartilhados
+        } // Adquire o mutex para atualizar dados compartilhados
         if (xSemaphoreTake(sensorMutex, portMAX_DELAY) == pdTRUE)
         {
             currentTemp = th_sensor.temperature;
@@ -82,19 +83,22 @@ void Task1code(void *pvParameters)
             soilHumidityText = soil_sensor.soilHumidity + " " + String(soil_sensor.soilTemperature, 1) + "C";
             currentFlowRate = flow_sensor.flowRate;
             currentTotalVolume = flow_sensor.totalVolume;
-            
+
             // Update pump controller with volume data for volume-based control
             pumpController.updateVolume(currentTotalVolume);
-            
-            xSemaphoreGive(sensorMutex);        }
+
+            xSemaphoreGive(sensorMutex);
+        }
 
         // Check for configuration in configuration mode
-        if (currentMode == MODE_CONFIGURATION) {
+        if (currentMode == MODE_CONFIGURATION)
+        {
             checkForConfiguration();
         }
 
         // Only send sensor data in normal operation mode
-        if (currentMode == MODE_NORMAL_OPERATION) {
+        if (currentMode == MODE_NORMAL_OPERATION)
+        {
             // Adiciona leituras atuais para calcular a média posteriormente
             server.addSensorReading(
                 currentTemp,
@@ -142,26 +146,29 @@ void Task2code(void *pvParameters)
     Serial.println(xPortGetCoreID()); // Contador para medir a taxa de atualização do display
     uint32_t frameCounter = 0;
     unsigned long lastFpsCheck = millis();
+    int switchState = 0;      // Adicionar declaração da variável
     int lastSwitchState = -1; // Inicializado com valor inválido para forçar a primeira atualização
+    bool needUpdate = true;   // Adicionar declaração da variável
 
     // Controle de animação
     int animationStep = 0;
-    int animationSpeed = 50; // Velocidade da animação (ms)    for (;;)
+    int animationSpeed = 50; // Velocidade da animação (ms)for (;;)
     {
         // Handle different system modes
-        switch (currentMode) {
-            case MODE_CONFIGURATION:
-                handleConfigurationMode();
-                break;
-                
-            case MODE_NORMAL_OPERATION:
-                handleNormalDisplayMode(switchState, lastSwitchState, needUpdate, animationStep);
-                break;
-                
-            case MODE_SETUP:
-                oled.displayConfigurationStatus("Starting", "System initializing...");
-                oled.update();
-                break;
+        switch (currentMode)
+        {
+        case MODE_CONFIGURATION:
+            handleConfigurationMode();
+            break;
+
+        case MODE_NORMAL_OPERATION:
+            handleNormalDisplayMode(switchState, lastSwitchState, needUpdate, animationStep);
+            break;
+
+        case MODE_SETUP:
+            oled.displayConfigurationStatus("Starting", "System initializing...");
+            oled.update();
+            break;
         }
 
         // Registra o frame
@@ -179,8 +186,10 @@ void Task2code(void *pvParameters)
         }
 
         // Check for configuration timeout or button press
-        if (currentMode == MODE_CONFIGURATION) {
-            if (qrConfig.checkConfigTimeout()) {
+        if (currentMode == MODE_CONFIGURATION)
+        {
+            if (qrConfig.checkConfigTimeout())
+            {
                 Serial.println("Configuration timeout - restarting");
                 ESP.restart();
             }
@@ -192,15 +201,20 @@ void Task2code(void *pvParameters)
 }
 
 // Handle configuration mode display
-void handleConfigurationMode() {
+void handleConfigurationMode()
+{
     static unsigned long lastQRUpdate = 0;
-    
-    if (millis() - lastQRUpdate > 1000) {  // Update QR code display every second
+
+    if (millis() - lastQRUpdate > 1000)
+    { // Update QR code display every second
         lastQRUpdate = millis();
-        
-        if (qrConfig.isInConfigMode()) {
+
+        if (qrConfig.isInConfigMode())
+        {
             oled.displayQRCode(&qrConfig);
-        } else {
+        }
+        else
+        {
             oled.displayConfigurationStatus("Config Mode", "Generating QR...");
         }
         oled.update();
@@ -208,7 +222,8 @@ void handleConfigurationMode() {
 }
 
 // Handle normal sensor display mode
-void handleNormalDisplayMode(int& switchState, int& lastSwitchState, bool& needUpdate, int& animationStep) {
+void handleNormalDisplayMode(int &switchState, int &lastSwitchState, bool &needUpdate, int &animationStep)
+{
     // Verifica o estado da chave para determinar o modo de exibição
     switchState = digitalRead(SWITCHPIN);
 
@@ -297,53 +312,69 @@ void setup()
         Serial.println(F("Error initializing pump controller!"));
         for (;;)
             ;
-    }    pinMode(SWITCHPIN, INPUT);
-    pinMode(CONFIG_BUTTON_PIN, INPUT_PULLUP);  // Configuration button
+    }
+    pinMode(SWITCHPIN, INPUT);
+    pinMode(CONFIG_BUTTON_PIN, INPUT_PULLUP); // Configuration button
 
     oled.clear();
     delay(200);
 
     // Initialize QR Configuration Manager
     Serial.println("Initializing QR Configuration Manager...");
-    if (!qrConfig.begin()) {
+    if (!qrConfig.begin())
+    {
         Serial.println(F("Error initializing QR Configuration Manager!"));
         oled.displayConfigurationStatus("QR Config Error", "Init failed");
         oled.update();
-        for (;;);
-    }    // Check if device needs configuration
-    if (qrConfig.needsConfiguration() || digitalRead(CONFIG_BUTTON_PIN) == LOW) {
+        for (;;)
+            ;
+    } // Check if device needs configuration
+    if (qrConfig.needsConfiguration() || digitalRead(CONFIG_BUTTON_PIN) == LOW)
+    {
         Serial.println("Device needs configuration - entering QR mode");
         currentMode = MODE_CONFIGURATION;
-        
-        if (!qrConfig.enterConfigMode()) {
+
+        if (!qrConfig.enterConfigMode())
+        {
             Serial.println("Failed to enter configuration mode");
             oled.displayConfigurationStatus("Config Error", "QR generation failed");
             oled.update();
             delay(5000);
-        } else {
+        }
+        else
+        {
             Serial.println("Configuration mode active - QR code ready");
-            
+
             // Start HTTP server for configuration
-            if (qrConfig.startConfigServer()) {
+            if (qrConfig.startConfigServer())
+            {
                 Serial.println("Configuration HTTP server started");
-            } else {
+            }
+            else
+            {
                 Serial.println("Failed to start configuration server");
             }
         }
-    } else {
+    }
+    else
+    {
         Serial.println("Device configured - connecting to WiFi");
-        if (qrConfig.connectToWiFi()) {
+        if (qrConfig.connectToWiFi())
+        {
             currentMode = MODE_NORMAL_OPERATION;
             oled.displayWiFiConnection(qrConfig.getWiFiSSID(), WiFi.localIP().toString());
             oled.update();
             delay(3000);
-        } else {
+        }
+        else
+        {
             Serial.println("WiFi connection failed - entering configuration mode");
             currentMode = MODE_CONFIGURATION;
             qrConfig.enterConfigMode();
-            
+
             // Start HTTP server for configuration
-            if (qrConfig.startConfigServer()) {
+            if (qrConfig.startConfigServer())
+            {
                 Serial.println("Configuration HTTP server started");
             }
         }
@@ -385,18 +416,20 @@ void setup()
 void loop()
 {
     // Handle HTTP server requests in configuration mode
-    if (currentMode == MODE_CONFIGURATION) {
+    if (currentMode == MODE_CONFIGURATION)
+    {
         qrConfig.handleServerRequests();
-        
+
         // Check for configuration timeout
-        if (qrConfig.checkConfigTimeout()) {
+        if (qrConfig.checkConfigTimeout())
+        {
             Serial.println("Configuration timeout reached - exiting config mode");
             qrConfig.exitConfigMode();
             qrConfig.stopConfigServer();
             currentMode = MODE_NORMAL_OPERATION;
         }
     }
-    
+
     // O loop principal agora serve para monitoramento do sistema
     // Como está executando no Core 1, faz verificações de status a cada 30 segundos
     static unsigned long lastStatusCheck = 0;
@@ -427,55 +460,67 @@ void loop()
 }
 
 // Check for configuration data reception via Serial or WiFi
-void checkForConfiguration() {
+void checkForConfiguration()
+{
     // Handle HTTP server requests (this also handles configuration reception)
     qrConfig.handleServerRequests();
-    
+
     // Check for configuration via Serial (for testing)
-    if (Serial.available()) {
+    if (Serial.available())
+    {
         String configData = Serial.readStringUntil('\n');
         configData.trim();
-        
-        if (configData.startsWith("{") && configData.endsWith("}")) {
+
+        if (configData.startsWith("{") && configData.endsWith("}"))
+        {
             Serial.println("Received configuration data via Serial:");
             Serial.println(configData);
-            
+
             // Parse JSON configuration
             JsonDocument doc;
             DeserializationError error = deserializeJson(doc, configData);
-            
-            if (!error) {
-                if (qrConfig.saveConfiguration(doc.as<JsonObject>())) {
+
+            if (!error)
+            {
+                if (qrConfig.saveConfiguration(doc.as<JsonObject>()))
+                {
                     Serial.println("Configuration saved successfully!");
-                    
+
                     // Try to connect to WiFi with new credentials
-                    if (qrConfig.connectToWiFi()) {
+                    if (qrConfig.connectToWiFi())
+                    {
                         Serial.println("WiFi connected with new configuration");
                         currentMode = MODE_NORMAL_OPERATION;
                         qrConfig.exitConfigMode();
-                        
+
                         // Show success message
                         oled.displayWiFiConnection(qrConfig.getWiFiSSID(), WiFi.localIP().toString());
                         oled.update();
                         delay(3000);
-                    } else {
+                    }
+                    else
+                    {
                         Serial.println("Failed to connect with new configuration");
                         oled.displayConfigurationStatus("Config Error", "WiFi connection failed");
                         oled.update();
                     }
-                } else {
+                }
+                else
+                {
                     Serial.println("Failed to save configuration");
                     oled.displayConfigurationStatus("Config Error", "Save failed");
                     oled.update();
                 }
-            } else {
+            }
+            else
+            {
                 Serial.printf("JSON parsing failed: %s\n", error.c_str());
                 oled.displayConfigurationStatus("Config Error", "Invalid JSON");
                 oled.update();
             }
         }
     }
-    
+
     // TODO: Add HTTP server to receive configuration from frontend
     // This would handle POST requests from the frontend QR scanner
 }
