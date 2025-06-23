@@ -9,9 +9,9 @@
 #include <freertos/semphr.h>
 
 // Pump control configuration
-#define PUMP_RELAY_PIN 23        // GPIO pin for relay control
+#define PUMP_RELAY_PIN 2         // GPIO pin for LED/relay control (Built-in LED for testing)
 #define PUMP_MAX_DURATION 300000 // Maximum 5 minutes (300 seconds) for safety
-#define HTTP_SERVER_PORT 80      // HTTP server port for pump control
+#define HTTP_SERVER_PORT 8080    // HTTP server port for pump control (changed to avoid conflict)
 
 // Pump status enumeration
 enum PumpStatus
@@ -109,5 +109,5 @@ public:
     String getPumpDetailsText() const;
 };
 
-// MODO DESENVOLVIMENTO: PumpController desabilitado
-// extern PumpController pumpController;
+// PUMP reativado para testes com LED interno
+extern PumpController pumpController;

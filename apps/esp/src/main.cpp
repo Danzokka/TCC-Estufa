@@ -4,8 +4,8 @@
 #include <SERVER.h>
 #include <SOIL_SENSOR.h>
 #include <FLOW_SENSOR.h>
-// MODO DESENVOLVIMENTO: PUMP desabilitado
-// #include <PUMP.h>
+// PUMP reativado para testes HTTP com LED interno
+#include <PUMP.h>
 // MODO DESENVOLVIMENTO: QR_CONFIG desabilitado
 // #include <QR_CONFIG.h>
 #include <freertos/FreeRTOS.h>
@@ -88,9 +88,8 @@ void Task1code(void *pvParameters)
             currentFlowRate = flow_sensor.flowRate;
             currentTotalVolume = flow_sensor.totalVolume;
 
-            // TEMPORÁRIO: PumpController desabilitado para debug
-            // Update pump controller with volume data for volume-based control
-            // pumpController.updateVolume(currentTotalVolume);
+            // PUMP reativado: Update pump controller with volume data for volume-based control
+            pumpController.updateVolume(currentTotalVolume);
 
             xSemaphoreGive(sensorMutex);
         }
@@ -263,14 +262,10 @@ void handleNormalDisplayMode(int &switchState, int &lastSwitchState, bool &needU
         }
         else
         {
-            // TEMPORÁRIO: PumpController desabilitado para debug
-            // Exibe os dados dos sensores incluindo o fluxo de água e status da bomba
-            // String pumpStatus = pumpController.getPumpStatusText();
-            // String pumpDetails = pumpController.getPumpDetailsText();
-            // oled.outputWithPump(currentTemp, currentHumidity, soilHumidityText, currentFlowRate, currentTotalVolume, pumpStatus, pumpDetails);
-
-            // Usando função simplificada sem pump status
-            oled.outputWithFlow(currentTemp, currentHumidity, soilHumidityText, currentFlowRate, currentTotalVolume);
+            // PUMP reativado: Exibe os dados dos sensores incluindo o fluxo de água e status da bomba
+            String pumpStatus = pumpController.getPumpStatusText();
+            String pumpDetails = pumpController.getPumpDetailsText();
+            oled.outputWithPump(currentTemp, currentHumidity, soilHumidityText, currentFlowRate, currentTotalVolume, pumpStatus, pumpDetails);
         }
         xSemaphoreGive(sensorMutex);
 
@@ -330,8 +325,7 @@ void setup()
             ;
     }
 
-    // TEMPORÁRIO: PumpController desabilitado para debug do mutex
-    /*
+    // PUMP reativado para testes HTTP com LED interno
     // Initialize pump controller
     if (!pumpController.begin())
     {
@@ -339,8 +333,7 @@ void setup()
         for (;;)
             ;
     }
-    */
-    Serial.println("PumpController temporariamente desabilitado para debug");
+    Serial.println("PumpController ativado com LED interno (GPIO 2) para testes");
 
     pinMode(SWITCHPIN, INPUT);
     pinMode(CONFIG_BUTTON_PIN, INPUT_PULLUP); // Configuration buttonoled.clear();
