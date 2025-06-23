@@ -1,6 +1,7 @@
 #include "QR_CONFIG.h"
 
-QRConfigManager qrConfig;
+// MODO DESENVOLVIMENTO: QRConfigManager desabilitado
+// QRConfigManager qrConfig;
 
 QRConfigManager::QRConfigManager()
     : server(80), isConfigured(false), configMode(false), configModeStartTime(0), qrCodeData(nullptr)
@@ -41,7 +42,12 @@ bool QRConfigManager::begin()
 
 bool QRConfigManager::needsConfiguration()
 {
-    return !isConfigured || wifiSSID.isEmpty() || serverURL.isEmpty();
+    // TEMPORÁRIO: Desabilitado para desenvolvimento
+    // Remove esta linha e descomente a linha abaixo para reativar QR config
+    return false;
+
+    // return !isConfigured || wifiSSID.isEmpty() || wifiPassword.isEmpty() ||
+    //        userPlant.isEmpty() || greenhouseId.isEmpty();
 }
 
 bool QRConfigManager::enterConfigMode()
@@ -90,55 +96,32 @@ bool QRConfigManager::generateQRCode()
         }
     }
 
-    // Create JSON payload for QR code
+    // Create MINIMAL JSON payload - APENAS CAMPOS ESSENCIAIS
     JsonDocument doc;
-    doc["deviceId"] = deviceId;
-    doc["deviceName"] = deviceName;
-    doc["deviceType"] = "ESP32_GREENHOUSE";
-    doc["version"] = "1.0.0";
-    doc["timestamp"] = millis(); // Add current sensor capabilities
-    JsonArray sensors = doc["sensors"].to<JsonArray>();
-    sensors.add("temperature");
-    sensors.add("humidity");
-    sensors.add("soil_moisture");
-    sensors.add("soil_temperature");
-    sensors.add("water_flow");
 
-    // Add actuator capabilities
-    JsonArray actuators = doc["actuators"].to<JsonArray>();
-    actuators.add("water_pump");
-    // Add network info if available
-    if (WiFi.status() == WL_CONNECTED)
-    {
-        doc["network"]["ip"] = WiFi.localIP().toString();
-        doc["network"]["mac"] = WiFi.macAddress();
-        doc["network"]["rssi"] = WiFi.RSSI();
-    }
-    else
-    {
-        doc["network"]["mac"] = WiFi.macAddress();
-        doc["network"]["status"] = "disconnected";
-    }
-
-    // Add configuration endpoint
-    doc["config"]["method"] = "http";
-    doc["config"]["endpoint"] = "http://192.168.4.1/config";
+    // APENAS OS 4 CAMPOS OBRIGATÓRIOS PARA CONFIGURAÇÃO
+    doc["ssid"] = "Dantas_2.4G"; // SSID padrão
+    doc["pwd"] = "";             // Password vazio para ser configurado
+    doc["plant"] = "";           // userPlant vazio para ser configurado
+    doc["green"] = "";           // greenhouseId vazio para ser configurado
 
     // Convert to string
     String jsonString;
     serializeJson(doc, jsonString);
 
-    Serial.println("QR Code Data:");
-    Serial.println(jsonString);
+    Serial.println("=== QR CODE MINIMAL ===");
+    Serial.println("JSON: " + jsonString);
+    Serial.println("Size: " + String(jsonString.length()) + " bytes");
+    Serial.println("======================");
 
-    // Generate QR code
-    if (qrcode_initText(&qrCode, qrCodeData, QR_VERSION, QR_ERROR_CORRECTION, jsonString.c_str()) != 0)
+    // Generate QR code with LOWER error correction for smaller size
+    if (qrcode_initText(&qrCode, qrCodeData, QR_VERSION, 0, jsonString.c_str()) != 0)
     {
         Serial.println("ERROR: Failed to generate QR code - data too large");
         return false;
     }
 
-    Serial.printf("QR Code generated: %dx%d modules\n", qrCode.size, qrCode.size);
+    Serial.printf("QR Code generated successfully: %dx%d modules\n", qrCode.size, qrCode.size);
     return true;
 }
 
@@ -163,7 +146,32 @@ bool QRConfigManager::saveConfiguration(const JsonObject &config)
 
     try
     {
-        // Extract configuration values
+        // Extract configuration values from minimal JSON format
+        if (config["ssid"].is<String>())
+        {
+            wifiSSID = config["ssid"].as<String>();
+            preferences.putString("wifiSSID", wifiSSID);
+        }
+
+        if (config["pwd"].is<String>())
+        {
+            wifiPassword = config["pwd"].as<String>();
+            preferences.putString("wifiPassword", wifiPassword);
+        }
+
+        if (config["plant"].is<String>())
+        {
+            userPlant = config["plant"].as<String>();
+            preferences.putString("userPlant", userPlant);
+        }
+
+        if (config["green"].is<String>())
+        {
+            greenhouseId = config["green"].as<String>();
+            preferences.putString("greenhouseId", greenhouseId);
+        }
+
+        // Legacy format support (if someone sends old format)
         if (config["wifiSSID"].is<String>())
         {
             wifiSSID = config["wifiSSID"].as<String>();
@@ -176,10 +184,10 @@ bool QRConfigManager::saveConfiguration(const JsonObject &config)
             preferences.putString("wifiPassword", wifiPassword);
         }
 
-        if (config["serverURL"].is<String>())
+        if (config["userPlant"].is<String>())
         {
-            serverURL = config["serverURL"].as<String>();
-            preferences.putString("serverURL", serverURL);
+            userPlant = config["userPlant"].as<String>();
+            preferences.putString("userPlant", userPlant);
         }
 
         if (config["greenhouseId"].is<String>())
@@ -188,21 +196,33 @@ bool QRConfigManager::saveConfiguration(const JsonObject &config)
             preferences.putString("greenhouseId", greenhouseId);
         }
 
+        if (config["serverURL"].is<String>())
+        {
+            serverURL = config["serverURL"].as<String>();
+            preferences.putString("serverURL", serverURL);
+        }
+
         if (config["deviceName"].is<String>())
         {
             deviceName = config["deviceName"].as<String>();
             preferences.putString("deviceName", deviceName);
         }
 
-        // Mark as configured
-        isConfigured = true;
-        preferences.putBool("configured", true);
+        // Mark as configured if all required fields are present
+        if (!wifiSSID.isEmpty() && !wifiPassword.isEmpty() &&
+            !userPlant.isEmpty() && !greenhouseId.isEmpty())
+        {
+            isConfigured = true;
+            preferences.putBool("configured", true);
+        }
 
         Serial.println("Configuration saved successfully:");
         Serial.printf("  WiFi SSID: %s\n", wifiSSID.c_str());
-        Serial.printf("  Server URL: %s\n", serverURL.c_str());
+        Serial.printf("  User Plant: %s\n", userPlant.c_str());
         Serial.printf("  Greenhouse ID: %s\n", greenhouseId.c_str());
+        Serial.printf("  Server URL: %s\n", serverURL.c_str());
         Serial.printf("  Device Name: %s\n", deviceName.c_str());
+        Serial.printf("  Configured: %s\n", isConfigured ? "YES" : "NO");
 
         return true;
     }
@@ -218,19 +238,20 @@ bool QRConfigManager::loadConfiguration()
     Serial.println("Loading device configuration...");
 
     isConfigured = preferences.getBool("configured", false);
-
     if (isConfigured)
     {
         wifiSSID = preferences.getString("wifiSSID", "");
         wifiPassword = preferences.getString("wifiPassword", "");
         serverURL = preferences.getString("serverURL", "");
         greenhouseId = preferences.getString("greenhouseId", "");
+        userPlant = preferences.getString("userPlant", "");
         deviceName = preferences.getString("deviceName", "ESP32-Greenhouse-" + deviceId.substring(0, 8));
 
         Serial.println("Configuration loaded:");
         Serial.printf("  WiFi SSID: %s\n", wifiSSID.c_str());
         Serial.printf("  Server URL: %s\n", serverURL.c_str());
         Serial.printf("  Greenhouse ID: %s\n", greenhouseId.c_str());
+        Serial.printf("  User Plant: %s\n", userPlant.c_str());
         Serial.printf("  Device Name: %s\n", deviceName.c_str());
 
         return true;

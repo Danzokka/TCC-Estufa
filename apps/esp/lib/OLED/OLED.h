@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Wire.h>
+#include <WiFi.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Arduino.h>
@@ -27,7 +27,9 @@ public:
     void outputWithFlow(float temperature, float humidity, String soilHumidity, float flowRate, float totalVolume);
     void outputWithPump(float temperature, float humidity, String soilHumidity, float flowRate, float totalVolume, String pumpStatus, String pumpDetails);
     void outputPumpActivation(int duration, float waterAmount);
-    void displayQRCode(QRConfigManager *qrConfig);
+    // MODO DESENVOLVIMENTO: QR Config desabilitado
+    void displayQRCode(QRConfigManager *qrConfig); // Mantém assinatura mas função comentada
+    void displaySystemInfo();                      // Nova função para mostrar informações do ESP32
     void displayConfigurationStatus(const String &status, const String &details = "");
     void displayWiFiConnection(const String &ssid, const String &ip = "");
     void update();

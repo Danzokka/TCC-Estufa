@@ -26,11 +26,11 @@ private:
 
   Preferences preferences;
   WebServer server;
-
   // Device configuration
   String deviceId;
   String deviceName;
   String greenhouseId;
+  String userPlant; // ID da planta/usuário
   bool isConfigured;
 
   // WiFi configuration
@@ -153,10 +153,10 @@ public:
    */
   void resetConfiguration();
 
-  // Getters
-  String getDeviceId() const { return deviceId; }
+  // Getters  String getDeviceId() const { return deviceId; }
   String getDeviceName() const { return deviceName; }
   String getGreenhouseId() const { return greenhouseId; }
+  String getUserPlant() const { return userPlant; }
   String getWiFiSSID() const { return wifiSSID; }
   String getServerURL() const { return serverURL; }
   bool getIsConfigured() const { return isConfigured; }

@@ -2,7 +2,8 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
-#include "CONFIG.h"
+// MODO DESENVOLVIMENTO: CONFIG.h removido pois não existe
+// #include "CONFIG.h"
 
 class SERVER
 {
@@ -22,7 +23,8 @@ private:
 
 public:
     SERVER();
-    bool begin();    void send(String data);
+    bool begin();
+    void send(String data);
     void addSensorReading(float airTemperature, float airHumidity, float soilTemperature, int soilMoisture, float flowRate = 0, float totalVolume = 0);
     void sendAverageSensorData();
     void sendPumpStatus(String status, unsigned long runtime, float volume);

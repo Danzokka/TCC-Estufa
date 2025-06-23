@@ -4,8 +4,10 @@
 #include <SERVER.h>
 #include <SOIL_SENSOR.h>
 #include <FLOW_SENSOR.h>
-#include <PUMP.h>
-#include <QR_CONFIG.h>
+// MODO DESENVOLVIMENTO: PUMP desabilitado
+// #include <PUMP.h>
+// MODO DESENVOLVIMENTO: QR_CONFIG desabilitado
+// #include <QR_CONFIG.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -73,8 +75,10 @@ void Task1code(void *pvParameters)
         {
             Serial.print("Core 0: Leituras realizadas: ");
             Serial.println(readingCounter);
-        } // Adquire o mutex para atualizar dados compartilhados
-        if (xSemaphoreTake(sensorMutex, portMAX_DELAY) == pdTRUE)
+        }
+
+        // Adquire o mutex para atualizar dados compartilhados (com verificação de segurança)
+        if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, portMAX_DELAY) == pdTRUE)
         {
             currentTemp = th_sensor.temperature;
             currentHumidity = th_sensor.humidity;
@@ -84,16 +88,21 @@ void Task1code(void *pvParameters)
             currentFlowRate = flow_sensor.flowRate;
             currentTotalVolume = flow_sensor.totalVolume;
 
+            // TEMPORÁRIO: PumpController desabilitado para debug
             // Update pump controller with volume data for volume-based control
-            pumpController.updateVolume(currentTotalVolume);
+            // pumpController.updateVolume(currentTotalVolume);
 
             xSemaphoreGive(sensorMutex);
         }
-
+        else if (sensorMutex == NULL)
+        {
+            Serial.println("ERRO: sensorMutex é NULL na Task1!");
+        } // TEMPORÁRIO: MODO DESENVOLVIMENTO - Configuração desabilitada
         // Check for configuration in configuration mode
         if (currentMode == MODE_CONFIGURATION)
         {
-            checkForConfiguration();
+            Serial.println("MODE_CONFIGURATION detectado na Task1 - forçando MODE_NORMAL_OPERATION");
+            currentMode = MODE_NORMAL_OPERATION;
         }
 
         // Only send sensor data in normal operation mode
@@ -148,17 +157,18 @@ void Task2code(void *pvParameters)
     unsigned long lastFpsCheck = millis();
     int switchState = 0;      // Adicionar declaração da variável
     int lastSwitchState = -1; // Inicializado com valor inválido para forçar a primeira atualização
-    bool needUpdate = true;   // Adicionar declaração da variável
-
-    // Controle de animação
+    bool needUpdate = true;   // Adicionar declaração da variável    // Controle de animação
     int animationStep = 0;
-    int animationSpeed = 50; // Velocidade da animação (ms)for (;;)
-    {
-        // Handle different system modes
+    int animationSpeed = 50; // Velocidade da animação (ms)
+
+    for (;;)
+    { // Handle different system modes
         switch (currentMode)
         {
         case MODE_CONFIGURATION:
-            handleConfigurationMode();
+            // TEMPORÁRIO: MODO DESENVOLVIMENTO - Ignora configuração QR
+            Serial.println("MODE_CONFIGURATION desabilitado - forçando MODE_NORMAL_OPERATION");
+            currentMode = MODE_NORMAL_OPERATION;
             break;
 
         case MODE_NORMAL_OPERATION:
@@ -183,16 +193,19 @@ void Task2code(void *pvParameters)
             Serial.println(" FPS");
             frameCounter = 0;
             lastFpsCheck = millis();
-        }
-
-        // Check for configuration timeout or button press
+        } // Check for configuration timeout or button press
         if (currentMode == MODE_CONFIGURATION)
         {
+            // MODO DESENVOLVIMENTO: QR Config desabilitado
+            /*
             if (qrConfig.checkConfigTimeout())
             {
                 Serial.println("Configuration timeout - restarting");
                 ESP.restart();
             }
+            */
+            Serial.println("QR Config desabilitado - saindo do modo configuração");
+            currentMode = MODE_NORMAL_OPERATION;
         }
 
         // Delay para a próxima atualização do display
@@ -209,6 +222,8 @@ void handleConfigurationMode()
     { // Update QR code display every second
         lastQRUpdate = millis();
 
+        // MODO DESENVOLVIMENTO: QR Config desabilitado
+        /*
         if (qrConfig.isInConfigMode())
         {
             oled.displayQRCode(&qrConfig);
@@ -217,6 +232,10 @@ void handleConfigurationMode()
         {
             oled.displayConfigurationStatus("Config Mode", "Generating QR...");
         }
+        */
+
+        // Mostra que está em modo desenvolvimento
+        oled.displayConfigurationStatus("Desenvolvimento", "QR Config DESABILITADO");
         oled.update();
     }
 }
@@ -227,36 +246,40 @@ void handleNormalDisplayMode(int &switchState, int &lastSwitchState, bool &needU
     // Verifica o estado da chave para determinar o modo de exibição
     switchState = digitalRead(SWITCHPIN);
 
-    // Verificamos se o estado do switch mudou para evitar atualizações desnecessárias
-    if (switchState != lastSwitchState)
+    // Verificamos se o estado do switch mudou para evitar atualizações desnecessárias    if (switchState != lastSwitchState)
     {
         lastSwitchState = switchState;
         needUpdate = true;
         Serial.print("Alterando modo de exibição: ");
-        Serial.println(switchState == HIGH ? "Bitmap" : "Dados");
-    }
-
-    // Adquire o mutex para ler dados compartilhados
-    if (xSemaphoreTake(sensorMutex, 10 / portTICK_PERIOD_MS) == pdTRUE)
+        Serial.println(switchState == HIGH ? "Sistema Info" : "Dados Sensores");
+    } // Adquire o mutex para ler dados compartilhados (com verificação de segurança)
+    if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, 10 / portTICK_PERIOD_MS) == pdTRUE)
     {
         // Atualiza o display com base no estado do switch
         if (switchState == HIGH)
         {
-            // Usa a animação do bitmap ao invés da imagem estática
-            oled.animateBitmap(myBitmap, 50, animationStep);
-            animationStep++; // Incrementa o passo da animação
+            // Mostra informações do sistema ESP32
+            oled.displaySystemInfo();
         }
         else
         {
+            // TEMPORÁRIO: PumpController desabilitado para debug
             // Exibe os dados dos sensores incluindo o fluxo de água e status da bomba
-            String pumpStatus = pumpController.getPumpStatusText();
-            String pumpDetails = pumpController.getPumpDetailsText();
-            oled.outputWithPump(currentTemp, currentHumidity, soilHumidityText, currentFlowRate, currentTotalVolume, pumpStatus, pumpDetails);
+            // String pumpStatus = pumpController.getPumpStatusText();
+            // String pumpDetails = pumpController.getPumpDetailsText();
+            // oled.outputWithPump(currentTemp, currentHumidity, soilHumidityText, currentFlowRate, currentTotalVolume, pumpStatus, pumpDetails);
+
+            // Usando função simplificada sem pump status
+            oled.outputWithFlow(currentTemp, currentHumidity, soilHumidityText, currentFlowRate, currentTotalVolume);
         }
         xSemaphoreGive(sensorMutex);
 
         // Atualiza o display
         oled.update();
+    }
+    else if (sensorMutex == NULL)
+    {
+        Serial.println("ERRO: sensorMutex é NULL na Task2!");
     }
     else if (needUpdate)
     {
@@ -299,13 +322,16 @@ void setup()
         Serial.println(F("Error initializing soil sensor!"));
         for (;;)
             ;
-    } // Inicializa o sensor de fluxo    if (!flow_sensor.begin())
+    } // Inicializa o sensor de fluxo
+    if (!flow_sensor.begin())
     {
         Serial.println(F("Error initializing flow sensor!"));
         for (;;)
             ;
     }
 
+    // TEMPORÁRIO: PumpController desabilitado para debug do mutex
+    /*
     // Initialize pump controller
     if (!pumpController.begin())
     {
@@ -313,22 +339,40 @@ void setup()
         for (;;)
             ;
     }
-    pinMode(SWITCHPIN, INPUT);
-    pinMode(CONFIG_BUTTON_PIN, INPUT_PULLUP); // Configuration button
+    */
+    Serial.println("PumpController temporariamente desabilitado para debug");
 
-    oled.clear();
+    pinMode(SWITCHPIN, INPUT);
+    pinMode(CONFIG_BUTTON_PIN, INPUT_PULLUP); // Configuration buttonoled.clear();
     delay(200);
 
-    // Initialize QR Configuration Manager
-    Serial.println("Initializing QR Configuration Manager...");
-    if (!qrConfig.begin())
+    // TEMPORÁRIO: MODO DESENVOLVIMENTO - QR CONFIG COMPLETAMENTE DESABILITADO
+    Serial.println("=== MODO DESENVOLVIMENTO ===");
+    Serial.println("QR Config: DESABILITADO");
+    Serial.println("WiFi: Hardcoded via SERVER");
+    Serial.println("============================");
+
+    currentMode = MODE_NORMAL_OPERATION;
+
+    // Try to connect with hardcoded WiFi for development
+    if (server.begin())
     {
-        Serial.println(F("Error initializing QR Configuration Manager!"));
-        oled.displayConfigurationStatus("QR Config Error", "Init failed");
+        Serial.println("Connected to WiFi in development mode");
+        oled.displayWiFiConnection("Dantas_2.4G", WiFi.localIP().toString());
         oled.update();
-        for (;;)
-            ;
-    } // Check if device needs configuration
+        delay(3000);
+    }
+    else
+    {
+        Serial.println("WiFi connection failed - continuing in offline mode");
+        oled.displayConfigurationStatus("Dev Mode", "WiFi: Offline");
+        oled.update();
+        delay(3000);
+    }
+
+    /*
+    // CÓDIGO ORIGINAL DE QR CONFIG - COMENTADO PARA DESENVOLVIMENTO
+    // Check if device needs configuration
     if (qrConfig.needsConfiguration() || digitalRead(CONFIG_BUTTON_PIN) == LOW)
     {
         Serial.println("Device needs configuration - entering QR mode");
@@ -379,13 +423,27 @@ void setup()
             }
         }
     }
-
+    */
     Serial.print("Inicializando em modo dual core - Núcleo atual: ");
     Serial.println(xPortGetCoreID());
     Serial.println("Setup completed. Preparing to start tasks...");
 
     // Criação do mutex
-    sensorMutex = xSemaphoreCreateMutex(); // Criação das tarefas
+    Serial.println("Criando sensorMutex...");
+    sensorMutex = xSemaphoreCreateMutex();
+
+    if (sensorMutex == NULL)
+    {
+        Serial.println("ERRO: Falha ao criar sensorMutex!");
+        for (;;)
+            ; // Para o sistema se não conseguir criar o mutex
+    }
+    else
+    {
+        Serial.println("sensorMutex criado com sucesso!");
+    }
+
+    // Criação das tarefas
     Serial.println("Criando tarefa de sensores no Núcleo 0...");
     xTaskCreatePinnedToCore(
         Task1code,    /* Task function */
@@ -415,19 +473,24 @@ void setup()
 
 void loop()
 {
+    // TEMPORÁRIO: MODO DESENVOLVIMENTO - QR CONFIG COMPLETAMENTE DESABILITADO
     // Handle HTTP server requests in configuration mode
     if (currentMode == MODE_CONFIGURATION)
     {
-        qrConfig.handleServerRequests();
+        // qrConfig.handleServerRequests();
 
         // Check for configuration timeout
-        if (qrConfig.checkConfigTimeout())
-        {
-            Serial.println("Configuration timeout reached - exiting config mode");
-            qrConfig.exitConfigMode();
-            qrConfig.stopConfigServer();
-            currentMode = MODE_NORMAL_OPERATION;
-        }
+        // if (qrConfig.checkConfigTimeout())
+        // {
+        //     Serial.println("Configuration timeout reached - exiting config mode");
+        //     qrConfig.exitConfigMode();
+        //     qrConfig.stopConfigServer();
+        //     currentMode = MODE_NORMAL_OPERATION;
+        // }
+
+        // Força modo normal para desenvolvimento
+        Serial.println("Forçando MODE_NORMAL_OPERATION (desenvolvimento)");
+        currentMode = MODE_NORMAL_OPERATION;
     }
 
     // O loop principal agora serve para monitoramento do sistema
@@ -462,6 +525,8 @@ void loop()
 // Check for configuration data reception via Serial or WiFi
 void checkForConfiguration()
 {
+    // MODO DESENVOLVIMENTO: QR Config completamente desabilitado
+    /*
     // Handle HTTP server requests (this also handles configuration reception)
     qrConfig.handleServerRequests();
 
@@ -523,4 +588,7 @@ void checkForConfiguration()
 
     // TODO: Add HTTP server to receive configuration from frontend
     // This would handle POST requests from the frontend QR scanner
+    */
+
+    Serial.println("checkForConfiguration: QR Config desabilitado em modo desenvolvimento");
 }

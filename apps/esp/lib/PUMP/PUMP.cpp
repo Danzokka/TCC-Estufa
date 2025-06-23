@@ -627,5 +627,6 @@ String PumpController::createErrorResponse(const String &error)
     return response;
 }
 
+// MODO DESENVOLVIMENTO: PumpController desabilitado
 // Global instance
-PumpController pumpController;
+// PumpController pumpController;
