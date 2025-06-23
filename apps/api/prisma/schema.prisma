@@ -26,6 +26,7 @@ model User {
   blogPosts     BlogPost[]
   comments      Comment[]
   likes         Like[]
+  greenhouses   Greenhouse[]
 }
 
 model Plant {
@@ -119,7 +120,8 @@ model Like {
 // Pump operation tracking model
 model PumpOperation {
   id               String      @id @default(uuid())
-  greenhouseId     String      // Reference to greenhouse (will be proper foreign key later)
+  greenhouseId     String      
+  greenhouse       Greenhouse  @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
   duration         Int         // Duration in seconds
   waterAmount      Float?      // Target water amount in liters
   reason           String?     // Reason for activation
@@ -140,7 +142,8 @@ model PumpOperation {
 model Device {
   id               String      @id @default(uuid())
   name             String
-  greenhouseId     String      // Reference to greenhouse
+  greenhouseId     String      
+  greenhouse       Greenhouse  @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
   type             String      @default("esp32") // Device type
   ipAddress        String?     // Current IP address
   macAddress       String?     @unique // MAC address for identification
@@ -154,4 +157,83 @@ model Device {
   @@index([greenhouseId])
   @@index([type])
   @@index([isOnline])
+}
+
+// Greenhouse model for managing smart greenhouse environments
+model Greenhouse {
+  id               String      @id @default(uuid())
+  name             String
+  description      String?
+  location         String?     // Physical location or address
+  ownerId          String
+  owner            User        @relation(fields: [ownerId], references: [id])
+  
+  // Current environmental conditions
+  currentTemperature    Float?   // Current air temperature in Celsius
+  currentHumidity       Float?   // Current air humidity percentage
+  currentSoilMoisture   Int?     // Current soil moisture percentage
+  currentLightIntensity Float?   // Current light intensity
+  currentWaterLevel     Float?   // Current water tank level
+  
+  // Configuration and thresholds
+  targetTemperature     Float    @default(25.0)  // Target temperature
+  targetHumidity        Float    @default(60.0)  // Target humidity
+  targetSoilMoisture    Int      @default(50)    // Target soil moisture
+  minWaterLevel         Float    @default(20.0)  // Minimum water level alert
+  
+  // Device and connectivity information
+  deviceId             String?   @unique  // Associated ESP32 device ID
+  wifiSSID             String?   // WiFi network name
+  wifiPassword         String?   // WiFi password (encrypted)
+  isOnline             Boolean   @default(false)
+  lastDataUpdate       DateTime? // Last sensor data received
+  
+  // QR Code configuration
+  qrCodeData           String?   // Encrypted QR code payload
+  qrCodeGeneratedAt    DateTime? // When QR code was generated
+  isConfigured         Boolean   @default(false) // Whether device is configured
+  
+  // Timestamps
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  
+  // Relations
+  devices              Device[]
+  pumpOperations       PumpOperation[]
+  sensorReadings       GreenhouseSensorReading[]
+  
+  @@index([ownerId])
+  @@index([deviceId])
+  @@index([isOnline])
+  @@index([lastDataUpdate])
+}
+
+// Enhanced sensor readings specific to greenhouse monitoring
+model GreenhouseSensorReading {
+  id               String      @id @default(uuid())
+  greenhouseId     String
+  greenhouse       Greenhouse  @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
+  
+  // Environmental sensors
+  airTemperature   Float
+  airHumidity      Float
+  soilMoisture     Int
+  soilTemperature  Float?
+  lightIntensity   Float
+  waterLevel       Float
+  waterReserve     Float?
+  
+  // Device information
+  deviceId         String?     // ESP32 device that sent the data
+  batteryLevel     Float?      // Battery level percentage
+  signalStrength   Int?        // WiFi signal strength (RSSI)
+  
+  // Metadata
+  timestamp        DateTime    @default(now())
+  isValid          Boolean     @default(true)  // Data validation flag
+  errorMessage     String?     // Any error during reading
+  
+  @@index([greenhouseId])
+  @@index([timestamp])
+  @@index([deviceId])
 }

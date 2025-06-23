@@ -17,7 +17,7 @@ api.interceptors.request.use(
       // Attempt to fetch the session token from the cookies via an endpoint
       const session = await getSession();
       if (!session.isLoggedIn) {
-        throw new Error("No session token found");
+        return config; // If not logged in, return config without token
       }
 
       config.headers.Authorization = `Bearer ${session.token}`;
