@@ -10,7 +10,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PumpService } from './pump.service';
-import { ActivatePumpDto, PumpStatusDto, PumpHistoryDto } from './dto/pump.dto';
+import {
+  ActivatePumpDto,
+  PumpStatusDto,
+  PumpHistoryDto,
+  SimpleActivatePumpDto,
+  SimpleDeviceStatusDto,
+  DeviceConfigDto,
+} from './dto/pump.dto';
 
 @Controller('pump')
 export class PumpController {
@@ -19,7 +26,8 @@ export class PumpController {
   /**
    * Activate water pump
    * POST /pump/activate
-   */ @Post('activate')
+   */
+  @Post('activate')
   async activatePump(@Body() activatePumpDto: ActivatePumpDto): Promise<{
     success: boolean;
     message: string;
@@ -80,7 +88,8 @@ export class PumpController {
   /**
    * Stop/cancel pump operation
    * DELETE /pump/stop/:greenhouseId
-   */ @Delete('stop/:greenhouseId')
+   */
+  @Delete('stop/:greenhouseId')
   async stopPump(@Param('greenhouseId') greenhouseId: string): Promise<{
     success: boolean;
     message: string;
@@ -279,6 +288,108 @@ export class PumpController {
         success: false,
         message: error.message || 'Failed to process device status',
         timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
+  /**
+   * SIMPLIFIED API - Direct device control by IP
+   */
+
+  /**
+   * Activate pump using device IP (no greenhouse required)
+   * POST /pump/device/activate
+   */
+  @Post('device/activate')
+  async activatePumpByIp(@Body() activateDto: SimpleActivatePumpDto): Promise<{
+    success: boolean;
+    message: string;
+    data?: SimpleDeviceStatusDto;
+  }> {
+    try {
+      console.log('Activating pump by IP:', activateDto);
+      const result = await this.pumpService.activatePumpByIp(activateDto);
+      return {
+        success: true,
+        message: 'Pump activated successfully',
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || 'Failed to activate pump',
+      };
+    }
+  }
+
+  /**
+   * Get device status by IP
+   * GET /pump/device/status/:ip
+   */
+  @Get('device/status/:ip')
+  async getDeviceStatus(@Param('ip') deviceIp: string): Promise<{
+    success: boolean;
+    data?: SimpleDeviceStatusDto;
+    message?: string;
+  }> {
+    try {
+      const status = await this.pumpService.getDeviceStatusByIp(deviceIp);
+      return {
+        success: true,
+        data: status,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || 'Failed to get device status',
+      };
+    }
+  }
+
+  /**
+   * Stop pump by device IP
+   * POST /pump/device/stop
+   */
+  @Post('device/stop')
+  async stopPumpByIp(@Body() body: { deviceIp: string }): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    try {
+      await this.pumpService.stopPumpByIp(body.deviceIp);
+      return {
+        success: true,
+        message: 'Pump stopped successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || 'Failed to stop pump',
+      };
+    }
+  }
+
+  /**
+   * Register/Save device configuration
+   * POST /pump/device/config
+   */
+  @Post('device/config')
+  async saveDeviceConfig(@Body() configDto: DeviceConfigDto): Promise<{
+    success: boolean;
+    message: string;
+    data?: DeviceConfigDto;
+  }> {
+    try {
+      const result = await this.pumpService.saveDeviceConfig(configDto);
+      return {
+        success: true,
+        message: 'Device configuration saved successfully',
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || 'Failed to save device configuration',
       };
     }
   }

@@ -5,7 +5,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { ActivatePumpDto, PumpStatusDto, PumpHistoryDto } from './dto/pump.dto';
+import {
+  ActivatePumpDto,
+  PumpStatusDto,
+  PumpHistoryDto,
+  SimpleActivatePumpDto,
+  DeviceConfigDto,
+  SimpleDeviceStatusDto,
+} from './dto/pump.dto';
 import axios from 'axios';
 
 @Injectable()
@@ -320,5 +327,128 @@ export class PumpService {
         operation.status === 'active' ? estimatedEndTime : undefined,
       reason: operation.reason,
     };
+  }
+
+  /**
+   * SIMPLIFIED API METHODS - Direct device control by IP
+   */
+
+  /**
+   * Activate pump using device IP directly
+   */
+  async activatePumpByIp(
+    activateDto: SimpleActivatePumpDto,
+  ): Promise<SimpleDeviceStatusDto> {
+    const { deviceIp, duration, waterAmount, reason } = activateDto;
+
+    try {
+      // Send activation command directly to ESP32
+      const response = await axios.post(
+        `http://${deviceIp}:8080/pump/activate`,
+        {
+          duration,
+          volume: waterAmount,
+        },
+        { timeout: 5000 },
+      );
+
+      if (response.status !== 200) {
+        throw new BadRequestException('Failed to communicate with device');
+      }
+
+      // Return status without requiring database storage
+      return {
+        deviceIp,
+        deviceName: `Device-${deviceIp.split('.').pop()}`,
+        isActive: true,
+        remainingTime: duration,
+        targetWaterAmount: waterAmount,
+        startedAt: new Date(),
+        lastUpdate: new Date(),
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to activate pump at ${deviceIp}:`,
+        error.message,
+      );
+      throw new BadRequestException(
+        `Failed to communicate with device at ${deviceIp}. Make sure the device is online and accessible.`,
+      );
+    }
+  }
+
+  /**
+   * Get device status by IP
+   */
+  async getDeviceStatusByIp(deviceIp: string): Promise<SimpleDeviceStatusDto> {
+    try {
+      const response = await axios.get(`http://${deviceIp}:8080/pump/status`, {
+        timeout: 5000,
+      });
+
+      const deviceStatus = response.data;
+
+      return {
+        deviceIp,
+        deviceName: `Device-${deviceIp.split('.').pop()}`,
+        isActive: deviceStatus.status === 'on',
+        remainingTime: deviceStatus.remaining_seconds,
+        targetWaterAmount: deviceStatus.target_volume,
+        currentWaterAmount: deviceStatus.current_volume,
+        startedAt: deviceStatus.start_time
+          ? new Date(deviceStatus.start_time)
+          : undefined,
+        lastUpdate: new Date(),
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to get status from ${deviceIp}:`,
+        error.message,
+      );
+      throw new NotFoundException(
+        `Device at ${deviceIp} is not responding. Check if the device is online.`,
+      );
+    }
+  }
+
+  /**
+   * Stop pump by device IP
+   */
+  async stopPumpByIp(deviceIp: string): Promise<void> {
+    try {
+      const response = await axios.post(
+        `http://${deviceIp}:8080/pump/deactivate`,
+        {},
+        { timeout: 5000 },
+      );
+
+      if (response.status !== 200) {
+        throw new BadRequestException('Failed to stop pump');
+      }
+    } catch (error) {
+      this.logger.error(`Failed to stop pump at ${deviceIp}:`, error.message);
+      throw new BadRequestException(
+        `Failed to communicate with device at ${deviceIp}`,
+      );
+    }
+  }
+
+  /**
+   * Save device configuration (stored in localStorage on frontend)
+   * This method is just for API consistency, actual storage happens on frontend
+   */
+  async saveDeviceConfig(configDto: DeviceConfigDto): Promise<DeviceConfigDto> {
+    // In the simplified version, we just validate the IP is reachable
+    try {
+      await axios.get(`http://${configDto.deviceIp}:8080/pump/status`, {
+        timeout: 3000,
+      });
+
+      return configDto;
+    } catch (error) {
+      throw new BadRequestException(
+        `Cannot reach device at ${configDto.deviceIp}. Please check the IP address and ensure the device is online.`,
+      );
+    }
   }
 }

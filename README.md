@@ -144,7 +144,26 @@ docker-compose up -d
 ## 📱 Recursos do Aplicativo
 
 - Dashboard em tempo real com visualização dos dados dos sensores
+- Controle simplificado de irrigação via IP direto do ESP32
+- Configuração fácil de dispositivos ESP32 via interface web
 - Gráficos históricos de medições
 - Configuração de parâmetros ideais para diferentes tipos de plantas
 - Alertas e notificações para condições críticas
+- Sistema de monitoramento de plantas independente de estufa
 
+### 💧 Controle de Irrigação Simplificado
+
+O sistema agora utiliza uma abordagem simplificada para controle de irrigação:
+
+1. **Configuração Inicial**: Acesse `/device` e configure o IP do seu ESP32
+2. **Controle na Home**: Use os botões rápidos (30s, 1min, 3min) diretamente na página inicial
+3. **Status em Tempo Real**: Monitore o status do dispositivo e da bomba com indicadores visuais
+4. **Armazenamento Local**: Configuração salva no navegador para acesso rápido
+
+**Vantagens da nova abordagem:**
+
+- ✅ Configuração mais simples e direta
+- ✅ Não requer associação com estufa específica
+- ✅ Comunicação direta com ESP32 via IP
+- ✅ Feedback visual imediato de conectividade
+- ✅ Controle flexível e independente

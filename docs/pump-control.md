@@ -2,52 +2,55 @@
 
 ## Visão Geral
 
-O sistema de controle de bomba permite irrigação automatizada e manual das plantas através de uma interface web integrada com hardware ESP32.
+O sistema de controle de bomba permite irrigação automatizada e manual das plantas através de uma interface web integrada com hardware ESP32. O sistema foi simplificado para usar comunicação direta com dispositivos ESP32 via IP, removendo a dependência de associações com estufas.
 
 ## Componentes Implementados
 
 ### Frontend (Next.js)
 
-- **PumpQuickControl**: Widget compacto para a home page com botões de ação rápida
-- **PumpControlPanel**: Interface completa para controle avançado na página `/pump`
-- **PumpHistory**: Histórico de operações de irrigação
+- **SimplePumpQuickControl**: Widget compacto para a home page com controle direto por IP
+- **SimplePumpControl**: Interface completa para controle direto via IP do dispositivo
+- **SimpleDeviceConfigurator**: Configuração simples de dispositivos usando apenas IP
 
 ### Backend (NestJS)
 
-- **PumpController**: Endpoints REST para controle da bomba
-- **PumpService**: Lógica de negócio e integração com ESP32
-- **PumpDTO**: Validação de dados de entrada
+- **PumpController**: Endpoints REST para controle direto da bomba via IP
+- **PumpService**: Lógica de negócio e integração direta com ESP32
+- **PumpDTO**: Validação de dados com DTOs simplificados para controle por IP
 
 ### Hardware (ESP32)
 
 - **PumpController**: Controle físico da bomba via relé
 - **OLED Display**: Feedback visual no hardware
 - **Safety System**: Sistema de segurança com timeouts
+- **Direct IP Communication**: Comunicação direta sem dependência de greenhouse
 
 ## Funcionalidades
 
-### Controle Rápido (Home Page)
+### Controle Simplificado (Home Page)
 
 - ✅ Botões de ação rápida: 30s, 1min, 3min
-- ✅ Status em tempo real com polling automático
-- ✅ Barra de progresso para controle por volume
-- ✅ Feedback visual com animações
+- ✅ Status em tempo real via IP do dispositivo
+- ✅ Feedback visual com status de conexão
+- ✅ Configuração automática via localStorage
 - ✅ Toasts para confirmação de ações
+- ✅ Indicador de dispositivo online/offline
 
-### Controle Avançado (/pump)
+### Configuração de Dispositivo (/device)
 
-- ✅ Configuração precisa de duração (1-3600 segundos)
-- ✅ Controle por volume de água (0.1-100 litros)
-- ✅ Motivos personalizados para irrigação
-- ✅ Parada de emergência
-- ✅ Histórico de operações
+- ✅ Configuração simples via IP
+- ✅ Teste de conectividade automático
+- ✅ Armazenamento local da configuração
+- ✅ Interface de controle integrada
+- ✅ Modo simplificado (padrão) e modo completo (legacy)
 
 ### ESP32 Integration
 
 - ✅ Display OLED mostra status da bomba
-- ✅ Informações de duração e volume
+- ✅ Informações de duração em tempo real
 - ✅ Safety checks automáticos
-- ✅ Timeout máximo de 5 minutos
+- ✅ Comunicação direta via IP
+- ✅ Timeout máximo de 1 hora
 
 ## API Endpoints
 
@@ -127,21 +130,32 @@ Para a operação da bomba imediatamente.
 
 ```
 apps/web/src/components/pump/
-├── pump-quick-control.tsx    # Widget para home page
-├── pump-control-panel.tsx    # Interface completa
-└── pump-history.tsx         # Histórico de operações
+├── simple-pump-quick-control.tsx    # Widget para home page (IP-based)
+├── simple-pump-control.tsx          # Interface para controle direto
+├── pump-quick-control.tsx           # Widget legacy (greenhouse-based)
+└── pump-control-panel.tsx          # Interface legacy
+
+apps/web/src/components/device/
+├── simple-device-configurator.tsx   # Configuração simples por IP
+├── device-management.tsx           # Interface de gerenciamento
+└── device-configurator.tsx         # Configuração legacy
 
 apps/web/src/app/
-├── page.tsx                 # Home com PumpQuickControl
-└── pump/page.tsx           # Página dedicada ao controle
+├── page.tsx                 # Home com SimplePumpQuickControl
+├── device/page.tsx         # Configuração de dispositivos
+└── pump/page.tsx           # Página legacy (greenhouse-based)
 
 apps/web/src/server/actions/
-└── pump.ts                 # Server actions para API
+├── pump-simple.ts          # Server actions para controle direto por IP
+└── pump.ts                 # Server actions legacy (greenhouse-based)
+
+apps/web/src/hooks/
+└── useDeviceConfig.ts      # Hook para gerenciar configuração via localStorage
 
 apps/api/src/pump/
-├── pump.controller.ts       # REST endpoints
+├── pump.controller.ts       # REST endpoints (com suporte IP-based)
 ├── pump.service.ts         # Lógica de negócio
-└── dto/pump.dto.ts         # Validação de dados
+└── dto/pump.dto.ts         # Validação (com DTOs simplificados)
 
 apps/esp/lib/PUMP/
 ├── pump.h                  # Interface do controlador
@@ -154,43 +168,67 @@ apps/esp/lib/OLED/
 
 ## Estado Atual
 
-✅ **Implementado e testando**:
+✅ **Implementado e funcionando**:
 
-- Widget de controle rápido na home page
-- Integração completa com API backend
-- Feedback visual em tempo real
+- Widget de controle rápido simplificado na home page
+- Configuração de dispositivos via IP (sem greenhouse)
+- Integração direta com ESP32 via IP
+- Sistema de configuração localStorage
+- Feedback visual em tempo real com status de conectividade
 - Display OLED no ESP32
-- Sistema de segurança
+- Sistema de segurança com timeouts
 - Build passando sem erros
+
+## Fluxo de Uso Simplificado
+
+1. **Configuração Inicial**:
+
+   - Acesse `/device`
+   - Insira o IP do ESP32
+   - Teste a conectividade
+   - Salve a configuração
+
+2. **Controle Diário**:
+
+   - Na home page, use os botões rápidos (30s, 1min, 3min)
+   - Status em tempo real com indicador online/offline
+   - Feedback imediato via OLED do ESP32
+
+3. **Controle Avançado**:
+   - Acesse a aba "Controle" em `/device`
+   - Configure duração personalizada
+   - Monitore status detalhado
 
 ## Próximos Passos
 
-1. **Testes de integração**: Verificar comunicação ESP32 ↔ API
-2. **Calibração de sensores**: Ajustar leituras de fluxo
+1. **Remover componentes legacy**: Limpeza do código antigo baseado em greenhouse
+2. **Melhorar UX**: Tornar configuração ainda mais intuitiva
 3. **Notificações push**: Alertas para irrigação completada
-4. **Agendamento**: Sistema de irrigação automática
-5. **Analytics**: Relatórios de consumo de água
+4. **Agendamento**: Sistema de irrigação automática baseado em IP
+5. **Analytics**: Relatórios de uso por dispositivo
 
 ## Troubleshooting
 
 ### Bomba não ativa
 
-1. Verificar conexão ESP32
-2. Confirmar status do relé
-3. Verificar logs do backend
-4. Testar endpoint diretamente
+1. Verificar se o IP do dispositivo está configurado
+2. Testar conectividade na página `/device`
+3. Verificar se o ESP32 está na mesma rede
+4. Confirmar status do relé no hardware
 
-### OLED não atualiza
+### Dispositivo aparece offline
 
-1. Verificar conexão I2C (SDA=21, SCL=19)
-2. Reiniciar ESP32
-3. Verificar código de status da bomba
+1. Verificar conexão WiFi do ESP32
+2. Confirmar IP correto na configuração
+3. Testar ping manual para o dispositivo
+4. Verificar firewall/rede local
 
-### Frontend não atualiza
+### Configuração não salva
 
-1. Verificar console do navegador
-2. Confirmar WebSocket ou polling
-3. Verificar server actions
+1. Verificar se localStorage está habilitado
+2. Limpar dados do navegador se necessário
+3. Verificar console do navegador para erros
+4. Reconfigurar dispositivo se necessário
 
 ---
 

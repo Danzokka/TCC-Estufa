@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { QRScanner } from "@/components/device/QRScanner";
 import { DeviceConfigurator } from "@/components/device/DeviceConfigurator";
+import { DeviceManagement } from "@/components/device/DeviceManagement";
 import { configureGreenhouseDevice } from "@/server/actions/device-config";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,10 +14,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, CheckCircle, Smartphone } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle,
+  Smartphone,
+  Settings,
+  Zap,
+} from "lucide-react";
 import Link from "next/link";
 
-type ConfigurationStep = "scan" | "configure" | "success" | "error";
+type ConfigurationStep =
+  | "select"
+  | "scan"
+  | "configure"
+  | "success"
+  | "error"
+  | "simple";
 
 interface ConfigurationResult {
   success: boolean;
@@ -32,10 +45,18 @@ interface ConfigurationResult {
 }
 
 export default function DeviceConfigurationPage() {
-  const [currentStep, setCurrentStep] = useState<ConfigurationStep>("scan");
+  const [currentStep, setCurrentStep] = useState<ConfigurationStep>("select");
   const [scannedData, setScannedData] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<ConfigurationResult | null>(null);
+
+  const handleModeSelect = (mode: "simple" | "full") => {
+    if (mode === "simple") {
+      setCurrentStep("simple");
+    } else {
+      setCurrentStep("scan");
+    }
+  };
 
   const handleScanSuccess = (data: string) => {
     console.log("QR Scan successful:", data);
@@ -104,55 +125,122 @@ export default function DeviceConfigurationPage() {
               Set up your ESP32 greenhouse monitoring device
             </p>
           </div>
-        </div>
-
-        {/* Progress Steps */}
-        <div className="flex items-center gap-4 mt-6">
-          <div
-            className={`flex items-center gap-2 ${currentStep === "scan" ? "text-primary" : currentStep === "configure" || currentStep === "success" ? "text-green-600" : "text-muted-foreground"}`}
-          >
+        </div>{" "}
+        {/* Progress Steps - Only show for full mode */}
+        {currentStep !== "select" && currentStep !== "simple" && (
+          <div className="flex items-center gap-4 mt-6">
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep === "scan" ? "bg-primary text-primary-foreground" : currentStep === "configure" || currentStep === "success" ? "bg-green-600 text-white" : "bg-muted"}`}
+              className={`flex items-center gap-2 ${currentStep === "scan" ? "text-primary" : currentStep === "configure" || currentStep === "success" ? "text-green-600" : "text-muted-foreground"}`}
             >
-              1
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep === "scan" ? "bg-primary text-primary-foreground" : currentStep === "configure" || currentStep === "success" ? "bg-green-600 text-white" : "bg-muted"}`}
+              >
+                1
+              </div>
+              <span className="font-medium">Scan QR Code</span>
             </div>
-            <span className="font-medium">Scan QR Code</span>
-          </div>
 
-          <div className="h-px bg-border flex-1" />
+            <div className="h-px bg-border flex-1" />
 
-          <div
-            className={`flex items-center gap-2 ${currentStep === "configure" ? "text-primary" : currentStep === "success" ? "text-green-600" : "text-muted-foreground"}`}
-          >
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep === "configure" ? "bg-primary text-primary-foreground" : currentStep === "success" ? "bg-green-600 text-white" : "bg-muted"}`}
+              className={`flex items-center gap-2 ${currentStep === "configure" ? "text-primary" : currentStep === "success" ? "text-green-600" : "text-muted-foreground"}`}
             >
-              2
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep === "configure" ? "bg-primary text-primary-foreground" : currentStep === "success" ? "bg-green-600 text-white" : "bg-muted"}`}
+              >
+                2
+              </div>
+              <span className="font-medium">Configure Device</span>
             </div>
-            <span className="font-medium">Configure Device</span>
-          </div>
 
-          <div className="h-px bg-border flex-1" />
+            <div className="h-px bg-border flex-1" />
 
-          <div
-            className={`flex items-center gap-2 ${currentStep === "success" ? "text-green-600" : "text-muted-foreground"}`}
-          >
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep === "success" ? "bg-green-600 text-white" : "bg-muted"}`}
+              className={`flex items-center gap-2 ${currentStep === "success" ? "text-green-600" : "text-muted-foreground"}`}
             >
-              {currentStep === "success" ? (
-                <CheckCircle className="h-4 w-4" />
-              ) : (
-                "3"
-              )}
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep === "success" ? "bg-green-600 text-white" : "bg-muted"}`}
+              >
+                {currentStep === "success" ? (
+                  <CheckCircle className="h-4 w-4" />
+                ) : (
+                  "3"
+                )}
+              </div>{" "}
+              <span className="font-medium">Complete</span>
             </div>
-            <span className="font-medium">Complete</span>
           </div>
-        </div>
+        )}
       </div>
-
       {/* Step Content */}
       <div className="space-y-6">
+        {/* Step 0: Mode Selection */}
+        {currentStep === "select" && (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-green-500" />
+                  Simple Mode (Recommended)
+                </CardTitle>
+                <CardDescription>
+                  Direct IP-based control without greenhouse setup
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-sm">Perfect for:</p>
+                  <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                    <li>Quick setup and immediate control</li>
+                    <li>Single device management</li>
+                    <li>No complex greenhouse configuration</li>
+                    <li>Direct IP-based communication</li>
+                  </ul>
+                </div>
+                <Button
+                  className="w-full"
+                  onClick={() => handleModeSelect("simple")}
+                >
+                  Use Simple Mode
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-blue-500" />
+                  Full Mode
+                </CardTitle>
+                <CardDescription>
+                  Complete greenhouse setup with QR code configuration
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-sm">Perfect for:</p>
+                  <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                    <li>Multi-greenhouse management</li>
+                    <li>Complex automation setups</li>
+                    <li>QR code device provisioning</li>
+                    <li>Complete environment monitoring</li>
+                  </ul>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => handleModeSelect("full")}
+                >
+                  Use Full Mode
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Simple Mode */}
+        {currentStep === "simple" && <DeviceManagement />}
+
         {/* Step 1: QR Scanner */}
         {currentStep === "scan" && (
           <div className="grid gap-6 lg:grid-cols-2">
