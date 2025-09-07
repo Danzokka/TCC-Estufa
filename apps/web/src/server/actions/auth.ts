@@ -6,7 +6,7 @@ import { login as SessionLogin } from "@/server/actions/session";
 export async function login(email: string, password: string) {
   const response = await api.post("/auth", { email, password });
 
-  console.log("Login response:", response.data);  
+  console.log("Login response:", response.data);
 
   if (!response.data.accessToken) {
     throw new Error("Login failed");
