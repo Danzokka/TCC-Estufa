@@ -1,0 +1,6 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "packages/typescript-config"
+  - "packages/eslint-config"
+  - "packages/ui"
