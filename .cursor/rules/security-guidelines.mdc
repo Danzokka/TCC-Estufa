@@ -1,0 +1,350 @@
+---
+alwaysApply: true
+---
+
+# Diretrizes de Segurança - Sistema IoT
+
+## Autenticação e Autorização
+
+### JWT Authentication
+
+```typescript
+// Backend - JWT Strategy
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy) {
+  constructor(private readonly authService: AuthService) {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKey: process.env.JWT_SECRET,
+    });
+  }
+
+  async validate(payload: JwtPayload): Promise<User> {
+    const user = await this.authService.validateUser(payload.sub);
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+    return user;
+  }
+}
+```
+
+### Role-Based Access Control
+
+```typescript
+// Guards para diferentes níveis de acesso
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles("admin", "operator")
+@Controller("greenhouses")
+export class GreenhouseController {
+  // Apenas admins podem deletar
+  @Delete(":id")
+  @Roles("admin")
+  async remove(@Param("id") id: string) {
+    return this.greenhouseService.remove(id);
+  }
+}
+```
+
+### Frontend - Proteção de Rotas
+
+```typescript
+// Middleware de autenticação
+export function withAuth(handler: NextApiHandler) {
+  return async (req: NextApiRequest, res: NextApiResponse) => {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+
+    if (!token) {
+      return res.status(401).json({ error: "Token required" });
+    }
+
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+      req.user = decoded;
+      return handler(req, res);
+    } catch (error) {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+  };
+}
+```
+
+## Validação e Sanitização
+
+### Input Validation
+
+```typescript
+// DTOs com validação rigorosa
+export class CreateGreenhouseDto {
+  @IsString()
+  @IsNotEmpty()
+  @Length(1, 100)
+  @Matches(/^[a-zA-Z0-9\s\-_]+$/) // Apenas caracteres seguros
+  name: string;
+
+  @IsEmail()
+  @IsOptional()
+  contactEmail?: string;
+
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  targetHumidity: number;
+}
+```
+
+### SQL Injection Prevention
+
+```typescript
+// Sempre use Prisma ORM (proteção automática)
+async findGreenhousesByOwner(ownerId: string): Promise<Greenhouse[]> {
+  return this.prisma.greenhouse.findMany({
+    where: {
+      ownerId, // Prisma sanitiza automaticamente
+    },
+  });
+}
+
+// NUNCA use concatenação de strings
+// ❌ ERRADO
+// const query = `SELECT * FROM greenhouses WHERE owner_id = '${ownerId}'`;
+
+// ✅ CORRETO
+// Usar Prisma ORM ou prepared statements
+```
+
+### XSS Prevention
+
+```typescript
+// Frontend - Sanitização de dados
+import DOMPurify from 'dompurify';
+
+function SafeHTML({ content }: { content: string }) {
+  const sanitized = DOMPurify.sanitize(content);
+  return <div dangerouslySetInnerHTML={{ __html: sanitized }} />;
+}
+
+// Backend - Headers de segurança
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+    },
+  },
+}));
+```
+
+## Comunicação IoT Segura
+
+### ESP32 - Autenticação de Dispositivos
+
+```cpp
+class DeviceAuth {
+private:
+    String deviceId;
+    String apiKey;
+
+public:
+    bool authenticateDevice() {
+        String payload = "{\"deviceId\":\"" + deviceId + "\",\"timestamp\":" + String(millis()) + "}";
+        String signature = generateHMAC(payload, apiKey);
+
+        HTTPClient http;
+        http.begin(API_BASE_URL + "/auth/device");
+        http.addHeader("Content-Type", "application/json");
+        http.addHeader("X-Device-Signature", signature);
+
+        int responseCode = http.POST(payload);
+        return responseCode == 200;
+    }
+};
+```
+
+### Criptografia de Dados
+
+```typescript
+// Backend - Criptografia de dados sensíveis
+import * as crypto from "crypto";
+
+export class EncryptionService {
+  private readonly algorithm = "aes-256-gcm";
+  private readonly key = crypto.scryptSync(
+    process.env.ENCRYPTION_KEY!,
+    "salt",
+    32
+  );
+
+  encrypt(text: string): string {
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipher(this.algorithm, this.key);
+    cipher.setAAD(Buffer.from("greenhouse-data"));
+
+    let encrypted = cipher.update(text, "utf8", "hex");
+    encrypted += cipher.final("hex");
+
+    const authTag = cipher.getAuthTag();
+    return iv.toString("hex") + ":" + authTag.toString("hex") + ":" + encrypted;
+  }
+}
+```
+
+### HTTPS/TLS
+
+```typescript
+// Frontend - Forçar HTTPS em produção
+if (process.env.NODE_ENV === "production") {
+  app.use((req, res, next) => {
+    if (req.header("x-forwarded-proto") !== "https") {
+      res.redirect(`https://${req.header("host")}${req.url}`);
+    } else {
+      next();
+    }
+  });
+}
+```
+
+## Proteção de Dados
+
+### Dados Pessoais (LGPD)
+
+```typescript
+// Anonimização de dados sensíveis
+export class DataAnonymizationService {
+  anonymizeUserData(user: User): Partial<User> {
+    return {
+      id: user.id,
+      username: user.username,
+      // Remover dados sensíveis
+      // email: undefined,
+      // password: undefined,
+      createdAt: user.createdAt,
+    };
+  }
+}
+```
+
+### Backup e Recuperação
+
+```typescript
+// Backup automático de dados críticos
+@Cron('0 2 * * *') // Diariamente às 2h
+async backupCriticalData() {
+  const backup = await this.prisma.greenhouse.findMany({
+    include: {
+      sensorReadings: {
+        where: {
+          timestamp: {
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Últimos 7 dias
+          },
+        },
+      },
+    },
+  });
+
+  await this.storageService.uploadBackup(backup);
+}
+```
+
+## Monitoramento de Segurança
+
+### Logs de Segurança
+
+```typescript
+// Logging de tentativas de acesso
+@Injectable()
+export class SecurityLogger {
+  logFailedLogin(ip: string, username: string) {
+    this.logger.warn("Failed login attempt", {
+      ip,
+      username,
+      timestamp: new Date(),
+      type: "SECURITY_FAILED_LOGIN",
+    });
+  }
+
+  logSuspiciousActivity(ip: string, activity: string) {
+    this.logger.error("Suspicious activity detected", {
+      ip,
+      activity,
+      timestamp: new Date(),
+      type: "SECURITY_SUSPICIOUS_ACTIVITY",
+    });
+  }
+}
+```
+
+### Rate Limiting
+
+```typescript
+// Proteção contra ataques de força bruta
+import rateLimit from "express-rate-limit";
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5, // máximo 5 tentativas por IP
+  message: "Too many login attempts, please try again later",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use("/auth/login", authLimiter);
+```
+
+### Validação de Dispositivos
+
+```typescript
+// Whitelist de dispositivos autorizados
+export class DeviceValidationService {
+  async validateDevice(deviceId: string, ip: string): Promise<boolean> {
+    const device = await this.prisma.device.findUnique({
+      where: { id: deviceId },
+    });
+
+    if (!device) {
+      this.securityLogger.logUnauthorizedDevice(ip, deviceId);
+      return false;
+    }
+
+    if (!device.isActive) {
+      this.securityLogger.logInactiveDevice(ip, deviceId);
+      return false;
+    }
+
+    return true;
+  }
+}
+```
+
+## Configurações de Segurança
+
+### Variáveis de Ambiente
+
+```bash
+# .env - NUNCA commitar no Git
+JWT_SECRET=your-super-secret-jwt-key-here
+ENCRYPTION_KEY=your-encryption-key-32-chars
+DATABASE_URL=postgresql://user:password@localhost:5432/db
+API_KEY=your-api-key-for-external-services
+```
+
+### Docker Security
+
+```dockerfile
+# Use usuário não-root
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nextjs -u 1001
+USER nextjs
+
+# Não exponha portas desnecessárias
+EXPOSE 3000
+
+# Use multi-stage build para reduzir superfície de ataque
+FROM node:18-alpine AS deps
+# ... build dependencies
+
+FROM node:18-alpine AS runner
+# ... copy only necessary files
+```

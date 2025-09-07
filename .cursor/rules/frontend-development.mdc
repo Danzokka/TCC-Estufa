@@ -1,0 +1,91 @@
+---
+globs: apps/web/**/*.{ts,tsx,js,jsx}
+---
+
+# Desenvolvimento Frontend - Next.js PWA
+
+## Arquitetura e Tecnologias
+
+O frontend é uma PWA (Progressive Web App) construída com:
+
+- **Framework**: Next.js 15+ com App Router
+- **React**: Versão 19 com hooks modernos
+- **TypeScript**: Tipagem estática completa
+- **Styling**: Tailwind CSS 4+ com design system
+- **UI Components**: Radix UI primitives
+- **State Management**: React Query (TanStack Query)
+- **Forms**: React Hook Form com Zod validation
+- **Charts**: Recharts para visualização de dados
+
+## Estrutura de Arquivos
+
+```
+apps/web/src/
+├── app/                 # App Router (Next.js 15)
+├── components/          # Componentes reutilizáveis
+├── context/            # Context providers
+├── hooks/              # Custom hooks
+├── lib/                # Utilitários e configurações
+└── server/             # Server actions e API routes
+```
+
+## Padrões de Desenvolvimento
+
+### Componentes
+
+- Use componentes funcionais com TypeScript
+- Implemente interfaces para props
+- Prefira composição sobre herança
+- Use Radix UI para acessibilidade
+
+### Styling
+
+- Use Tailwind CSS para estilos
+- Implemente design system consistente
+- Use CSS variables para temas (dark/light)
+- Mobile-first responsive design
+
+### Estado e Dados
+
+- React Query para cache e sincronização de dados
+- Context API para estado global
+- Local storage para configurações do usuário
+- Server Actions para mutações
+
+### PWA Features
+
+- Service Worker para cache offline
+- Manifest para instalação
+- Push notifications para alertas
+- Background sync para dados
+
+## Recursos IoT Específicos
+
+### Dashboard em Tempo Real
+
+- WebSocket connection para dados live
+- Gráficos interativos com Recharts
+- Indicadores visuais de status dos sensores
+- Alertas e notificações push
+
+### Controle de Dispositivos
+
+- Interface para configuração de ESP32
+- Controle direto de bombas via IP
+- QR Code scanner para setup
+- Status de conectividade em tempo real
+
+### Visualização de Dados
+
+- Gráficos históricos de sensores
+- Métricas de performance
+- Relatórios de crescimento de plantas
+- Análises de tendências
+
+## Performance e UX
+
+- Lazy loading de componentes
+- Image optimization com Next.js
+- Bundle splitting automático
+- Loading states e skeletons
+- Error boundaries para robustez

@@ -1,0 +1,353 @@
+---
+alwaysApply: true
+---
+
+# Padrões de Documentação - Sistema IoT
+
+## Estrutura de Documentação
+
+### README Principal
+
+O [README.md](mdc:README.md) deve conter:
+
+- Visão geral do projeto
+- Tecnologias utilizadas
+- Instruções de instalação
+- Como executar o projeto
+- Estrutura de arquivos
+- Contribuição e desenvolvimento
+
+### READMEs por Aplicação
+
+Cada aplicação deve ter seu próprio README:
+
+```
+apps/
+├── web/README.md        # Frontend Next.js
+├── api/README.md        # Backend NestJS
+├── esp/README.md        # Firmware ESP32
+└── ai/README.md         # Serviço Python AI
+```
+
+## Documentação de Código
+
+### JSDoc para TypeScript/JavaScript
+
+````typescript
+/**
+ * Serviço para gerenciamento de estufas inteligentes
+ *
+ * @class GreenhouseService
+ * @description Fornece operações CRUD e lógica de negócio para estufas
+ * @example
+ * ```typescript
+ * const greenhouseService = new GreenhouseService(prismaService);
+ * const greenhouse = await greenhouseService.create({
+ *   name: 'Minha Estufa',
+ *   ownerId: 'user-123'
+ * });
+ * ```
+ */
+@Injectable()
+export class GreenhouseService {
+  /**
+   * Cria uma nova estufa no sistema
+   *
+   * @param createGreenhouseDto - Dados para criação da estufa
+   * @param ownerId - ID do proprietário da estufa
+   * @returns Promise<Greenhouse> - Estufa criada com dados completos
+   * @throws {ConflictException} Quando já existe estufa com mesmo nome
+   * @throws {BadRequestException} Quando dados são inválidos
+   *
+   * @example
+   * ```typescript
+   * const greenhouse = await service.create({
+   *   name: 'Estufa Principal',
+   *   description: 'Estufa para tomates',
+   *   targetTemperature: 25.0
+   * }, 'user-123');
+   * ```
+   */
+  async create(
+    createGreenhouseDto: CreateGreenhouseDto,
+    ownerId: string
+  ): Promise<Greenhouse> {
+    // Implementation
+  }
+}
+````
+
+### Docstrings para Python
+
+```python
+class LSTMPredictor:
+    """
+    Preditor LSTM para dados ambientais de estufas.
+
+    Este modelo utiliza redes neurais LSTM para prever condições
+    ambientais futuras baseadas em dados históricos de sensores.
+
+    Attributes:
+        sequence_length (int): Comprimento da sequência temporal
+        features (int): Número de features de entrada
+        model (torch.nn.Module): Modelo LSTM treinado
+
+    Example:
+        >>> predictor = LSTMPredictor(sequence_length=24, features=5)
+        >>> predictions = predictor.predict(sensor_data)
+        >>> print(f"Temperatura prevista: {predictions[0]:.2f}°C")
+    """
+
+    def predict(self, data: np.ndarray) -> np.ndarray:
+        """
+        Faz predições baseadas em dados de entrada.
+
+        Args:
+            data (np.ndarray): Array 2D com dados dos sensores.
+                Formato: (timesteps, features)
+
+        Returns:
+            np.ndarray: Array 1D com predições para cada timestep
+
+        Raises:
+            ValueError: Se o número de features não corresponder ao esperado
+            RuntimeError: Se o modelo não estiver treinado
+
+        Example:
+            >>> data = np.random.randn(24, 5)  # 24 horas, 5 sensores
+            >>> predictions = predictor.predict(data)
+            >>> print(f"Predições: {predictions.shape}")
+        """
+        pass
+```
+
+### Comentários para C++/Arduino
+
+````cpp
+/**
+ * @file SensorManager.h
+ * @brief Gerenciador de sensores para ESP32
+ * @author Rafael Dantas Boeira
+ * @date 2024-01-15
+ *
+ * Este arquivo contém a classe SensorManager que coordena
+ * a leitura de todos os sensores conectados ao ESP32.
+ */
+
+class SensorManager {
+private:
+    DHT dht;                    ///< Sensor de temperatura e umidade
+    DallasTemperature soilSensor; ///< Sensor de temperatura do solo
+    bool isInitialized;         ///< Flag de inicialização
+
+public:
+    /**
+     * @brief Construtor da classe SensorManager
+     * @param dhtPin Pino digital do sensor DHT
+     * @param soilPin Pino digital do sensor de solo
+     */
+    SensorManager(int dhtPin, int soilPin);
+
+    /**
+     * @brief Lê todos os sensores e retorna dados consolidados
+     * @return SensorData Estrutura com todos os dados lidos
+     * @note Esta função pode demorar até 2 segundos para completar
+     *
+     * @example
+     * ```cpp
+     * SensorManager manager(2, 4);
+     * SensorData data = manager.readAllSensors();
+     * Serial.printf("Temp: %.2f°C, Humidity: %.2f%%\n",
+     *               data.temperature, data.humidity);
+     * ```
+     */
+    SensorData readAllSensors();
+};
+````
+
+## Documentação de API
+
+### OpenAPI/Swagger
+
+```typescript
+@ApiTags("greenhouses")
+@Controller("greenhouses")
+export class GreenhouseController {
+  /**
+   * Cria uma nova estufa
+   *
+   * @summary Cria estufa
+   * @description Cria uma nova estufa no sistema com configurações iniciais
+   * @param createGreenhouseDto Dados da estufa
+   * @returns Estufa criada
+   */
+  @Post()
+  @ApiOperation({
+    summary: "Cria nova estufa",
+    description: "Cria uma nova estufa com configurações padrão",
+  })
+  @ApiResponse({
+    status: 201,
+    description: "Estufa criada com sucesso",
+    type: Greenhouse,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Dados inválidos fornecidos",
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Token de autenticação inválido",
+  })
+  async create(@Body() createGreenhouseDto: CreateGreenhouseDto) {
+    return this.greenhouseService.create(createGreenhouseDto);
+  }
+}
+```
+
+## Documentação de Hardware
+
+### Esquemas e Diagramas
+
+- Use Mermaid para diagramas de arquitetura
+- Documente pinos do ESP32
+- Esquemas de conexão dos sensores
+- Fluxogramas de funcionamento
+
+### Especificações Técnicas
+
+```markdown
+## Especificações do Hardware
+
+### ESP32 DevKit V1
+
+- **Microcontrolador**: ESP32-WROOM-32
+- **Frequência**: 240 MHz
+- **Memória Flash**: 4 MB
+- **RAM**: 520 KB
+- **WiFi**: 802.11 b/g/n
+- **Bluetooth**: 4.2 BR/EDR e BLE
+
+### Sensores Utilizados
+
+| Sensor  | Tipo         | Pino     | Alimentação | Precisão    |
+| ------- | ------------ | -------- | ----------- | ----------- |
+| DHT22   | Temp/Umidade | GPIO 2   | 3.3V        | ±0.5°C, ±2% |
+| DS18B20 | Temp Solo    | GPIO 4   | 3.3V        | ±0.5°C      |
+| LDR     | Luminosidade | GPIO 34  | 3.3V        | -           |
+| HC-SR04 | Nível Água   | GPIO 5,6 | 5V          | ±3mm        |
+```
+
+## Guias de Desenvolvimento
+
+### Setup de Desenvolvimento
+
+```markdown
+## Configuração do Ambiente
+
+### Pré-requisitos
+
+- Node.js 18+
+- Python 3.9+
+- PlatformIO
+- Docker e Docker Compose
+- PostgreSQL 14+
+
+### Passos de Instalação
+
+1. Clone o repositório
+2. Instale dependências: `npm install`
+3. Configure variáveis de ambiente
+4. Execute migrações do banco
+5. Inicie os serviços: `npm run dev`
+```
+
+### Troubleshooting
+
+```markdown
+## Problemas Comuns
+
+### ESP32 não conecta ao WiFi
+
+**Sintoma**: Dispositivo não consegue conectar à rede
+**Solução**:
+
+1. Verificar credenciais WiFi
+2. Verificar força do sinal
+3. Reiniciar dispositivo
+
+### API retorna erro 500
+
+**Sintoma**: Erro interno do servidor
+**Solução**:
+
+1. Verificar logs do backend
+2. Verificar conexão com banco
+3. Verificar variáveis de ambiente
+```
+
+## Changelog e Versionamento
+
+### Conventional Commits
+
+```markdown
+## Changelog
+
+### [1.2.0] - 2024-01-15
+
+#### Added
+
+- Sistema de predições com LSTM
+- Dashboard em tempo real
+- Controle de bombas via web
+
+#### Changed
+
+- Melhorada interface de configuração
+- Otimizada performance do banco
+
+#### Fixed
+
+- Bug na leitura de sensores DHT22
+- Problema de reconexão WiFi
+
+#### Security
+
+- Implementada autenticação JWT
+- Criptografia de dados sensíveis
+```
+
+## Documentação de Deploy
+
+### Ambiente de Produção
+
+````markdown
+## Deploy em Produção
+
+### Configuração do Servidor
+
+1. Instalar Docker e Docker Compose
+2. Configurar domínio e SSL
+3. Configurar backup automático
+4. Configurar monitoramento
+
+### Variáveis de Ambiente
+
+```bash
+NODE_ENV=production
+DATABASE_URL=postgresql://user:pass@host:5432/db
+JWT_SECRET=your-secret-key
+API_URL=https://api.greenhouse.com
+```
+````
+
+### Monitoramento
+
+- Logs centralizados
+- Métricas de performance
+- Alertas de falhas
+- Backup automático
+
+```
+
+```

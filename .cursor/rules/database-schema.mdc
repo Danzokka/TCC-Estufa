@@ -1,0 +1,156 @@
+---
+globs: apps/api/prisma/**/*.{prisma,sql}
+---
+
+# Schema do Banco de Dados - PostgreSQL com Prisma
+
+## Arquitetura de Dados
+
+O banco PostgreSQL é otimizado para dados de séries temporais de sensores IoT com as seguintes entidades principais:
+
+### Entidades Principais
+
+- **User** - Usuários do sistema com autenticação JWT
+- **Greenhouse** - Estufas com configurações e status atual
+- **Plant** - Espécies de plantas e suas necessidades
+- **Device** - Dispositivos ESP32 registrados
+- **Sensor** - Tipos de sensores disponíveis
+- **Pump** - Bombas de irrigação e suas operações
+
+### Dados de Séries Temporais
+
+- **GreenhouseSensorReading** - Leituras de sensores por estufa
+- **PumpOperation** - Histórico de operações de bombas
+- **DeviceStatus** - Status de conectividade dos dispositivos
+
+## Schema Principal
+
+### User Model
+
+```prisma
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  email     String   @unique
+  password  String   // Hashed
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  greenhouses Greenhouse[]
+  blogPosts   Blog[]
+}
+```
+
+### Greenhouse Model
+
+```prisma
+model Greenhouse {
+  id               String      @id @default(uuid())
+  name             String
+  description      String?
+  location         String?
+  ownerId          String
+  owner            User        @relation(fields: [ownerId], references: [id])
+
+  // Current environmental conditions
+  currentTemperature    Float?
+  currentHumidity       Float?
+  currentSoilMoisture   Int?
+  currentLightIntensity Float?
+  currentWaterLevel     Float?
+
+  // Configuration and thresholds
+  targetTemperature     Float    @default(25.0)
+  targetHumidity        Float    @default(60.0)
+  targetSoilMoisture    Int      @default(50)
+  minWaterLevel         Float    @default(20.0)
+
+  // Device and connectivity
+  deviceId             String?   @unique
+  wifiSSID             String?
+  wifiPassword         String?
+  isOnline             Boolean   @default(false)
+  lastDataUpdate       DateTime?
+
+  // QR Code configuration
+  qrCodeData           String?
+  qrCodeGeneratedAt    DateTime?
+  isConfigured         Boolean   @default(false)
+
+  // Relations
+  devices              Device[]
+  pumpOperations       PumpOperation[]
+  sensorReadings       GreenhouseSensorReading[]
+}
+```
+
+## Otimizações para IoT
+
+### Índices para Performance
+
+- Índices em timestamps para consultas temporais
+- Índices compostos para filtros frequentes
+- Particionamento por data para dados históricos
+- Índices parciais para dados ativos
+
+### Estratégias de Armazenamento
+
+- Retenção automática de dados antigos
+- Compressão de dados históricos
+- Agregações pré-calculadas
+- Cache de métricas frequentes
+
+## Migrações e Versionamento
+
+- Use Prisma migrations para mudanças de schema
+- Sempre teste migrations em ambiente de desenvolvimento
+- Backup automático antes de migrations de produção
+- Rollback strategy para mudanças críticas
+
+## Relacionamentos e Constraints
+
+### Integridade Referencial
+
+- Foreign keys com cascade apropriado
+- Unique constraints para dados críticos
+- Check constraints para validação de ranges
+- Triggers para auditoria e logs
+
+### Performance
+
+- Lazy loading para relacionamentos grandes
+- Eager loading para dados frequentemente acessados
+- Pagination para listagens grandes
+- Connection pooling para alta concorrência
+
+## Consultas Otimizadas
+
+### Séries Temporais
+
+```sql
+-- Dados dos últimos 24h
+SELECT * FROM "GreenhouseSensorReading"
+WHERE "greenhouseId" = $1
+  AND "timestamp" >= NOW() - INTERVAL '24 hours'
+ORDER BY "timestamp" DESC;
+
+-- Agregações por hora
+SELECT
+  DATE_TRUNC('hour', "timestamp") as hour,
+  AVG("temperature") as avg_temp,
+  AVG("humidity") as avg_humidity
+FROM "GreenhouseSensorReading"
+WHERE "greenhouseId" = $1
+  AND "timestamp" >= NOW() - INTERVAL '7 days'
+GROUP BY hour
+ORDER BY hour;
+```
+
+## Monitoramento e Manutenção
+
+- Logs de queries lentas
+- Monitoramento de uso de índices
+- Limpeza automática de dados antigos
+- Backup incremental diário

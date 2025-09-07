@@ -1,0 +1,41 @@
+---
+alwaysApply: true
+---
+
+# Visão Geral do Projeto - Sistema de Estufa Inteligente
+
+Este é um sistema IoT completo de estufa inteligente desenvolvido como TCC (Trabalho de Conclusão de Curso) com arquitetura de monorepo usando Turborepo.
+
+## Arquitetura do Sistema
+
+O projeto está organizado em 4 aplicações principais:
+
+- **apps/web** - Frontend Next.js 15+ com PWA, React 19, TypeScript, Tailwind CSS
+- **apps/api** - Backend NestJS com Prisma ORM, PostgreSQL, JWT Auth
+- **apps/esp** - Firmware ESP32 com PlatformIO, sensores IoT, comunicação WiFi
+- **apps/ai** - Serviço Python com PyTorch, análise de dados, ML predictions
+
+## Fluxo de Dados
+
+1. ESP32 coleta dados dos sensores (temperatura, umidade, solo, luz, água)
+2. Dados enviados via WiFi para API NestJS
+3. API processa, valida e armazena no PostgreSQL via Prisma
+4. Frontend Next.js consulta API para dashboard em tempo real
+5. Serviço AI analisa dados e fornece recomendações
+6. Comandos enviados de volta ao ESP32 para controlar atuadores
+
+## Tecnologias Principais
+
+- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS, Radix UI, React Query
+- **Backend**: NestJS, Prisma ORM, PostgreSQL, JWT, Class Validator
+- **IoT**: ESP32, Arduino Framework, PlatformIO, sensores DHT, Dallas Temperature
+- **AI/ML**: Python, PyTorch, Pandas, Scikit-learn, NumPy
+- **DevOps**: Docker, Turborepo, GitHub Actions
+
+## Estrutura de Arquivos
+
+- [apps/web/](mdc:apps/web/) - Interface web responsiva e PWA
+- [apps/api/](mdc:apps/api/) - API REST com autenticação e WebSocket
+- [apps/esp/](mdc:apps/esp/) - Firmware para microcontrolador ESP32
+- [apps/ai/](mdc:apps/ai/) - Serviços de análise e predição
+- [docker-compose.yml](mdc:docker-compose.yml) - Orquestração dos serviços

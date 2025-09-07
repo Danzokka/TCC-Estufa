@@ -1,0 +1,321 @@
+---
+alwaysApply: true
+---
+
+# Padrões de Código e Convenções
+
+## Convenções Gerais
+
+### Nomenclatura
+
+- **Variáveis e funções**: camelCase (`getSensorData`, `currentTemperature`)
+- **Constantes**: UPPER_SNAKE_CASE (`MAX_RETRY_ATTEMPTS`, `DEFAULT_TIMEOUT`)
+- **Classes e Interfaces**: PascalCase (`GreenhouseService`, `SensorReading`)
+- **Arquivos**: kebab-case (`sensor-reading.service.ts`, `greenhouse-card.tsx`)
+- **Banco de dados**: snake_case (`current_temperature`, `last_data_update`)
+
+### Estrutura de Arquivos
+
+- Organize imports: bibliotecas externas → internas → relativos
+- Use barrel exports (`index.ts`) para módulos
+- Separe lógica de negócio da apresentação
+- Mantenha arquivos pequenos e focados (< 300 linhas)
+
+### Comentários e Documentação
+
+- Use JSDoc para funções públicas
+- Comente lógica complexa e decisões de negócio
+- Mantenha READMEs atualizados
+- Documente APIs com OpenAPI/Swagger
+
+## TypeScript/JavaScript
+
+### Tipagem
+
+```typescript
+// Sempre use interfaces para objetos
+interface SensorReading {
+  id: string;
+  temperature: number;
+  humidity: number;
+  timestamp: Date;
+}
+
+// Use type aliases para unions
+type UserRole = "admin" | "operator" | "viewer";
+
+// Prefira const assertions
+const SENSOR_TYPES = ["temperature", "humidity", "soil"] as const;
+type SensorType = (typeof SENSOR_TYPES)[number];
+```
+
+### Async/Await
+
+```typescript
+// Prefira async/await sobre Promises
+async function getSensorData(id: string): Promise<SensorReading[]> {
+  try {
+    const response = await fetch(`/api/sensors/${id}`);
+    return await response.json();
+  } catch (error) {
+    console.error("Failed to fetch sensor data:", error);
+    throw error;
+  }
+}
+```
+
+### Error Handling
+
+```typescript
+// Use Error classes específicas
+class SensorError extends Error {
+  constructor(
+    message: string,
+    public sensorId: string
+  ) {
+    super(message);
+    this.name = "SensorError";
+  }
+}
+
+// Sempre trate erros adequadamente
+try {
+  await updateSensor(sensorId, data);
+} catch (error) {
+  if (error instanceof SensorError) {
+    // Handle sensor-specific error
+  } else {
+    // Handle generic error
+  }
+}
+```
+
+## React/Next.js
+
+### Componentes
+
+```typescript
+// Use function components com TypeScript
+interface GreenhouseCardProps {
+  greenhouse: Greenhouse;
+  onSelect?: (id: string) => void;
+}
+
+export function GreenhouseCard({ greenhouse, onSelect }: GreenhouseCardProps) {
+  const handleClick = useCallback(() => {
+    onSelect?.(greenhouse.id);
+  }, [greenhouse.id, onSelect]);
+
+  return (
+    <div className="p-4 border rounded-lg" onClick={handleClick}>
+      <h3 className="font-semibold">{greenhouse.name}</h3>
+      <p className="text-sm text-gray-600">
+        {greenhouse.currentTemperature}°C
+      </p>
+    </div>
+  );
+}
+```
+
+### Hooks
+
+```typescript
+// Custom hooks para lógica reutilizável
+export function useSensorData(greenhouseId: string) {
+  const [data, setData] = useState<SensorReading[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const result = await getSensorData(greenhouseId);
+        setData(result);
+      } catch (err) {
+        setError(err as Error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [greenhouseId]);
+
+  return { data, loading, error };
+}
+```
+
+## NestJS/Backend
+
+### Controllers
+
+```typescript
+@Controller("greenhouses")
+@UseGuards(JwtAuthGuard)
+export class GreenhouseController {
+  constructor(private readonly greenhouseService: GreenhouseService) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async create(
+    @Body() createGreenhouseDto: CreateGreenhouseDto,
+    @Request() req: AuthenticatedRequest
+  ): Promise<Greenhouse> {
+    return this.greenhouseService.create(createGreenhouseDto, req.user.id);
+  }
+
+  @Get(":id")
+  async findOne(@Param("id") id: string): Promise<Greenhouse> {
+    return this.greenhouseService.findOne(id);
+  }
+}
+```
+
+### Services
+
+```typescript
+@Injectable()
+export class GreenhouseService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async create(
+    createGreenhouseDto: CreateGreenhouseDto,
+    ownerId: string
+  ): Promise<Greenhouse> {
+    const greenhouse = await this.prisma.greenhouse.create({
+      data: {
+        ...createGreenhouseDto,
+        ownerId,
+      },
+      include: {
+        owner: true,
+        devices: true,
+      },
+    });
+
+    return greenhouse;
+  }
+}
+```
+
+### DTOs
+
+```typescript
+export class CreateGreenhouseDto {
+  @IsString()
+  @IsNotEmpty()
+  @Length(1, 100)
+  name: string;
+
+  @IsString()
+  @IsOptional()
+  @Length(0, 500)
+  description?: string;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Max(50)
+  targetTemperature?: number;
+}
+```
+
+## Python/AI
+
+### Estrutura de Classes
+
+```python
+class LSTMPredictor:
+    """LSTM model for environmental predictions."""
+
+    def __init__(self, sequence_length: int = 24, features: int = 5):
+        self.sequence_length = sequence_length
+        self.features = features
+        self.model = self._build_model()
+
+    def _build_model(self) -> torch.nn.Module:
+        """Build and compile LSTM model."""
+        model = torch.nn.Sequential(
+            torch.nn.LSTM(self.features, 50, batch_first=True),
+            torch.nn.Dropout(0.2),
+            torch.nn.Linear(50, 1)
+        )
+        return model
+
+    def predict(self, data: np.ndarray) -> np.ndarray:
+        """Make predictions on input data."""
+        if data.shape[1] != self.features:
+            raise ValueError(f"Expected {self.features} features")
+
+        with torch.no_grad():
+            predictions = self.model(torch.tensor(data, dtype=torch.float32))
+            return predictions.numpy()
+```
+
+### Type Hints
+
+```python
+from typing import List, Dict, Optional, Tuple
+import numpy as np
+
+def process_sensor_data(
+    raw_data: List[Dict[str, float]],
+    filters: Optional[Dict[str, float]] = None
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Process raw sensor data into training format."""
+    # Implementation here
+    pass
+```
+
+## ESP32/C++
+
+### Estrutura de Classes
+
+```cpp
+class SensorManager {
+private:
+    DHT dht;
+    DallasTemperature soilSensor;
+    bool isInitialized;
+
+public:
+    SensorManager(int dhtPin, int soilPin);
+    bool initialize();
+    SensorData readAllSensors();
+    bool isHealthy();
+};
+```
+
+### Nomenclatura
+
+```cpp
+// Use camelCase para variáveis e funções
+float currentTemperature;
+bool isDeviceOnline;
+
+// Use PascalCase para classes
+class PumpController {
+public:
+    void startPump(int duration);
+    void stopPump();
+    bool isPumpRunning();
+};
+```
+
+## Git e Versionamento
+
+### Commits
+
+- Use conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`
+- Seja descritivo: `feat(api): add sensor data validation`
+- Commits pequenos e focados
+- Sempre teste antes de commitar
+
+### Branches
+
+- `main` - branch principal
+- `develop` - desenvolvimento ativo
+- `feature/` - novas funcionalidades
+- `fix/` - correções de bugs
+- `hotfix/` - correções urgentes

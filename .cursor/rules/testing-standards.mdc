@@ -1,0 +1,276 @@
+---
+globs: **/*.{spec.ts,test.ts,spec.js,test.js,spec.py,test.py}
+---
+
+# Padrões de Testes - Qualidade e Confiabilidade
+
+## Estratégia de Testes
+
+O projeto implementa uma estratégia de testes em múltiplas camadas:
+
+- **Unit Tests** - Testes de unidades individuais
+- **Integration Tests** - Testes de integração entre componentes
+- **E2E Tests** - Testes end-to-end do sistema completo
+- **IoT Tests** - Testes específicos para hardware e comunicação
+
+## Backend (NestJS) - Jest
+
+### Estrutura de Testes
+
+```typescript
+// *.spec.ts para testes unitários
+// *.integration.spec.ts para testes de integração
+// e2e/ para testes end-to-end
+```
+
+### Testes Unitários
+
+```typescript
+describe("GreenhouseService", () => {
+  let service: GreenhouseService;
+  let prismaService: PrismaService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        GreenhouseService,
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
+        },
+      ],
+    }).compile();
+
+    service = module.get<GreenhouseService>(GreenhouseService);
+  });
+
+  it("should create greenhouse", async () => {
+    const createGreenhouseDto = {
+      name: "Test Greenhouse",
+      ownerId: "user-123",
+    };
+
+    const result = await service.create(createGreenhouseDto);
+
+    expect(result).toBeDefined();
+    expect(result.name).toBe(createGreenhouseDto.name);
+  });
+});
+```
+
+### Testes de Integração
+
+```typescript
+describe("GreenhouseController (Integration)", () => {
+  let app: INestApplication;
+  let prismaService: PrismaService;
+
+  beforeEach(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    await app.init();
+
+    prismaService = app.get<PrismaService>(PrismaService);
+  });
+
+  it("/greenhouse (POST)", () => {
+    return request(app.getHttpServer())
+      .post("/greenhouse")
+      .send({
+        name: "Integration Test Greenhouse",
+        ownerId: "user-123",
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.name).toBe("Integration Test Greenhouse");
+      });
+  });
+});
+```
+
+## Frontend (Next.js) - Jest + Testing Library
+
+### Configuração
+
+```javascript
+// jest.config.js
+module.exports = {
+  testEnvironment: "jsdom",
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+  moduleNameMapping: {
+    "^@/(.*)$": "<rootDir>/src/$1",
+  },
+};
+```
+
+### Testes de Componentes
+
+```typescript
+import { render, screen, fireEvent } from '@testing-library/react';
+import { GreenhouseCard } from '@/components/GreenhouseCard';
+
+describe('GreenhouseCard', () => {
+  const mockGreenhouse = {
+    id: '1',
+    name: 'Test Greenhouse',
+    currentTemperature: 25.5,
+    currentHumidity: 60.0,
+    isOnline: true,
+  };
+
+  it('renders greenhouse information', () => {
+    render(<GreenhouseCard greenhouse={mockGreenhouse} />);
+
+    expect(screen.getByText('Test Greenhouse')).toBeInTheDocument();
+    expect(screen.getByText('25.5°C')).toBeInTheDocument();
+    expect(screen.getByText('60%')).toBeInTheDocument();
+  });
+
+  it('shows online status', () => {
+    render(<GreenhouseCard greenhouse={mockGreenhouse} />);
+
+    expect(screen.getByTestId('online-indicator')).toHaveClass('bg-green-500');
+  });
+});
+```
+
+### Testes de Hooks
+
+```typescript
+import { renderHook, act } from "@testing-library/react";
+import { useGreenhouseData } from "@/hooks/useGreenhouseData";
+
+describe("useGreenhouseData", () => {
+  it("fetches greenhouse data", async () => {
+    const { result } = renderHook(() => useGreenhouseData("greenhouse-1"));
+
+    await act(async () => {
+      await result.current.refetch();
+    });
+
+    expect(result.current.data).toBeDefined();
+    expect(result.current.isLoading).toBe(false);
+  });
+});
+```
+
+## AI/ML (Python) - Pytest
+
+### Estrutura de Testes
+
+```python
+# test_models.py
+import pytest
+import numpy as np
+from models.lstm_model import LSTMPredictor
+
+class TestLSTMPredictor:
+    def setup_method(self):
+        self.predictor = LSTMPredictor()
+        self.sample_data = np.random.randn(100, 5)  # 100 timesteps, 5 features
+
+    def test_model_initialization(self):
+        assert self.predictor is not None
+        assert hasattr(self.predictor, 'model')
+
+    def test_data_preprocessing(self):
+        processed_data = self.predictor.preprocess_data(self.sample_data)
+        assert processed_data.shape[0] > 0
+        assert processed_data.shape[1] == 5
+
+    def test_prediction(self):
+        prediction = self.predictor.predict(self.sample_data)
+        assert prediction is not None
+        assert len(prediction) > 0
+```
+
+### Testes de Integração
+
+```python
+# test_integration.py
+import pytest
+from api.api_service import app
+from fastapi.testclient import TestClient
+
+client = TestClient(app)
+
+def test_predict_endpoint():
+    response = client.post("/predict", json={
+        "sensor_data": [[25.5, 60.0, 45, 800, 75.0]],
+        "greenhouse_id": "test-1"
+    })
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "prediction" in data
+    assert "confidence" in data
+```
+
+## ESP32 (Arduino) - ArduinoUnit
+
+### Testes de Hardware
+
+```cpp
+#include <ArduinoUnit.h>
+
+test(sensor_reading_test) {
+  // Teste de leitura de sensor
+  float temperature = readTemperature();
+  assertTrue(temperature > -50.0 && temperature < 100.0);
+}
+
+test(wifi_connection_test) {
+  // Teste de conexão WiFi
+  WiFi.begin(ssid, password);
+  delay(5000);
+  assertTrue(WiFi.status() == WL_CONNECTED);
+}
+
+test(data_transmission_test) {
+  // Teste de transmissão de dados
+  String jsonData = createSensorJson();
+  int responseCode = sendDataToAPI(jsonData);
+  assertEqual(200, responseCode);
+}
+```
+
+## Cobertura e Qualidade
+
+### Métricas de Cobertura
+
+- **Backend**: Mínimo 80% de cobertura
+- **Frontend**: Mínimo 70% de cobertura
+- **AI/ML**: Mínimo 75% de cobertura
+- **ESP32**: Testes críticos obrigatórios
+
+### CI/CD Integration
+
+```yaml
+# .github/workflows/test.yml
+- name: Run Tests
+  run: |
+    npm run test:coverage
+    npm run test:e2e
+
+- name: Upload Coverage
+  uses: codecov/codecov-action@v3
+```
+
+## Testes de Performance
+
+### Load Testing
+
+- API endpoints com múltiplas requisições
+- WebSocket connections simultâneas
+- Database queries sob carga
+- Frontend rendering performance
+
+### IoT Specific Tests
+
+- Latência de comunicação ESP32-API
+- Robustez de conexão WiFi
+- Consumo de energia em diferentes modos
+- Recuperação de falhas de hardware

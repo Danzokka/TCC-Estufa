@@ -1,0 +1,120 @@
+---
+globs: apps/ai/**/*.{py,ipynb}
+---
+
+# Desenvolvimento AI/ML - Análise e Predições
+
+## Arquitetura e Objetivos
+
+O serviço de IA processa dados dos sensores para fornecer:
+
+- **Predições Ambientais** - LSTM para forecasting de temperatura/umidade
+- **Análise de Crescimento** - Padrões de desenvolvimento das plantas
+- **Otimização de Recursos** - Recomendações de irrigação e iluminação
+- **Detecção de Anomalias** - Identificação de problemas precoces
+- **Insights Personalizados** - Recomendações baseadas em dados históricos
+
+## Stack Tecnológica
+
+- **Python 3.9+** - Linguagem principal
+- **PyTorch 2.0+** - Deep learning framework
+- **Pandas 2.0+** - Manipulação de dados
+- **NumPy 1.24+** - Computação numérica
+- **Scikit-learn 1.3+** - Machine learning clássico
+- **Matplotlib/Seaborn** - Visualização de dados
+- **SQLAlchemy** - Acesso ao banco de dados
+
+## Estrutura do Projeto
+
+```
+apps/ai/
+├── main.py                 # Entry point
+├── models/                 # Modelos ML
+│   └── lstm_model.py      # Modelo LSTM
+├── data_processing/        # Pipeline de dados
+│   └── preprocessor.py    # Limpeza e preparação
+├── analysis/              # Análises e insights
+│   └── insights_generator.py
+├── api/                   # API Flask
+│   └── api_service.py
+├── db/                    # Conexão com banco
+│   └── database.py
+└── utils/                 # Utilitários
+    └── utilities.py
+```
+
+## Modelos de Machine Learning
+
+### LSTM para Predições Temporais
+
+- Predição de temperatura e umidade
+- Forecasting de 24-48 horas
+- Detecção de padrões sazonais
+- Alertas de condições extremas
+
+### Análise de Crescimento
+
+- Correlação entre condições ambientais e crescimento
+- Identificação de períodos ótimos
+- Recomendações de ajustes
+- Métricas de performance
+
+### Otimização de Recursos
+
+- Algoritmos de otimização para irrigação
+- Scheduling inteligente de iluminação
+- Redução de desperdício de água
+- Eficiência energética
+
+## Pipeline de Dados
+
+### Coleta e Limpeza
+
+- Conexão com PostgreSQL via SQLAlchemy
+- Validação de dados dos sensores
+- Tratamento de valores ausentes
+- Normalização e scaling
+
+### Feature Engineering
+
+- Criação de features temporais
+- Agregações por período
+- Indicadores de tendência
+- Correlações entre sensores
+
+### Treinamento e Validação
+
+- Split temporal para validação
+- Cross-validation para robustez
+- Métricas de performance específicas
+- Retreinamento automático
+
+## API e Integração
+
+### Endpoints Flask
+
+- `POST /predict` - Predições futuras
+- `GET /insights` - Análises e recomendações
+- `POST /train` - Retreinamento de modelos
+- `GET /health` - Status do serviço
+
+### Integração com Backend
+
+- Consumo de dados via API NestJS
+- Envio de insights para dashboard
+- Trigger de alertas automáticos
+- Sincronização de configurações
+
+## Monitoramento e Logging
+
+- Logging estruturado com python-json-logger
+- Métricas de performance dos modelos
+- Alertas de degradação de accuracy
+- Versionamento de modelos
+
+## Desenvolvimento e Testes
+
+- Jupyter notebooks para experimentação
+- Pytest para testes unitários
+- Black para formatação de código
+- CI/CD para deployment automático
