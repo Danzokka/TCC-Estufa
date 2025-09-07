@@ -41,7 +41,23 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      // Redirect to login page, session will be cleared by the server
+      try {
+        // Tentar renovar o token usando refresh token
+        const session = await getSession();
+        if (session.refreshToken && session.isLoggedIn) {
+          const { refreshToken } = await import("@/server/actions/auth");
+          await refreshToken(session.refreshToken);
+
+          // Tentar novamente a requisição original
+          const newSession = await getSession();
+          originalRequest.headers.Authorization = `Bearer ${newSession.token}`;
+          return api(originalRequest);
+        }
+      } catch (refreshError) {
+        console.error("Token refresh failed:", refreshError);
+      }
+
+      // Se não conseguir renovar, redirecionar para login
       if (typeof window !== "undefined") {
         window.location.href = "/login";
       }

@@ -2,9 +2,10 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { User } from '@prisma/client';
+import { User, RefreshToken } from '@prisma/client';
 import { PrismaService } from 'src/prisma.service';
 import { AuthUserDto } from 'src/user/dto/user.dto';
 import { UserService } from 'src/user/user.service';
@@ -27,7 +28,7 @@ export class AuthService {
       });
 
       if (!user) {
-        throw new BadRequestException('User not found');
+        throw new BadRequestException('Usuário não encontrado');
       }
 
       // Split stored password into salt and stored hash
@@ -43,7 +44,7 @@ export class AuthService {
       ).toString('hex');
 
       if (computedHash !== storedHash) {
-        throw new UnauthorizedException('Invalid credentials');
+        throw new UnauthorizedException('Senha incorreta');
       }
 
       return this.signIn(user);
@@ -61,16 +62,102 @@ export class AuthService {
       id: user.id,
     };
 
-    const accessToken = this.jwtService.sign(tokenPayload);
+    const accessToken = this.jwtService.sign(tokenPayload, {
+      expiresIn: '15m', // Access token expira em 15 minutos
+    });
+
+    const refreshToken = await this.generateRefreshToken(user.id);
 
     return {
       accessToken,
+      refreshToken,
       username: user.username,
       name: user.name,
       image: user.image,
       email: user.email,
       id: user.id,
     };
+  }
+
+  async generateRefreshToken(userId: string): Promise<string> {
+    // Revogar todos os refresh tokens existentes do usuário
+    await this.prisma.refreshToken.updateMany({
+      where: {
+        userId,
+        isRevoked: false,
+      },
+      data: {
+        isRevoked: true,
+      },
+    });
+
+    // Gerar novo refresh token
+    const token = randomBytes(64).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30); // Expira em 30 dias
+
+    await this.prisma.refreshToken.create({
+      data: {
+        token,
+        userId,
+        expiresAt,
+      },
+    });
+
+    return token;
+  }
+
+  async refreshAccessToken(refreshToken: string) {
+    const tokenRecord = await this.prisma.refreshToken.findUnique({
+      where: { token: refreshToken },
+      include: { user: true },
+    });
+
+    if (
+      !tokenRecord ||
+      tokenRecord.isRevoked ||
+      tokenRecord.expiresAt < new Date()
+    ) {
+      throw new ForbiddenException('Invalid or expired refresh token');
+    }
+
+    // Gerar novo access token
+    const tokenPayload = {
+      image: tokenRecord.user.image,
+      name: tokenRecord.user.name,
+      username: tokenRecord.user.username,
+      email: tokenRecord.user.email,
+      id: tokenRecord.user.id,
+    };
+
+    const accessToken = this.jwtService.sign(tokenPayload, {
+      expiresIn: '15m',
+    });
+
+    return {
+      accessToken,
+      user: {
+        id: tokenRecord.user.id,
+        username: tokenRecord.user.username,
+        name: tokenRecord.user.name,
+        email: tokenRecord.user.email,
+        image: tokenRecord.user.image,
+      },
+    };
+  }
+
+  async revokeRefreshToken(refreshToken: string) {
+    await this.prisma.refreshToken.updateMany({
+      where: { token: refreshToken },
+      data: { isRevoked: true },
+    });
+  }
+
+  async revokeAllUserTokens(userId: string) {
+    await this.prisma.refreshToken.updateMany({
+      where: { userId },
+      data: { isRevoked: true },
+    });
   }
 
   async getUserByToken(token: string) {

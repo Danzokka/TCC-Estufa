@@ -20,6 +20,7 @@ import {
   SensorDataDto,
 } from './dto/greenhouse.dto';
 import { AuthGuard, RequestAuthGuard } from '../auth/guards/auth.guard';
+import { ApiKeyGuard } from '../auth/api-key.guard';
 
 @Controller('greenhouses')
 export class GreenhouseController {
@@ -96,7 +97,9 @@ export class GreenhouseController {
 
   /**
    * Configure greenhouse via QR code (called by ESP32)
-   */ @Post('configure')
+   */
+  @Post('configure')
+  @UseGuards(ApiKeyGuard)
   async configureFromQR(
     @Body(ValidationPipe) configurationDto: GreenhouseConfigurationDto,
   ) {
@@ -110,6 +113,7 @@ export class GreenhouseController {
    * Receive sensor data from ESP32
    */
   @Post('sensor-data')
+  @UseGuards(ApiKeyGuard)
   async receiveSensorData(@Body(ValidationPipe) sensorDataDto: SensorDataDto) {
     return this.greenhouseService.receiveSensorData(sensorDataDto);
   }

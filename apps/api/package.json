@@ -26,6 +26,7 @@
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/platform-express": "^11.0.20",
     "@nestjs/swagger": "^11.1.4",
+    "@nestjs/throttler": "^6.0.0",
     "@prisma/client": "^6.7.0",
     "@types/qrcode": "^1.5.5",
     "class-transformer": "^0.5.1",

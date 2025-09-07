@@ -7,6 +7,7 @@ export interface SessionData {
   email?: string;
   image?: string;
   token?: string;
+  refreshToken?: string;
   isLoggedIn: boolean;
 }
 

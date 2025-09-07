@@ -47,7 +47,9 @@ export default function RootLayout({
               <Header />
               {children}
               <FooterHandler />
-              <Nav />
+              {/*
+               <Nav />
+               */}
             </SidebarProvider>
           </Providers>
         </ThemeProvider>

@@ -1,7 +1,11 @@
 "use server";
 import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
-import { sessionOptions, defaultSession, SessionData } from "@/server/schema/session";
+import {
+  sessionOptions,
+  defaultSession,
+  SessionData,
+} from "@/server/schema/session";
 
 export async function getSession() {
   const session = await getIronSession<SessionData>(
@@ -26,6 +30,7 @@ export async function login(user: SessionData) {
   session.name = user.name;
   session.image = user.image;
   session.token = user.token;
+  session.refreshToken = user.refreshToken;
 
   await session.save();
 }
