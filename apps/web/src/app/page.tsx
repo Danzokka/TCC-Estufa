@@ -1,11 +1,8 @@
-import PlantAlerts from "@/components/home/plant-alerts";
-import { PlantDays, PlantStats } from "@/components/home/plant-data";
 import React from "react";
 import { getSession } from "@/server/actions/session";
 import { redirect } from "next/navigation";
-import PlantSelect from "@/components/home/plant-select";
-import { PlantProvider } from "@/context/plant-provider";
-import { SimplePumpQuickControl } from "@/components/pump/simple-pump-quick-control";
+import { DashboardContent } from "@/components/dashboard/dashboard-content";
+import { getUserPlants } from "@/server/actions/plant";
 
 const Home = async () => {
   const session = await getSession();
@@ -14,21 +11,32 @@ const Home = async () => {
     redirect("/login");
   }
 
+  // Buscar plantas do usuário
+  let plants: Awaited<ReturnType<typeof getUserPlants>> = [];
+  try {
+    plants = await getUserPlants();
+  } catch (error) {
+    console.error("Error loading plants:", error);
+  }
+
+  const defaultPlant = plants[0];
+
   return (
-    <PlantProvider>
-      <div className="flex flex-col items-center justify-center py-8 px-8 lg:px-12 gap-8 w-full">
-        <div className="w-full lg:w-[calc(100vw/3)] flex flex-col items-center justify-center gap-8">
-          <h2 className="text-3xl font-bold">Estufa Inteligente</h2>
-          <PlantSelect />
-          <PlantDays />
-          <PlantStats /> {/* Quick Pump Control */}
-          <div className="w-full">
-            <SimplePumpQuickControl />
+    <div className="flex-1 space-y-6 p-8 pt-6">
+      {/* Dashboard content */}
+      {defaultPlant ? (
+        <DashboardContent plantId={defaultPlant.id} />
+      ) : (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center space-y-4">
+            <h2 className="text-2xl font-bold">Nenhuma planta cadastrada</h2>
+            <p className="text-muted-foreground">
+              Adicione uma planta para começar a monitorar sua estufa.
+            </p>
           </div>
-          <PlantAlerts />
         </div>
-      </div>
-    </PlantProvider>
+      )}
+    </div>
   );
 };
 

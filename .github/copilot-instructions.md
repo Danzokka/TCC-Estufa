@@ -4,6 +4,8 @@
 
 This is an **IoT Smart Greenhouse** system combining hardware sensors (ESP32), backend API (NestJS), frontend web app (Next.js PWA), and AI/ML analysis (Python). The system monitors environmental conditions and controls actuators in real-time.
 
+Always use TODOs for planning and tasking everywhere in the codebase for every prompt and request.
+
 ### Architecture (4-Tier IoT Stack)
 
 ```

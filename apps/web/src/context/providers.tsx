@@ -3,6 +3,7 @@
 import { ReactQueryProvider } from "./query-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { ReactNode } from "react";
+import { PlantProvider } from "./plant-provider";
 
 interface ProvidersProps {
   children: ReactNode;
@@ -11,8 +12,10 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
   return (
     <ReactQueryProvider>
-      {children}
-      <Toaster />
+      <PlantProvider>
+        {children}
+        <Toaster />
+      </PlantProvider>
     </ReactQueryProvider>
   );
 }
