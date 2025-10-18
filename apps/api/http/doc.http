@@ -1,0 +1,262 @@
+@baseUrl = http://localhost:5000
+@auth = {{authenticateUser.response.body.accessToken}}
+@userId = {{authenticateUser.response.body.id}}
+@plantId = {{createPlant.response.body.id}}
+@userPlantId = {{createUserPlant.response.body.id}}
+
+### ===============================
+### CREDENCIAIS DO SEED
+### ===============================
+# Após executar o seed (npm run prisma:seed), use:
+# Email: admin@greenhouse.local
+# Password: Test@123
+# Username: admin
+### ===============================
+
+### User: criar usuário (opcional - já existe no seed)
+# @name createUser
+POST {{baseUrl}}/user
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "name": "Admin User",
+  "email": "admin@greenhouse.local",
+  "password": "Test@123"
+}
+
+### Auth: autenticar usuário (use após executar o seed)
+# @name authenticateUser
+POST {{baseUrl}}/auth
+Content-Type: application/json
+
+{
+  "email": "admin@greenhouse.local",
+  "password": "Test@123"
+}
+
+### Plant: criar planta
+# @name createPlant
+POST {{baseUrl}}/plant
+Content-Type: application/json
+
+{
+  "name": "Manjericão",
+  "description": "Planta de manjericão",
+  "air_temperature_initial": 22.5,
+  "air_humidity_initial": 60.0,
+  "soil_moisture_initial": 40,
+  "soil_temperature_initial": 21.0,
+  "light_intensity_initial": 300.0,
+  "air_temperature_final": 24.0,
+  "air_humidity_final": 65.0,
+  "soil_moisture_final": 45,
+  "soil_temperature_final": 22.0,
+  "light_intensity_final": 320.0
+}
+
+### UserPlant: criar relação usuário-planta
+# @name createUserPlant
+POST {{baseUrl}}/plant/userplant
+Content-Type: application/json
+Authorization: Bearer {{auth}}
+
+{
+  "plantId": "{{plantId}}",
+  "nickname": "Verdinha"
+}
+
+### Sensor: criar leitura de sensor
+# @name createSensor
+POST {{baseUrl}}/sensor
+Content-Type: application/json
+
+{
+  "userPlant": "{{userPlantId}}",
+  "air_temperature": 23.5,
+  "air_humidity": 62.0,
+  "soil_temperature": 21.5,
+  "soil_moisture": 42,
+  "light_intensity": 310.0,
+  "water_level": 80.0,
+  "water_reserve": 50.0
+}
+
+### Buscar usuários
+# @name getUsers
+GET {{baseUrl}}/user
+
+### Buscar plantas
+# @name getPlants
+GET {{baseUrl}}/plant
+
+### Buscar userplants
+# @name getUserPlants
+GET {{baseUrl}}/plant/userplant
+Authorization: Bearer {{auth}}
+
+### Buscar sensores
+# @name getSensors
+GET {{baseUrl}}/sensor
+
+### Buscar dados da planta (dias e status)
+# @name getPlantData
+GET {{baseUrl}}/plant/<PLANT_ID>/data
+
+### Buscar stats da planta
+# @name getPlantStats
+GET {{baseUrl}}/plant/<PLANT_ID>/stats
+
+### Buscar alertas da planta
+# @name getPlantAlerts
+GET {{baseUrl}}/plant/<PLANT_ID>/alerts
+
+### ===============================
+### PUMP CONTROL TESTS
+### ===============================
+
+@greenhouseId = test-greenhouse-1
+@deviceIp = 192.168.1.100
+@deviceMac = 24:0A:C4:12:34:56
+
+### Pump: Register ESP32 device
+# @name registerDevice
+POST {{baseUrl}}/pump/register-device
+Content-Type: application/json
+
+{
+  "name": "ESP32 Test Device",
+  "greenhouseId": "{{greenhouseId}}",
+  "ipAddress": "{{deviceIp}}",
+  "macAddress": "{{deviceMac}}",
+  "firmwareVersion": "1.0.0"
+}
+
+### Pump: Activate pump with duration
+# @name activatePump
+POST {{baseUrl}}/pump/activate
+Content-Type: application/json
+
+{
+  "greenhouseId": "{{greenhouseId}}",
+  "duration": 30,
+  "reason": "Manual activation test"
+}
+
+### Pump: Activate pump with water amount
+# @name activatePumpWithAmount
+POST {{baseUrl}}/pump/activate
+Content-Type: application/json
+
+{
+  "greenhouseId": "{{greenhouseId}}",
+  "duration": 60,
+  "waterAmount": 2.5,
+  "reason": "Water amount test - 2.5L"
+}
+
+### Pump: Get pump status
+# @name getPumpStatus
+GET {{baseUrl}}/pump/status/{{greenhouseId}}
+
+### Pump: Stop pump
+# @name stopPump
+POST {{baseUrl}}/pump/stop/{{greenhouseId}}
+
+### Pump: Get pump history
+# @name getPumpHistory
+GET {{baseUrl}}/pump/history/{{greenhouseId}}
+
+### Pump: Get all devices
+# @name getDevices
+GET {{baseUrl}}/pump/devices
+
+### Pump: ESP32 status update (simulating ESP32 calling this endpoint)
+# @name esp32StatusUpdate
+POST {{baseUrl}}/pump/esp32-status
+Content-Type: application/json
+
+{
+  "type": "pump_status",
+  "status": "on",
+  "runtime_seconds": 45,
+  "volume_liters": 1.8,
+  "device_id": "{{deviceMac}}"
+}
+
+### Pump: ESP32 status update - pump off
+# @name esp32StatusUpdateOff
+POST {{baseUrl}}/pump/esp32-status
+Content-Type: application/json
+
+{
+  "type": "pump_status",
+  "status": "off",
+  "runtime_seconds": 0,
+  "volume_liters": 0,
+  "device_id": "{{deviceMac}}"
+}
+
+### Pump: Get device by MAC
+# @name getDeviceByMac
+GET {{baseUrl}}/pump/device/{{deviceMac}}
+
+### ===============================
+### SEED DATA QUERIES
+### ===============================
+# Queries úteis para testar os dados criados pelo seed
+
+### Get all greenhouses (deve retornar 3 estufas do admin)
+# @name getAllGreenhouses
+GET {{baseUrl}}/greenhouse
+Authorization: Bearer {{auth}}
+
+### Get greenhouse by ID
+# @name getGreenhouseById
+GET {{baseUrl}}/greenhouse/<GREENHOUSE_ID>
+Authorization: Bearer {{auth}}
+
+### Get all user plants (deve retornar 5 plantas do admin)
+# @name getAllUserPlants
+GET {{baseUrl}}/plant/userplant
+Authorization: Bearer {{auth}}
+
+### Get sensor readings for a user plant
+# @name getSensorReadings
+GET {{baseUrl}}/sensor?userPlantId=<USER_PLANT_ID>
+Authorization: Bearer {{auth}}
+
+### Get greenhouse sensor readings
+# @name getGreenhouseSensorReadings
+GET {{baseUrl}}/greenhouse/<GREENHOUSE_ID>/sensors
+Authorization: Bearer {{auth}}
+
+### Get pump operations history
+# @name getPumpOperationsHistory
+GET {{baseUrl}}/pump/history/<GREENHOUSE_ID>
+Authorization: Bearer {{auth}}
+
+### Get all blog posts (deve retornar 3 posts)
+# @name getAllBlogPosts
+GET {{baseUrl}}/blog
+Authorization: Bearer {{auth}}
+
+### Get blog post by slug
+# @name getBlogPostBySlug
+GET {{baseUrl}}/blog/slug/<SLUG>
+Authorization: Bearer {{auth}}
+
+### Get comments for a blog post
+# @name getBlogPostComments
+GET {{baseUrl}}/blog/<POST_ID>/comments
+Authorization: Bearer {{auth}}
+
+### ===============================
+### QUICK TEST SEQUENCE
+### ===============================
+# Execute nesta ordem para testar rapidamente:
+# 1. authenticateUser - para obter o token
+# 2. getAllGreenhouses - ver as 3 estufas
+# 3. getAllUserPlants - ver as 5 plantas
+# 4. getAllBlogPosts - ver os 3 posts
+

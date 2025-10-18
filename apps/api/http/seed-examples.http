@@ -1,0 +1,242 @@
+### ===============================
+### SEED DATA - QUICK REFERENCE
+### ===============================
+# Este arquivo contém exemplos prontos usando os dados do seed
+# Execute o seed primeiro: npm run prisma:seed
+
+@baseUrl = http://localhost:5000
+@auth = {{login.response.body.accessToken}}
+
+### 1. LOGIN com credenciais do seed
+# @name login
+POST {{baseUrl}}/auth
+Content-Type: application/json
+
+{
+  "email": "admin@greenhouse.local",
+  "password": "Test@123"
+}
+
+### ===============================
+### GREENHOUSES (3 criadas pelo seed)
+### ===============================
+
+### Listar todas as estufas do admin
+# @name listGreenhouses
+GET {{baseUrl}}/greenhouse
+Authorization: Bearer {{auth}}
+
+### Estufa Principal (primeira estufa do seed)
+# Use o ID retornado da query acima
+# @name greenhousePrincipal
+GET {{baseUrl}}/greenhouse/<GREENHOUSE_ID>
+Authorization: Bearer {{auth}}
+
+### Leituras de sensores da Estufa Principal
+# @name sensorsGreenhousePrincipal
+GET {{baseUrl}}/greenhouse/<GREENHOUSE_ID>/sensors
+Authorization: Bearer {{auth}}
+
+### Status da bomba da Estufa Principal
+# @name pumpStatusPrincipal
+GET {{baseUrl}}/pump/status/<GREENHOUSE_ID>
+Authorization: Bearer {{auth}}
+
+### ===============================
+### PLANTS (5 criadas pelo seed)
+### ===============================
+# Tomate, Alface, Manjericão, Morango, Pimentão
+
+### Listar todas as plantas do catálogo
+# @name listAllPlants
+GET {{baseUrl}}/plant
+
+### Listar plantas do usuário admin (5 plantas)
+# @name listUserPlants
+GET {{baseUrl}}/plant/userplant
+Authorization: Bearer {{auth}}
+
+### Detalhes de uma planta específica
+# Use o ID da planta (ex: Tomate)
+# @name plantDetails
+GET {{baseUrl}}/plant/<PLANT_ID>
+Authorization: Bearer {{auth}}
+
+### Dados históricos da planta
+# @name plantData
+GET {{baseUrl}}/plant/<PLANT_ID>/data
+Authorization: Bearer {{auth}}
+
+### Estatísticas da planta
+# @name plantStats
+GET {{baseUrl}}/plant/<PLANT_ID>/stats
+Authorization: Bearer {{auth}}
+
+### ===============================
+### SENSOR DATA (288 leituras criadas)
+### ===============================
+
+### Leituras de sensores de uma UserPlant
+# @name sensorReadings
+GET {{baseUrl}}/sensor?userPlantId=<USER_PLANT_ID>
+Authorization: Bearer {{auth}}
+
+### Últimas leituras (mais recentes primeiro)
+# @name latestSensorReadings
+GET {{baseUrl}}/sensor?limit=10&orderBy=desc
+Authorization: Bearer {{auth}}
+
+### Leituras de um período específico
+# @name sensorReadingsByDate
+GET {{baseUrl}}/sensor?from=2024-10-16&to=2024-10-18
+Authorization: Bearer {{auth}}
+
+### ===============================
+### PUMP OPERATIONS (4 criadas pelo seed)
+### ===============================
+
+### Histórico de operações de uma estufa
+# @name pumpHistory
+GET {{baseUrl}}/pump/history/<GREENHOUSE_ID>
+Authorization: Bearer {{auth}}
+
+### Ativar bomba manualmente (teste)
+# @name activatePumpTest
+POST {{baseUrl}}/pump/activate
+Content-Type: application/json
+Authorization: Bearer {{auth}}
+
+{
+  "greenhouseId": "<GREENHOUSE_ID>",
+  "duration": 30,
+  "reason": "Teste manual via REST Client"
+}
+
+### Parar bomba
+# @name stopPump
+POST {{baseUrl}}/pump/stop/<GREENHOUSE_ID>
+Authorization: Bearer {{auth}}
+
+### ===============================
+### BLOG (3 posts, 3 comentários, 3 likes)
+### ===============================
+
+### Listar todos os posts
+# @name listBlogPosts
+GET {{baseUrl}}/blog
+
+### Post: "Como Otimizar o Cultivo de Tomates em Estufa"
+# @name blogTomatoes
+GET {{baseUrl}}/blog/slug/como-otimizar-cultivo-tomates-estufa
+
+### Post: "Introdução ao Sistema de Monitoramento IoT"
+# @name blogIoT
+GET {{baseUrl}}/blog/slug/introducao-sistema-monitoramento-iot-estufas
+
+### Post: "Machine Learning Aplicado ao Cultivo Inteligente"
+# @name blogML
+GET {{baseUrl}}/blog/slug/machine-learning-cultivo-inteligente
+
+### Comentários de um post
+# @name postComments
+GET {{baseUrl}}/blog/<POST_ID>/comments
+
+### Likes de um post
+# @name postLikes
+GET {{baseUrl}}/blog/<POST_ID>/likes
+
+### Criar novo comentário
+# @name createComment
+POST {{baseUrl}}/blog/<POST_ID>/comment
+Content-Type: application/json
+Authorization: Bearer {{auth}}
+
+{
+  "content": "Excelente artigo! Muito útil para minha estufa."
+}
+
+### Dar like em um post
+# @name likePost
+POST {{baseUrl}}/blog/<POST_ID>/like
+Authorization: Bearer {{auth}}
+
+### ===============================
+### DEVICES (3 ESP32 criados pelo seed)
+### ===============================
+
+### Listar todos os dispositivos
+# @name listDevices
+GET {{baseUrl}}/pump/devices
+Authorization: Bearer {{auth}}
+
+### Dispositivo por MAC address
+# @name deviceByMac
+GET {{baseUrl}}/pump/device/24:6F:28:AB:CD:01
+Authorization: Bearer {{auth}}
+
+### Status de dispositivos online
+# @name onlineDevices
+GET {{baseUrl}}/pump/devices?status=online
+Authorization: Bearer {{auth}}
+
+### ===============================
+### DASHBOARD DATA (dados agregados)
+### ===============================
+
+### Resumo geral do sistema
+# @name dashboardSummary
+GET {{baseUrl}}/dashboard/summary
+Authorization: Bearer {{auth}}
+
+### Alertas ativos
+# @name activeAlerts
+GET {{baseUrl}}/alerts/active
+Authorization: Bearer {{auth}}
+
+### Previsões do ML (se disponível)
+# @name mlPredictions
+GET {{baseUrl}}/ai/predictions/<GREENHOUSE_ID>
+Authorization: Bearer {{auth}}
+
+### ===============================
+### TESTING SEQUENCE
+### ===============================
+# Execute nesta ordem para teste completo:
+#
+# 1. login - Autenticar
+# 2. listGreenhouses - Ver as 3 estufas
+# 3. listUserPlants - Ver as 5 plantas
+# 4. sensorReadings - Ver dados históricos
+# 5. pumpHistory - Ver operações de irrigação
+# 6. listBlogPosts - Ver conteúdo educativo
+# 7. listDevices - Ver dispositivos ESP32
+#
+### ===============================
+
+### ===============================
+### USEFUL NOTES
+### ===============================
+# 
+# GREENHOUSE IDs (use os IDs reais do seu banco):
+# - Estufa Principal: ESP32-GH-001
+# - Estufa Experimental: ESP32-GH-002
+# - Estufa Hidropônica: ESP32-GH-003 (offline)
+#
+# PLANT TYPES:
+# - Tomate (18-28°C, 60-80% solo)
+# - Alface (15-22°C, 65-85% solo)
+# - Manjericão (20-30°C, 50-70% solo)
+# - Morango (16-24°C, 65-80% solo)
+# - Pimentão (20-30°C, 60-75% solo)
+#
+# SENSOR DATA:
+# - 96 leituras por planta (1 a cada 30 min)
+# - 192 leituras por estufa (48 horas de dados)
+# - Variações realistas dia/noite
+#
+# BLOG POSTS:
+# 1. Como Otimizar o Cultivo de Tomates
+# 2. Introdução ao Sistema IoT
+# 3. Machine Learning no Cultivo
+#
+### ===============================
