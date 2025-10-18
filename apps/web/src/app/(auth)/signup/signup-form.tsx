@@ -57,6 +57,12 @@ const SignupForm = () => {
       await signup(values.username, values.name, values.email, values.password);
       redirect("/login");
     } catch (err: any) {
+      // Next.js redirect() lança um erro especial, não é um erro real
+      if (err?.digest?.startsWith("NEXT_REDIRECT")) {
+        // Permitir que o redirect continue
+        throw err;
+      }
+
       console.error("Signup error:", err);
 
       // Tratar diferentes tipos de erro
@@ -77,7 +83,7 @@ const SignupForm = () => {
       } else {
         setError("Erro ao criar conta. Tente novamente.");
       }
-    } finally {
+
       setIsLoading(false);
     }
   }

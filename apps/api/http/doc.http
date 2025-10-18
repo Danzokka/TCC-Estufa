@@ -27,7 +27,7 @@ Content-Type: application/json
 
 ### Auth: autenticar usuário (use após executar o seed)
 # @name authenticateUser
-POST {{baseUrl}}/auth
+POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {

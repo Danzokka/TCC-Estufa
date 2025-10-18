@@ -1,19 +1,20 @@
 import { PrismaClient } from '@prisma/client';
+import { randomBytes, pbkdf2Sync } from 'crypto';
 
 const prisma = new PrismaClient();
 
-// Simple hash function for demo purposes (in production, use bcrypt or similar)
+// Hash password using pbkdf2 (same method used in UserService)
 function hashPassword(password: string): string {
-  // For production, install bcrypt: npm install bcrypt @types/bcrypt
-  // For now, using a simple approach for demo
-  return password; // In production: await bcrypt.hash(password, 10);
+  const salt = randomBytes(8).toString('hex');
+  const hash = pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  return `${salt}&${hash}`;
 }
 
 async function main() {
   console.log('🌱 Starting database seeding...');
 
   // Clean existing data (optional - remove if you want to keep existing data)
-  /*console.log('🧹 Cleaning existing data...');
+  console.log('🧹 Cleaning existing data...');
   await prisma.greenhouseSensorReading.deleteMany({});
   await prisma.pumpOperation.deleteMany({});
   await prisma.device.deleteMany({});
@@ -27,11 +28,12 @@ async function main() {
   await prisma.refreshToken.deleteMany({});
   await prisma.user.deleteMany({});
 
-  */
-
   // Create test user
   console.log('👤 Creating user...');
   const hashedPassword = hashPassword('Test@123');
+  console.log(
+    `🔐 Generated password hash: ${hashedPassword.substring(0, 20)}...`,
+  );
 
   const adminUser = await prisma.user.create({
     data: {
@@ -325,7 +327,7 @@ async function main() {
   // Create sensor readings (historical data)
   console.log('📊 Creating sensor readings...');
   const now = Date.now();
-  const sensorReadings = [];
+  const sensorReadings: any[] = [];
 
   // Create 48 hours of data (one reading every 30 minutes)
   for (let i = 0; i < 96; i++) {
@@ -357,7 +359,7 @@ async function main() {
 
   // Create greenhouse sensor readings
   console.log('📊 Creating greenhouse sensor readings...');
-  const greenhouseSensorReadings = [];
+  const greenhouseSensorReadings: any[] = [];
 
   for (let i = 0; i < 96; i++) {
     const timestamp = new Date(now - i * 30 * 60 * 1000);

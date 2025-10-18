@@ -153,6 +153,7 @@ export const useCaptcha = () => {
 
     // Valores
     captchaValue,
+    captchaId,
     isCaptchaValid,
   };
 };

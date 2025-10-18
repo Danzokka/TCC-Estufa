@@ -43,6 +43,9 @@ const LoginForm = () => {
     recordAttempt,
     resetAttempts,
     verifyCaptcha,
+    captchaValue,
+    captchaId,
+    isCaptchaValid,
   } = useCaptcha();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -88,8 +91,16 @@ const LoginForm = () => {
 
       // Login bem-sucedido - resetar tentativas
       resetAttempts();
+
+      // Redirecionar para a página inicial
       redirect("/");
     } catch (err: any) {
+      // Next.js redirect() lança um erro especial, não é um erro real
+      if (err?.digest?.startsWith("NEXT_REDIRECT")) {
+        // Permitir que o redirect continue
+        throw err;
+      }
+
       console.error("Login error:", err);
 
       // Registrar tentativa falhada
@@ -107,7 +118,7 @@ const LoginForm = () => {
       } else {
         setError("Erro ao fazer login. Tente novamente.");
       }
-    } finally {
+
       setIsLoading(false);
     }
   }
