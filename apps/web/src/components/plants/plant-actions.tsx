@@ -20,6 +20,7 @@ export function PlantActions({ plant }: PlantActionsProps) {
   const handleSuccess = () => {
     // Invalida o cache do React Query para forçar re-fetch
     queryClient.invalidateQueries({ queryKey: ["plants"] });
+    queryClient.invalidateQueries({ queryKey: ["userPlants"] });
   };
 
   return (

@@ -29,35 +29,36 @@ import { Button } from "@/components/ui/button";
 import PlantSelect from "@/components/home/plant-select";
 
 interface DashboardContentProps {
-  plantId: string;
+  plantId?: string;
 }
 
-export function DashboardContent({ plantId }: DashboardContentProps) {
+export function DashboardContent({
+  plantId: propPlantId,
+}: DashboardContentProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Ler plantId da URL ou usar o prop (para compatibilidade)
+  const urlPlantId = searchParams.get("plantId");
+  const plantId = urlPlantId || propPlantId;
 
   // Ler parâmetros da URL ou usar valores padrão
   const period =
     (searchParams.get("period") as "today" | "week" | "month") || "today";
   const hours = Number(searchParams.get("hours")) || 24;
 
-  // Atualizar URL quando plantId, period ou hours mudarem
+  // Atualizar URL quando plantId ou hours mudarem
   useEffect(() => {
+    if (!plantId) return;
+
     const params = new URLSearchParams();
     params.set("plantId", plantId);
-    params.set("period", period);
     params.set("hours", hours.toString());
 
     router.replace(`?${params.toString()}`, { scroll: false });
-  }, [plantId, period, hours, router]);
+  }, [plantId, hours, router]);
 
-  // Funções para atualizar parâmetros da URL
-  const setPeriod = (newPeriod: "today" | "week" | "month") => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("period", newPeriod);
-    router.push(`?${params.toString()}`, { scroll: false });
-  };
-
+  // Função para atualizar horas
   const setHours = (newHours: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("hours", newHours.toString());
@@ -77,7 +78,7 @@ export function DashboardContent({ plantId }: DashboardContentProps) {
     refetch: refetchDashboard,
   } = useQuery({
     queryKey: ["dashboard", plantId, period, hours],
-    queryFn: () => getDashboardData(plantId, filters),
+    queryFn: () => getDashboardData(plantId!, filters),
     refetchInterval: 60000, // Atualizar a cada 1 minuto
     enabled: !!plantId,
   });
@@ -85,7 +86,7 @@ export function DashboardContent({ plantId }: DashboardContentProps) {
   // Query para dados agregados (para gráficos)
   const { data: hourlyData, isLoading: isHourlyLoading } = useQuery({
     queryKey: ["hourly-data", plantId, period, hours],
-    queryFn: () => getHourlyAggregatedData(plantId, filters),
+    queryFn: () => getHourlyAggregatedData(plantId!, filters),
     refetchInterval: 300000, // Atualizar a cada 5 minutos
     enabled: !!plantId,
   });
@@ -117,6 +118,34 @@ export function DashboardContent({ plantId }: DashboardContentProps) {
   // Gerar alertas
   const alerts = latest && kpis ? generateAlerts(latest, kpis) : [];
 
+  // Se não há plantId selecionado, mostrar mensagem
+  if (!plantId) {
+    return (
+      <div className="space-y-6">
+        {/* Header com filtros */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground">
+              Monitore os dados da sua estufa em tempo real
+            </p>
+          </div>
+          <PlantSelect />
+        </div>
+
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center space-y-4">
+            <h2 className="text-2xl font-bold">Selecione uma planta</h2>
+            <p className="text-muted-foreground">
+              Escolha uma planta no seletor acima para visualizar os dados do
+              dashboard.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header com filtros */}
@@ -133,7 +162,6 @@ export function DashboardContent({ plantId }: DashboardContentProps) {
       {/* Filtros de período */}
       <DashboardFilters
         period={period}
-        onPeriodChange={setPeriod}
         hours={hours}
         onHoursChange={setHours}
       />
