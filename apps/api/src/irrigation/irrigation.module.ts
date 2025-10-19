@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { IrrigationController } from './irrigation.controller';
+import { PublicIrrigationController } from './public-irrigation.controller';
+import { TestIrrigationController } from './test-irrigation.controller';
 import { IrrigationService } from './irrigation.service';
 import { PrismaService } from 'src/prisma.service';
 import { AuthModule } from '../auth/auth.module';
@@ -15,7 +17,11 @@ import { WebsocketModule } from '../websocket/websocket.module';
       signOptions: { expiresIn: '1d' },
     }),
   ],
-  controllers: [IrrigationController],
+  controllers: [
+    IrrigationController,
+    PublicIrrigationController,
+    TestIrrigationController,
+  ],
   providers: [IrrigationService, PrismaService],
   exports: [IrrigationService],
 })

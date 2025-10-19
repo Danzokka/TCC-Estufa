@@ -1,59 +1,98 @@
 import {
   Controller,
+  Get,
   Post,
+  Put,
+  Delete,
   Body,
   Param,
-  Get,
+  Query,
   UseGuards,
-  Put,
+  Request,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { IrrigationService } from './irrigation.service';
-import { CreateIrrigationDto } from './dto/create-irrigation.dto';
-import { ConfirmIrrigationDto } from './dto/confirm-irrigation.dto';
+import {
+  CreateIrrigationDto,
+  UpdateIrrigationDto,
+  ConfirmIrrigationDto,
+  IrrigationFiltersDto,
+} from './dto/irrigation.dto';
 import { AuthGuard } from '../auth/guards/auth.guard';
 
 @Controller('irrigation')
 @UseGuards(AuthGuard)
 export class IrrigationController {
-  constructor(private readonly irrigationService: IrrigationService) {}
+  constructor(private irrigationService: IrrigationService) {}
 
-  @Post('manual')
-  async createManualIrrigation(
-    @Body() createIrrigationDto: CreateIrrigationDto,
-  ) {
-    return this.irrigationService.createManualIrrigation(createIrrigationDto);
+  // Criar nova irrigação
+  @Post()
+  async createIrrigation(@Body() data: CreateIrrigationDto, @Request() req) {
+    // Se não tiver userId, usar o usuário logado
+    if (!data.userId) {
+      data.userId = req.user.sub;
+    }
+
+    return this.irrigationService.createIrrigation(data);
   }
 
-  @Post('detect/:sensorId')
-  async detectIrrigation(@Param('sensorId') sensorId: string) {
-    return this.irrigationService.detectIrrigation(sensorId);
+  // Buscar todas as irrigações com filtros
+  @Get()
+  async getAllIrrigations(
+    @Query() filters: IrrigationFiltersDto,
+    @Request() req,
+  ) {
+    // Se não especificar userId, usar o usuário logado
+    if (!filters.userId) {
+      filters.userId = req.user.sub;
+    }
+
+    return this.irrigationService.getAllIrrigations(filters);
   }
 
-  @Post('detect-pump/:pumpOperationId')
-  async detectPumpIrrigation(
-    @Param('pumpOperationId') pumpOperationId: string,
-  ) {
-    return this.irrigationService.detectPumpIrrigation(pumpOperationId);
+  // Buscar irrigação por ID
+  @Get(':id')
+  async getIrrigationById(@Param('id', ParseUUIDPipe) id: string) {
+    return this.irrigationService.getIrrigationById(id);
   }
 
-  @Post('detect-moisture/:greenhouseId/:sensorReadingId')
-  async detectMoistureIrrigation(
-    @Param('greenhouseId') greenhouseId: string,
-    @Param('sensorReadingId') sensorReadingId: string,
+  // Atualizar irrigação
+  @Put(':id')
+  async updateIrrigation(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() data: UpdateIrrigationDto,
   ) {
-    return this.irrigationService.detectMoistureIrrigation(
+    return this.irrigationService.updateIrrigation(id, data);
+  }
+
+  // Deletar irrigação
+  @Delete(':id')
+  async deleteIrrigation(@Param('id', ParseUUIDPipe) id: string) {
+    return this.irrigationService.deleteIrrigation(id);
+  }
+
+  // Estatísticas de irrigação
+  @Get('stats/overview')
+  async getIrrigationStats(
+    @Query('greenhouseId') greenhouseId?: string,
+    @Request() req?: any,
+  ) {
+    return this.irrigationService.getIrrigationStats(
       greenhouseId,
-      sensorReadingId,
+      req?.user?.sub,
     );
   }
 
-  @Get('history/:greenhouseId')
-  async getIrrigationHistory(@Param('greenhouseId') greenhouseId: string) {
-    return this.irrigationService.getIrrigationHistory(greenhouseId);
-  }
-
-  @Put('confirm')
-  async confirmIrrigation(@Body() confirmIrrigationDto: ConfirmIrrigationDto) {
-    return this.irrigationService.confirmIrrigation(confirmIrrigationDto);
+  // Confirmar irrigação detectada
+  @Post(':id/confirm')
+  async confirmDetectedIrrigation(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() data: ConfirmIrrigationDto,
+    @Request() req,
+  ) {
+    return this.irrigationService.confirmDetectedIrrigation(id, {
+      ...data,
+      userId: req.user.sub,
+    });
   }
 }

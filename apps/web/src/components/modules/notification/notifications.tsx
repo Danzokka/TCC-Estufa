@@ -102,73 +102,90 @@ interface NotificationItemProps {
   notification: Notification;
   onMarkAsRead?: (id: string) => void;
   onClick?: (notification: Notification) => void;
+  onIrrigationDetected?: (notification: Notification) => void;
   className?: string;
 }
 
 const NotificationItem = React.forwardRef<
   HTMLDivElement,
   NotificationItemProps
->(({ notification, onMarkAsRead, onClick, className }, ref) => {
-  const timeAgo = getRelativeTime(
-    notification.data?.timestamp || notification.timestamp
-  );
+>(
+  (
+    { notification, onMarkAsRead, onClick, onIrrigationDetected, className },
+    ref
+  ) => {
+    const timeAgo = getRelativeTime(
+      notification.data?.timestamp || notification.timestamp
+    );
 
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        "relative w-full cursor-pointer rounded-xl p-4 transition-all duration-200",
-        "",
-        "",
-        "border border-gray-200 dark:border-gray-700",
-        "shadow-sm hover:shadow-md",
-        className
-      )}
-      onClick={() => onClick?.(notification)}
-    >
-      <div className="flex items-start gap-3">
-        <NotificationItemIcon type={notification.type} />
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "relative w-full cursor-pointer rounded-xl p-4 transition-all duration-200",
+          "",
+          "",
+          "border border-gray-200 dark:border-gray-700",
+          "shadow-sm hover:shadow-md",
+          className
+        )}
+        onClick={() => onClick?.(notification)}
+      >
+        <div className="flex items-start gap-3">
+          <NotificationItemIcon type={notification.type} />
 
-        <div className="flex-1 min-w-0 grid grid-cols-[1fr_auto] gap-x-2">
-          {/* Coluna esquerda: Título e mensagem */}
-          <div className="min-w-0">
-            <h4 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide mb-1">
-              {notification.title}
-            </h4>
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-              {notification.message}
-            </p>
-          </div>
+          <div className="flex-1 min-w-0 grid grid-cols-[1fr_auto] gap-x-2">
+            {/* Coluna esquerda: Título e mensagem */}
+            <div className="min-w-0">
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide mb-1">
+                {notification.title}
+              </h4>
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                {notification.message}
+              </p>
+            </div>
 
-          {/* Coluna direita: Tempo e botão */}
-          <div className="flex flex-col items-end gap-1 flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {timeAgo}
-              </span>
+            {/* Coluna direita: Tempo e botão */}
+            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {timeAgo}
+                </span>
+                {!notification.isRead && (
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                )}
+              </div>
               {!notification.isRead && (
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (
+                      notification.type === "irrigation_detected" &&
+                      onIrrigationDetected
+                    ) {
+                      // Redirecionar para formulário de irrigação
+                      onIrrigationDetected(notification);
+                    } else if (onMarkAsRead) {
+                      // Marcar como lida para outros tipos
+                      onMarkAsRead(notification.id);
+                    }
+                  }}
+                  className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium h-6 px-2"
+                >
+                  {notification.type === "irrigation_detected"
+                    ? "Preencher dados"
+                    : "Marcar como lida"}
+                </Button>
               )}
             </div>
-            {!notification.isRead && onMarkAsRead && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMarkAsRead(notification.id);
-                }}
-                className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium h-6 px-2"
-              >
-                Marcar como lida
-              </Button>
-            )}
           </div>
         </div>
       </div>
-    </div>
-  );
-});
+    );
+  }
+);
 NotificationItem.displayName = "NotificationItem";
 
 // Header - Cabeçalho da lista
@@ -236,6 +253,7 @@ interface NotificationsProps {
   onNotificationClick?: (notification: Notification) => void;
   onMarkAsRead?: (id: string) => void;
   onMarkAllAsRead?: () => void;
+  onIrrigationDetected?: (notification: Notification) => void;
   className?: string;
 }
 
@@ -250,6 +268,7 @@ export const Notifications = React.forwardRef<
       onNotificationClick,
       onMarkAsRead,
       onMarkAllAsRead,
+      onIrrigationDetected,
       className,
     },
     ref
@@ -275,6 +294,7 @@ export const Notifications = React.forwardRef<
                   notification={notification}
                   onMarkAsRead={onMarkAsRead}
                   onClick={onNotificationClick}
+                  onIrrigationDetected={onIrrigationDetected}
                 />
               ))}
             </div>
@@ -397,7 +417,9 @@ export function AlertsBadge() {
 
     // Redirecionamento baseado no tipo
     if (notification.type === "irrigation_detected") {
-      router.push(`/dashboard/irrigation/confirm/${notification.data.id}`);
+      router.push(
+        `/dashboard/irrigation/confirm/${notification.data?.id || notification.id}`
+      );
     } else if (notification.type === "pump_activated") {
       router.push("/dashboard/irrigation");
     } else if (notification.type === "system_alert") {
@@ -405,6 +427,13 @@ export function AlertsBadge() {
     } else if (notification.type === "maintenance") {
       router.push("/dashboard/maintenance");
     }
+  };
+
+  const handleIrrigationDetected = (notification: any) => {
+    // Redirecionar para formulário de irrigação
+    router.push(
+      `/dashboard/irrigation/confirm/${notification.data?.id || notification.id}`
+    );
   };
 
   return (
@@ -464,6 +493,7 @@ export function AlertsBadge() {
               onNotificationClick={handleNotificationClick}
               onMarkAsRead={markNotificationAsRead}
               onMarkAllAsRead={markAllAsRead}
+              onIrrigationDetected={handleIrrigationDetected}
             />
           )}
         </div>

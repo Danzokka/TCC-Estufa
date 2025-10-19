@@ -79,6 +79,7 @@ export default function ConfirmIrrigationPage() {
         },
         body: JSON.stringify({
           irrigationId: params.id,
+          type: irrigationType,
           waterAmount:
             irrigationType === "manual" ? parseFloat(waterAmount) : null,
           notes:
@@ -90,7 +91,8 @@ export default function ConfirmIrrigationPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Falha ao confirmar irrigação");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Falha ao confirmar irrigação");
       }
 
       setSuccess(true);

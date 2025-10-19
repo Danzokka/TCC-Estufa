@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,17 +8,141 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Droplets, AlertTriangle } from "lucide-react";
+import { CheckCircle, Droplets, AlertTriangle, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 interface IrrigationRecord {
   id: string;
-  type: "manual" | "automatic" | "detected";
+  type: "manual" | "automatic" | "detected" | "rain";
   waterAmount: number | null;
   notes: string;
   createdAt: string;
   greenhouseId: string;
   moistureIncrease?: number;
+  greenhouse?: {
+    id: string;
+    name: string;
+  };
+  user?: {
+    id: string;
+    name: string;
+  };
+}
+
+interface IrrigationListProps {
+  irrigations: IrrigationRecord[];
+  loading: boolean;
+  error: string | null;
+}
+
+function IrrigationList({ irrigations, loading, error }: IrrigationListProps) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (irrigations.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <Droplets className="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <p>Nenhuma irrigação registrada ainda.</p>
+        <p className="text-sm mt-1">
+          As irrigações aparecerão aqui quando detectadas.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {irrigations.map((irrigation) => (
+        <Card key={irrigation.id}>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Droplets className="h-5 w-5" />
+                Irrigação{" "}
+                {irrigation.type === "manual"
+                  ? "Manual"
+                  : irrigation.type === "automatic"
+                    ? "Automática"
+                    : irrigation.type === "detected"
+                      ? "Detectada"
+                      : "Chuva"}
+              </CardTitle>
+              <Badge
+                variant={
+                  irrigation.type === "manual"
+                    ? "default"
+                    : irrigation.type === "automatic"
+                      ? "secondary"
+                      : irrigation.type === "detected"
+                        ? "destructive"
+                        : "outline"
+                }
+              >
+                {irrigation.type}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium">Data:</span>
+                <span className="ml-2 text-muted-foreground">
+                  {new Date(irrigation.createdAt).toLocaleString("pt-BR")}
+                </span>
+              </div>
+              {irrigation.waterAmount && (
+                <div>
+                  <span className="font-medium">Quantidade:</span>
+                  <span className="ml-2 text-muted-foreground">
+                    {irrigation.waterAmount}L
+                  </span>
+                </div>
+              )}
+              {irrigation.greenhouse && (
+                <div>
+                  <span className="font-medium">Estufa:</span>
+                  <span className="ml-2 text-muted-foreground">
+                    {irrigation.greenhouse.name}
+                  </span>
+                </div>
+              )}
+              {irrigation.user && (
+                <div>
+                  <span className="font-medium">Usuário:</span>
+                  <span className="ml-2 text-muted-foreground">
+                    {irrigation.user.name}
+                  </span>
+                </div>
+              )}
+            </div>
+            {irrigation.notes && (
+              <div className="mt-4">
+                <span className="font-medium">Observações:</span>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {irrigation.notes}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
 }
 
 export default function IrrigationPage() {
@@ -26,204 +150,51 @@ export default function IrrigationPage() {
   const searchParams = useSearchParams();
   const irrigationId = searchParams.get("id");
 
-  const [waterAmount, setWaterAmount] = useState<string>("");
-  const [notes, setNotes] = useState<string>("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string>("");
+  const [irrigations, setIrrigations] = useState<IrrigationRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data - in real app this would come from API
-  const irrigationRecord: IrrigationRecord | null = irrigationId
-    ? {
-        id: irrigationId,
-        type: "detected",
-        waterAmount: null,
-        notes: "Irrigação detectada automaticamente",
-        createdAt: new Date().toISOString(),
-        greenhouseId: "greenhouse-1",
-        moistureIncrease: 18.5,
-      }
-    : null;
+  useEffect(() => {
+    fetchIrrigations();
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError("");
-
+  const fetchIrrigations = async () => {
     try {
-      if (!waterAmount || parseFloat(waterAmount) <= 0) {
-        throw new Error("Por favor, informe a quantidade de água utilizada.");
-      }
-
-      // In real app, this would call the API
-      const response = await fetch("/api/irrigation/confirm", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          irrigationId,
-          waterAmount: parseFloat(waterAmount),
-          notes: notes || "Irrigação manual confirmada pelo usuário",
-        }),
-      });
-
+      setLoading(true);
+      const response = await fetch("/api/irrigation?limit=20");
       if (!response.ok) {
-        throw new Error("Erro ao confirmar irrigação");
+        throw new Error("Falha ao carregar irrigações");
       }
-
-      // Redirect back to dashboard or show success message
-      router.push("/dashboard?notification=irrigation_confirmed");
+      const data = await response.json();
+      setIrrigations(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro desconhecido");
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
-
-  const handleSkip = () => {
-    // Mark as not manual irrigation (could be rain)
-    router.push("/dashboard?notification=irrigation_skipped");
-  };
-
-  if (!irrigationRecord) {
-    return (
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">
-            Controle de Irrigação
-          </h2>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Histórico de Irrigação</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Aqui será exibido o histórico de irrigações da sua estufa.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">
-          Confirmação de Irrigação
+          Controle de Irrigação
         </h2>
+        <Button onClick={fetchIrrigations} variant="outline" size="sm">
+          Atualizar
+        </Button>
       </div>
 
-      <Alert>
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>
-          Detectamos um possível evento de irrigação. Confirme se foi você quem
-          regou as plantas ou se foi chuva.
-        </AlertDescription>
-      </Alert>
-
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Droplets className="h-5 w-5" />
-            Irrigação Detectada
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-sm font-medium">Tipo de Detecção</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant="secondary">Automática</Badge>
-              </div>
-            </div>
-            <div>
-              <Label className="text-sm font-medium">Aumento de Umidade</Label>
-              <p className="text-sm text-muted-foreground mt-1">
-                +{irrigationRecord.moistureIncrease?.toFixed(1)}%
-              </p>
-            </div>
-            <div>
-              <Label className="text-sm font-medium">Data/Hora</Label>
-              <p className="text-sm text-muted-foreground mt-1">
-                {new Date(irrigationRecord.createdAt).toLocaleString("pt-BR")}
-              </p>
-            </div>
-            <div>
-              <Label className="text-sm font-medium">Status</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline">Aguardando Confirmação</Badge>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Confirmação Manual</CardTitle>
+          <CardTitle>Histórico de Irrigação</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="waterAmount">
-                Quantidade de Água Utilizada (litros) *
-              </Label>
-              <Input
-                id="waterAmount"
-                type="number"
-                step="0.1"
-                min="0"
-                value={waterAmount}
-                onChange={(e) => setWaterAmount(e.target.value)}
-                placeholder="Ex: 2.5"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notes">Observações (opcional)</Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Ex: Reguei todas as plantas do canteiro A"
-                rows={3}
-              />
-            </div>
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="flex gap-4">
-              <Button type="submit" disabled={isSubmitting} className="flex-1">
-                {isSubmitting ? (
-                  "Salvando..."
-                ) : (
-                  <>
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Confirmar Irrigação Manual
-                  </>
-                )}
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleSkip}
-                disabled={isSubmitting}
-                className="flex-1"
-              >
-                Não foi irrigação manual (chuva)
-              </Button>
-            </div>
-          </form>
+          <IrrigationList
+            irrigations={irrigations}
+            loading={loading}
+            error={error}
+          />
         </CardContent>
       </Card>
     </div>

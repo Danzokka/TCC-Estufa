@@ -5,6 +5,8 @@ description: Regras para desenvolvimento do backend NestJS
 
 # Backend NestJS - TCC-Estufa
 
+Utiliza em desenvolvimento a porta 5000
+
 ## Estrutura de Módulos
 
 O backend está organizado em módulos principais:

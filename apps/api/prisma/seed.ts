@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { randomBytes, pbkdf2Sync } from 'crypto';
+import { seedIrrigationData } from './seed-irrigation';
 
 const prisma = new PrismaClient();
 
@@ -683,6 +684,10 @@ A agricultura do futuro é inteligente e sustentável!
   console.log(`   • ${3} Blog Posts`);
   console.log(`   • ${3} Comments`);
   console.log(`   • ${3} Likes\n`);
+
+  // Seed irrigation data
+  console.log('🌊 Seeding irrigation data...');
+  await seedIrrigationData();
 }
 
 main()
