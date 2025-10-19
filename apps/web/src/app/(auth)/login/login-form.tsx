@@ -92,8 +92,8 @@ const LoginForm = () => {
       // Login bem-sucedido - resetar tentativas
       resetAttempts();
 
-      // Redirecionar para a página inicial
-      redirect("/");
+      // Redirecionar para a dashboard
+      redirect("/dashboard");
     } catch (err: any) {
       // Next.js redirect() lança um erro especial, não é um erro real
       if (err?.digest?.startsWith("NEXT_REDIRECT")) {

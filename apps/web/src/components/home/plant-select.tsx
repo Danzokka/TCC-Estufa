@@ -31,7 +31,7 @@ export default function PlantSelect() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <div className="w-full ">
+        <div className="">
           <Button
             variant="outline"
             role="combobox"

@@ -15,17 +15,18 @@ import {
   WaterLevelKPI,
   AlertsKPI,
   KPICardSkeleton,
-} from "@/components/dashboard/kpi-card";
+} from "@/app/dashboard/_components/kpi-card";
 import {
   SensorChart,
   SensorChartSkeleton,
   MultiMetricChart,
-} from "@/components/dashboard/sensor-chart";
-import { DashboardFilters } from "@/components/dashboard/dashboard-filters";
-import { generateAlerts } from "@/components/dashboard/alerts-widget";
+} from "@/app/dashboard/_components/sensor-chart";
+import { DashboardFilters } from "@/app/dashboard/_components/dashboard-filters";
+import { generateAlerts } from "@/app/dashboard/_components/alerts-widget";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import PlantSelect from "@/components/home/plant-select";
 
 interface DashboardContentProps {
   plantId: string;
@@ -119,22 +120,14 @@ export function DashboardContent({ plantId }: DashboardContentProps) {
   return (
     <div className="space-y-6">
       {/* Header com filtros */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
             Monitore os dados da sua estufa em tempo real
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => refetchDashboard()}
-          className="gap-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Atualizar
-        </Button>
+        <PlantSelect />
       </div>
 
       {/* Filtros de período */}

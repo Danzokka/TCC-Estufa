@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { UserPlantWithStats } from "@/server/actions/plant";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2 } from "lucide-react";
 import { EditPlantDialog } from "./edit-plant-dialog";
 import { DeletePlantDialog } from "./delete-plant-dialog";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface PlantActionsProps {
   plant: UserPlantWithStats;
@@ -15,11 +15,11 @@ interface PlantActionsProps {
 export function PlantActions({ plant }: PlantActionsProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const router = useRouter();
+  const queryClient = useQueryClient();
 
   const handleSuccess = () => {
-    // O revalidatePath já está configurado nas actions, só precisamos refresh
-    router.refresh();
+    // Invalida o cache do React Query para forçar re-fetch
+    queryClient.invalidateQueries({ queryKey: ["plants"] });
   };
 
   return (

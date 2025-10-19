@@ -47,22 +47,22 @@ import { logout as authLogout } from "@/server/actions/auth";
 const navigation = [
   {
     title: "Dashboard",
-    url: "/",
+    url: "/dashboard",
     icon: LayoutDashboard,
   },
   {
     title: "Minhas Plantas",
-    url: "/plants",
+    url: "/dashboard/plants",
     icon: Sprout,
   },
   {
     title: "Análises",
-    url: "/analytics",
+    url: "/dashboard/analytics",
     icon: LineChart,
   },
   {
     title: "Irrigação",
-    url: "/irrigation",
+    url: "/dashboard/irrigation",
     icon: Droplets,
   },
 ];

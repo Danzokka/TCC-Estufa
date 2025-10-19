@@ -10,7 +10,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { generateAlerts } from "@/components/dashboard/alerts-widget";
+import { generateAlerts } from "@/app/dashboard/_components/alerts-widget";
 import { usePlant } from "@/context/plant-provider";
 
 export function AlertsBadge() {
