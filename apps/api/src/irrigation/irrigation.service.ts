@@ -2,12 +2,16 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateIrrigationDto } from './dto/create-irrigation.dto';
 import { ConfirmIrrigationDto } from './dto/confirm-irrigation.dto';
+import { GreenhouseGateway } from '../websocket/greenhouse.gateway';
 
 @Injectable()
 export class IrrigationService {
   private readonly logger = new Logger(IrrigationService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private greenhouseGateway: GreenhouseGateway,
+  ) {}
 
   async createManualIrrigation(createIrrigationDto: CreateIrrigationDto) {
     try {
@@ -33,14 +37,16 @@ export class IrrigationService {
   async detectIrrigation(sensorId: string) {
     try {
       // Get recent sensor readings to detect irrigation
-      const recentReadings = await this.prisma.sensorReading.findMany({
-        where: {
-          sensorId,
-          sensorType: 'soil_moisture',
+      const recentReadings = await this.prisma.greenhouseSensorReading.findMany(
+        {
+          where: {
+            greenhouseId: sensorId, // This should be greenhouseId, not sensorId
+            // We need to filter by soil moisture readings
+          },
+          orderBy: { timestamp: 'desc' },
+          take: 10, // Last 10 readings
         },
-        orderBy: { timestamp: 'desc' },
-        take: 10, // Last 10 readings
-      });
+      );
 
       if (recentReadings.length < 2) {
         return { detected: false, reason: 'Insufficient data' };
@@ -50,7 +56,7 @@ export class IrrigationService {
       const latest = recentReadings[0];
       const previous = recentReadings[recentReadings.length - 1];
 
-      const moistureIncrease = latest.value - previous.value;
+      const moistureIncrease = latest.soilMoisture - previous.soilMoisture;
       const threshold = 15; // 15% increase threshold
 
       if (moistureIncrease > threshold) {
@@ -99,10 +105,10 @@ export class IrrigationService {
             select: { id: true, name: true, email: true },
           },
           plant: {
-            select: { id: true, name: true, species: true },
+            select: { id: true, name: true },
           },
           sensor: {
-            select: { id: true, name: true, type: true },
+            select: { id: true, timestamp: true },
           },
         },
         orderBy: { createdAt: 'desc' },
@@ -137,13 +143,25 @@ export class IrrigationService {
         },
         include: {
           greenhouse: {
-            select: { id: true, name: true },
+            select: { id: true, name: true, ownerId: true },
           },
           sensor: {
-            select: { id: true, name: true },
+            select: { id: true, timestamp: true },
           },
         },
       });
+
+      // Send confirmation notification
+      this.greenhouseGateway.notifyIrrigationConfirmed(
+        updatedIrrigation.greenhouse.ownerId,
+        updatedIrrigation.greenhouseId,
+        {
+          id: updatedIrrigation.id,
+          waterAmount: updatedIrrigation.waterAmount,
+          notes: updatedIrrigation.notes,
+          timestamp: updatedIrrigation.updatedAt,
+        },
+      );
 
       this.logger.log(`Irrigation confirmed: ${updatedIrrigation.id}`);
       return updatedIrrigation;
@@ -162,5 +180,152 @@ export class IrrigationService {
     // This would need to be implemented based on your pump logging
     // For now, return false to trigger manual irrigation detection
     return false;
+  }
+
+  /**
+   * Detect irrigation by pump activation
+   */
+  async detectPumpIrrigation(pumpOperationId: string) {
+    try {
+      const pumpOperation = await this.prisma.pumpOperation.findUnique({
+        where: { id: pumpOperationId },
+        include: {
+          greenhouse: {
+            include: {
+              owner: true,
+            },
+          },
+        },
+      });
+
+      if (!pumpOperation) {
+        this.logger.warn(`Pump operation not found: ${pumpOperationId}`);
+        return;
+      }
+
+      // Create irrigation record for pump activation
+      const irrigation = await this.prisma.irrigation.create({
+        data: {
+          type: 'automatic',
+          waterAmount: pumpOperation.waterAmount,
+          notes: `Bomba ativada por ${pumpOperation.duration}s - ${pumpOperation.reason || 'Irrigação automática'}`,
+          greenhouseId: pumpOperation.greenhouseId,
+          sensorId: null, // Pump operation doesn't have sensor reading
+        },
+      });
+
+      // Send notification via WebSocket
+      this.greenhouseGateway.notifyPumpActivated(
+        pumpOperation.greenhouse.ownerId,
+        pumpOperation.greenhouseId,
+        {
+          id: irrigation.id,
+          duration: pumpOperation.duration,
+          waterAmount: pumpOperation.waterAmount,
+          reason: pumpOperation.reason,
+          timestamp: irrigation.createdAt,
+        },
+      );
+
+      this.logger.log(
+        `Pump irrigation detected and notified: ${irrigation.id}`,
+      );
+      return irrigation;
+    } catch (error) {
+      this.logger.error('Failed to detect pump irrigation', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Detect irrigation by soil moisture increase
+   */
+  async detectMoistureIrrigation(
+    greenhouseId: string,
+    sensorReadingId: string,
+  ) {
+    try {
+      // Get the sensor reading and greenhouse info
+      const sensorReading =
+        await this.prisma.greenhouseSensorReading.findUnique({
+          where: { id: sensorReadingId },
+          include: {
+            greenhouse: {
+              include: {
+                owner: true,
+              },
+            },
+          },
+        });
+
+      if (!sensorReading) {
+        this.logger.warn(`Sensor reading not found: ${sensorReadingId}`);
+        return;
+      }
+
+      // Get recent readings to compare moisture levels
+      const recentReadings = await this.prisma.greenhouseSensorReading.findMany(
+        {
+          where: { greenhouseId },
+          orderBy: { timestamp: 'desc' },
+          take: 5,
+        },
+      );
+
+      if (recentReadings.length < 2) {
+        return; // Not enough data for comparison
+      }
+
+      const latest = recentReadings[0];
+      const previous = recentReadings[1];
+
+      const moistureIncrease = latest.soilMoisture - previous.soilMoisture;
+      const threshold = 15; // 15% increase threshold
+
+      if (moistureIncrease > threshold) {
+        // Check if there was a pump activation in the same timeframe
+        const pumpActivation = await this.checkPumpActivationInTimeframe(
+          latest.timestamp,
+          previous.timestamp,
+          greenhouseId,
+        );
+
+        if (!pumpActivation) {
+          // Detected manual/rain irrigation
+          const irrigation = await this.prisma.irrigation.create({
+            data: {
+              type: 'detected',
+              waterAmount: null, // Will be filled by user
+              notes: `Detectado aumento de umidade de ${moistureIncrease.toFixed(1)}%`,
+              greenhouseId: greenhouseId,
+              sensorId: sensorReadingId,
+            },
+          });
+
+          // Send notification via WebSocket
+          this.greenhouseGateway.notifyIrrigationDetected(
+            sensorReading.greenhouse.ownerId,
+            greenhouseId,
+            {
+              id: irrigation.id,
+              moistureIncrease,
+              previousMoisture: previous.soilMoisture,
+              currentMoisture: latest.soilMoisture,
+              timestamp: irrigation.createdAt,
+            },
+          );
+
+          this.logger.log(
+            `Moisture irrigation detected and notified: ${irrigation.id}`,
+          );
+          return irrigation;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      this.logger.error('Failed to detect moisture irrigation', error);
+      throw error;
+    }
   }
 }

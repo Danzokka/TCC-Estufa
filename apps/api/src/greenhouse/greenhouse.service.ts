@@ -347,6 +347,9 @@ export class GreenhouseService {
       });
     }
 
+    // Irrigation detection will be handled by the IrrigationService
+    // when sensor data is processed through the sensor endpoint
+
     return sensorReading;
   }
 

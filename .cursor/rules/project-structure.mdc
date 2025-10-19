@@ -1,0 +1,51 @@
+---
+alwaysApply: true
+---
+
+# Estrutura do Projeto TCC-Estufa
+
+Este é um projeto de monorepo para uma estufa inteligente que utiliza Turborepo e pnpm como gerenciador de pacotes.
+
+## Arquitetura Principal
+
+O projeto está organizado em 4 aplicações principais:
+
+### 📁 apps/
+
+- **api/** - Backend NestJS com Prisma ORM e PostgreSQL
+  - Ponto de entrada: [apps/api/src/main.ts](mdc:apps/api/src/main.ts)
+  - Schema do banco: [apps/api/prisma/schema.prisma](mdc:apps/api/prisma/schema.prisma)
+  - Configuração: [apps/api/package.json](mdc:apps/api/package.json)
+
+- **web/** - Frontend Next.js PWA com React
+  - Ponto de entrada: [apps/web/src/app/page.tsx](mdc:apps/web/src/app/page.tsx)
+  - Configuração: [apps/web/package.json](mdc:apps/web/package.json)
+  - Componentes: [apps/web/src/components/](mdc:apps/web/src/components/)
+
+- **esp/** - Firmware para ESP32 (Arduino/PlatformIO)
+  - Código principal: [apps/esp/src/main.cpp](mdc:apps/esp/src/main.cpp)
+  - Configuração: [apps/esp/platformio.ini](mdc:apps/seat/platformio.ini)
+
+- **ai/** - Serviço de IA para análise e previsões
+  - Ponto de entrada: [apps/ai/main.py](mdc:apps/ai/main.py)
+  - Modelos: [apps/ai/models/](mdc:apps/ai/models/)
+
+### 📁 packages/
+
+- **ui/** - Componentes compartilhados de UI
+- **eslint-config/** - Configurações ESLint compartilhadas
+- **typescript-config/** - Configurações TypeScript compartilhadas
+
+## Fluxo de Dados
+
+1. ESP32 coleta dados dos sensores
+2. API NestJS recebe e processa dados
+3. Frontend Next.js exibe dados em tempo real
+4. Serviço de IA analisa e fornece recomendações
+
+## Comandos Principais
+
+- `pnpm dev` - Executa todos os serviços em desenvolvimento
+- `pnpm build` - Build de produção
+- `pnpm lint` - Linting do código
+- `pnpm format` - Formatação com Prettier

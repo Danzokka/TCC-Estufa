@@ -1,0 +1,101 @@
+---
+description: Configurações específicas do projeto TCC-Estufa
+---
+
+# Configurações Específicas - TCC-Estufa
+
+## 🌱 Contexto do Projeto
+
+Este é um **Trabalho de Conclusão de Curso (TCC)** para um sistema de estufa inteligente com as seguintes características:
+
+### 🎯 Objetivos
+
+- Monitoramento automático de condições ambientais
+- Controle remoto de irrigação e outros atuadores
+- Interface web responsiva (PWA)
+- Análise de dados com IA para otimização
+
+### 👥 Desenvolvedores
+
+- **Rafael Dantas Boeira** - [GitHub](https://github.com/Danzokka)
+- **João Victor Alvez Menezes**
+
+## 🔧 Configurações Importantes
+
+### Banco de Dados
+
+- **PostgreSQL** como banco principal
+- **Prisma ORM** para acesso aos dados
+- URL de conexão: `DATABASE_URL` no ambiente
+
+### Comunicação IoT
+
+- **ESP32** como dispositivo principal
+- Comunicação via **HTTP REST API**
+- **WebSocket** para dados em tempo real
+- **IP direto** para controle de irrigação simplificado
+
+### Autenticação
+
+- **JWT** para autenticação de usuários
+- **API Key** para dispositivos ESP32
+- **Iron Session** para sessões web
+
+### Notificações
+
+- **Web Push** para notificações do navegador
+- **Email** para alertas críticos
+
+## 📱 Funcionalidades Principais
+
+### Dashboard em Tempo Real
+
+- Visualização de dados dos sensores
+- Gráficos históricos
+- Status dos dispositivos
+
+### Controle de Irrigação
+
+- Configuração via IP do ESP32
+- Controles rápidos (30s, 1min, 3min)
+- Monitoramento de status da bomba
+
+### Gestão de Plantas
+
+- Catálogo de plantas com parâmetros ideais
+- Monitoramento individual de plantas
+- Recomendações baseadas em IA
+
+### Sistema de Blog
+
+- Posts sobre cuidados com plantas
+- Sistema de comentários e likes
+- Gestão de conteúdo
+
+## 🚀 Deploy e Produção
+
+### Docker
+
+- Containerização completa com docker-compose
+- Serviços: API, Web, AI, PostgreSQL
+- Configuração de rede interna
+
+### HTTPS
+
+- Certificados SSL para produção
+- PWA requer HTTPS para funcionamento completo
+- Configuração de domínio personalizado
+
+## 📊 Monitoramento
+
+### Logs
+
+- **Winston** para logging estruturado
+- Rotação diária de logs
+- Separação por nível (error, info, requests)
+
+### Métricas
+
+- Status de conectividade dos dispositivos
+- Performance da API
+- Uso de recursos do sistema

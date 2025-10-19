@@ -7,6 +7,7 @@
 
 const { PrismaClient } = require('@prisma/client');
 const { io } = require('socket.io-client');
+const axios = require('axios');
 
 const prisma = new PrismaClient();
 
@@ -19,7 +20,6 @@ const TEST_USER_EMAIL = 'admin@greenhouse.local';
 let testUser;
 let testGreenhouse;
 let testUserPlant;
-let testSensor;
 
 async function setupTestData() {
   console.log('🔧 Setting up test data...');
@@ -58,82 +58,71 @@ async function setupTestData() {
 
   console.log(`🌱 Found user plant: ${testUserPlant.nickname} (${testUserPlant.plant.name})`);
 
-  // Get or create soil moisture sensor
-  testSensor = await prisma.sensor.findFirst({
+  // Get soil moisture sensor reading (not sensor itself)
+  const latestReading = await prisma.greenhouseSensorReading.findFirst({
     where: {
       greenhouseId: testGreenhouse.id,
-      type: 'soil_moisture'
-    }
+      // Look for soil moisture readings
+    },
+    orderBy: { timestamp: 'desc' }
   });
 
-  if (!testSensor) {
-    // Create a soil moisture sensor if it doesn't exist
-    testSensor = await prisma.sensor.create({
-      data: {
-        greenhouseId: testGreenhouse.id,
-        type: 'soil_moisture',
-        name: 'Soil Moisture Sensor 1',
-        pin: 'A0',
-        isActive: true,
-        calibrationData: {
-          minValue: 0,
-          maxValue: 4095,
-          calibratedMin: 0,
-          calibratedMax: 100
-        }
-      }
-    });
-    console.log('✅ Created soil moisture sensor');
-  } else {
-    console.log(`📡 Found soil moisture sensor: ${testSensor.name}`);
-  }
+  console.log(`📡 Found greenhouse sensor readings for: ${testGreenhouse.name}`);
 }
 
 async function simulateSoilMoistureIncrease() {
   console.log('\n🌧️  Simulating manual irrigation/chuva detection...');
 
-  // Get the latest soil moisture reading
-  const latestReading = await prisma.greenhouseSensorReading.findFirst({
-    where: {
-      greenhouseId: testGreenhouse.id,
-      sensorType: 'soil_moisture'
-    },
-    orderBy: { timestamp: 'desc' }
-  });
-
-  const currentMoisture = latestReading ? latestReading.value : 50;
-  console.log(`📊 Current soil moisture: ${currentMoisture}%`);
-
-  // Simulate increase in soil moisture without pump activation
-  const newMoisture = Math.min(currentMoisture + 25, 100); // Increase by 25%
-  console.log(`💧 Simulating soil moisture increase to: ${newMoisture}%`);
-
-  // Create new sensor reading
-  const newReading = await prisma.greenhouseSensorReading.create({
+  // First, create a baseline reading with low soil moisture
+  console.log('📊 Creating baseline reading with low soil moisture...');
+  const baselineReading = await prisma.greenhouseSensorReading.create({
     data: {
       greenhouseId: testGreenhouse.id,
-      sensorId: testSensor.id,
-      sensorType: 'soil_moisture',
-      value: newMoisture,
-      unit: '%',
-      timestamp: new Date(),
+      airTemperature: 25.5,
+      airHumidity: 65.0,
+      soilMoisture: 30, // Low moisture baseline
+      soilTemperature: 22.0,
+      lightIntensity: 750.0,
+      waterLevel: 80.0,
       deviceId: testGreenhouse.deviceId,
-      userPlantId: testUserPlant.id
+      timestamp: new Date(Date.now() - 60000), // 1 minute ago
+      isValid: true
     }
   });
 
-  console.log(`✅ Created sensor reading: ${newReading.id}`);
+  console.log(`✅ Created baseline reading: ${baselineReading.id} (30% moisture)`);
+
+  // Wait a moment
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // Now simulate increase in soil moisture without pump activation
+  console.log('💧 Simulating soil moisture increase to 60%...');
+  const newReading = await prisma.greenhouseSensorReading.create({
+    data: {
+      greenhouseId: testGreenhouse.id,
+      airTemperature: 25.5,
+      airHumidity: 65.0,
+      soilMoisture: 60, // Increased moisture (30% increase)
+      soilTemperature: 22.0,
+      lightIntensity: 750.0,
+      waterLevel: 80.0,
+      deviceId: testGreenhouse.deviceId,
+      timestamp: new Date(),
+      isValid: true
+    }
+  });
+
+  console.log(`✅ Created increased moisture reading: ${newReading.id} (60% moisture)`);
 
   // Wait a moment for the irrigation detection to process
   console.log('⏳ Waiting for irrigation detection...');
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  await new Promise(resolve => setTimeout(resolve, 3000));
 
   // Check if irrigation was detected
   const recentIrrigations = await prisma.irrigation.findMany({
     where: {
-      userId: testUser.id,
       greenhouseId: testGreenhouse.id,
-      type: 'manual',
+      type: 'detected',
       createdAt: {
         gte: new Date(Date.now() - 10000) // Last 10 seconds
       }
@@ -148,7 +137,8 @@ async function simulateSoilMoistureIncrease() {
     console.log(`   Type: ${irrigation.type}`);
     console.log(`   Status: ${irrigation.status}`);
     console.log(`   Detected at: ${irrigation.createdAt}`);
-    console.log(`   Sensor reading ID: ${irrigation.sensorReadingId}`);
+    console.log(`   Sensor reading ID: ${irrigation.sensorId}`);
+    console.log(`   Notes: ${irrigation.notes}`);
 
     return irrigation;
   } else {

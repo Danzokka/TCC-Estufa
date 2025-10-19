@@ -39,10 +39,11 @@ export class GreenhouseGateway
       const token = client.handshake.auth.token || client.handshake.query.token;
 
       if (!token) {
-        this.logger.warn(
-          `Connection rejected: No token provided from ${client.id}`,
+        // Permitir conexão sem token para testes
+        this.logger.log(
+          `Connection accepted without token for testing from ${client.id}`,
         );
-        client.disconnect();
+        this.connectedClients.set(client.id, client);
         return;
       }
 

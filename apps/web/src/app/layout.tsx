@@ -11,8 +11,7 @@ import {
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Providers } from "@/context/providers";
 import { getSession } from "@/server/actions/session";
-import { AlertsBadge } from "@/components/layout/alerts-badge";
-import { IrrigationNotification } from "@/components/IrrigationNotification";
+import { AlertsBadge } from "@/components/modules/notification/notifications";
 import { TokenRefreshProvider } from "@/components/providers/token-refresh-provider";
 
 const geistSans = Geist({
@@ -75,7 +74,6 @@ export default async function RootLayout({
                       </div>
                     </header>
                     <main className="flex flex-1 flex-col">{children}</main>
-                    <IrrigationNotification />
                   </SidebarInset>
                 </SidebarProvider>
               ) : (
