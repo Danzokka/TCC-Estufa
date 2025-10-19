@@ -23,6 +23,7 @@ export const sessionOptions: SessionOptions = {
   cookieOptions: {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 4,
+    // Sessão permanente: 30 dias (mesmo tempo do refresh token)
+    maxAge: 60 * 60 * 24 * 30, // 30 dias em segundos
   },
 };

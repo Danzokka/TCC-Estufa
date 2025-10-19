@@ -63,8 +63,10 @@ export function DashboardContent({ plantId }: DashboardContentProps) {
     router.push(`?${params.toString()}`, { scroll: false });
   };
 
+  // Criar filtros com hours incluído
   const filters: DashboardFiltersType = {
     period,
+    hours,
   };
 
   // Query para dados do dashboard
@@ -73,13 +75,13 @@ export function DashboardContent({ plantId }: DashboardContentProps) {
     isLoading: isDashboardLoading,
     refetch: refetchDashboard,
   } = useQuery({
-    queryKey: ["dashboard", plantId, period],
+    queryKey: ["dashboard", plantId, period, hours],
     queryFn: () => getDashboardData(plantId, filters),
     refetchInterval: 60000, // Atualizar a cada 1 minuto
     enabled: !!plantId,
   });
 
-  // Query para dados agregados por hora (para gráficos)
+  // Query para dados agregados (para gráficos)
   const { data: hourlyData, isLoading: isHourlyLoading } = useQuery({
     queryKey: ["hourly-data", plantId, period, hours],
     queryFn: () => getHourlyAggregatedData(plantId, filters),

@@ -1,14 +1,20 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
+  Put,
   Request,
   UseGuards,
 } from '@nestjs/common';
 import { PlantService } from './plant.service';
-import { CreatePlantDto, CreateUserPlantDto } from './dto/plant.dto';
+import {
+  CreatePlantDto,
+  CreateUserPlantDto,
+  UpdateUserPlantDto,
+} from './dto/plant.dto';
 import { AuthGuard, RequestAuthGuard } from 'src/auth/guards/auth.guard';
 
 @Controller('plant')
@@ -33,13 +39,43 @@ export class PlantController {
     return this.plantService.getPlantAlerts(id);
   }
 
+  @Get('types')
+  async getPlantTypes() {
+    return this.plantService.getPlantTypes();
+  }
+
   @UseGuards(AuthGuard)
   @Get('/userplant')
   async getUserPlants(
     @Request()
     request: Request & { user: { id: RequestAuthGuard['user']['id'] } },
   ) {
-    return this.plantService.getUserPlants(request.user.id);
+    return this.plantService.getUserPlantsWithStats(request.user.id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Put('/userplant/:id')
+  async updateUserPlant(
+    @Param('id') id: string,
+    @Body() updateUserPlantDto: UpdateUserPlantDto,
+    @Request()
+    request: Request & { user: { id: RequestAuthGuard['user']['id'] } },
+  ) {
+    return this.plantService.updateUserPlant(
+      id,
+      request.user.id,
+      updateUserPlantDto,
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Delete('/userplant/:id')
+  async deleteUserPlant(
+    @Param('id') id: string,
+    @Request()
+    request: Request & { user: { id: RequestAuthGuard['user']['id'] } },
+  ) {
+    return this.plantService.deleteUserPlant(id, request.user.id);
   }
 
   @Post()

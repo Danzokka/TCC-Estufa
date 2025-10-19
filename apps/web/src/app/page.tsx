@@ -3,6 +3,9 @@ import { getSession } from "@/server/actions/session";
 import { redirect } from "next/navigation";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
 import { getUserPlants } from "@/server/actions/plant";
+import PlantSelect from "@/components/home/plant-select";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 
 const Home = async () => {
   const session = await getSession();
@@ -23,6 +26,11 @@ const Home = async () => {
 
   return (
     <div className="flex-1 space-y-6 p-8 pt-6">
+      {/* Plant selector */}
+      <div className="flex items-center justify-end">
+        <PlantSelect />
+      </div>
+
       {/* Dashboard content */}
       {defaultPlant ? (
         <DashboardContent plantId={defaultPlant.id} />

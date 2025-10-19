@@ -11,9 +11,8 @@ import {
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Providers } from "@/context/providers";
 import { getSession } from "@/server/actions/session";
-import PlantSelect from "@/components/home/plant-select";
-import { SimpleThemeToggle } from "@/components/layout/simple-theme-toggle";
 import { AlertsBadge } from "@/components/layout/alerts-badge";
+import { TokenRefreshProvider } from "@/components/providers/token-refresh-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -57,30 +56,31 @@ export default async function RootLayout({
           enableSystem
           storageKey="theme"
         >
-          <Providers>
-            {session.isLoggedIn ? (
-              <SidebarProvider>
-                <AppSidebar user={user} />
-                <SidebarInset>
-                  <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b px-4">
-                    <div className="flex items-center gap-2">
-                      <SidebarTrigger className="-ml-1" />
-                      <h2 className="text-lg font-semibold">
-                        Estufa Inteligente
-                      </h2>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <PlantSelect />
-                      <AlertsBadge />
-                    </div>
-                  </header>
-                  <main className="flex flex-1 flex-col">{children}</main>
-                </SidebarInset>
-              </SidebarProvider>
-            ) : (
-              <main className="min-h-screen">{children}</main>
-            )}
-          </Providers>
+          <TokenRefreshProvider>
+            <Providers>
+              {session.isLoggedIn ? (
+                <SidebarProvider>
+                  <AppSidebar user={user} />
+                  <SidebarInset>
+                    <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b px-4">
+                      <div className="flex items-center gap-2">
+                        <SidebarTrigger className="-ml-1" />
+                        <h2 className="text-lg font-semibold">
+                          Estufa Inteligente
+                        </h2>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <AlertsBadge />
+                      </div>
+                    </header>
+                    <main className="flex flex-1 flex-col">{children}</main>
+                  </SidebarInset>
+                </SidebarProvider>
+              ) : (
+                <main className="min-h-screen">{children}</main>
+              )}
+            </Providers>
+          </TokenRefreshProvider>
         </ThemeProvider>
       </body>
     </html>
