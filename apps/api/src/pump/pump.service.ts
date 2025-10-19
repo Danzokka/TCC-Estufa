@@ -14,12 +14,16 @@ import {
   SimpleDeviceStatusDto,
 } from './dto/pump.dto';
 import axios from 'axios';
+import { GreenhouseGateway } from '../websocket/greenhouse.gateway';
 
 @Injectable()
 export class PumpService {
   private readonly logger = new Logger(PumpService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly greenhouseGateway: GreenhouseGateway,
+  ) {}
 
   /**
    * Activate water pump for a specific greenhouse
@@ -85,6 +89,9 @@ export class PumpService {
       this.logger.log(
         `Pump activated for greenhouse ${greenhouseId}, duration: ${duration}s`,
       );
+
+      // Send notification via WebSocket
+      await this.sendPumpActivationNotification(greenhouseId, pumpOperation);
 
       return this.mapToStatusDto(pumpOperation);
     } catch (error) {
@@ -449,6 +456,46 @@ export class PumpService {
       throw new BadRequestException(
         `Cannot reach device at ${configDto.deviceIp}. Please check the IP address and ensure the device is online.`,
       );
+    }
+  }
+
+  /**
+   * Send pump activation notification via WebSocket
+   */
+  private async sendPumpActivationNotification(
+    greenhouseId: string,
+    pumpOperation: any,
+  ) {
+    try {
+      // Get greenhouse owner
+      const greenhouse = await this.prisma.greenhouse.findUnique({
+        where: { id: greenhouseId },
+        include: { owner: true },
+      });
+
+      if (!greenhouse) {
+        this.logger.warn(`Greenhouse not found: ${greenhouseId}`);
+        return;
+      }
+
+      // Send notification to greenhouse owner
+      this.greenhouseGateway.notifyPumpActivated(
+        greenhouse.ownerId,
+        greenhouseId,
+        {
+          operationId: pumpOperation.id,
+          duration: pumpOperation.duration,
+          waterAmount: pumpOperation.waterAmount,
+          reason: pumpOperation.reason,
+          startedAt: pumpOperation.startedAt,
+        },
+      );
+
+      this.logger.log(
+        `Pump activation notification sent to user ${greenhouse.ownerId}`,
+      );
+    } catch (error) {
+      this.logger.error('Failed to send pump activation notification:', error);
     }
   }
 }

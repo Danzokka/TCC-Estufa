@@ -28,6 +28,7 @@ model User {
   likes         Like[]
   greenhouses   Greenhouse[]
   refreshTokens RefreshToken[]
+  irrigations   Irrigation[]
 }
 
 model Plant {
@@ -46,6 +47,7 @@ model Plant {
   soil_temperature_final  Float
   light_intensity_final   Float
   userPlants              UserPlant[]
+  irrigations             Irrigation[]
 }
 
 model UserPlant {
@@ -202,6 +204,7 @@ model Greenhouse {
   devices              Device[]
   pumpOperations       PumpOperation[]
   sensorReadings       GreenhouseSensorReading[]
+  irrigations          Irrigation[]
   
   @@index([ownerId])
   @@index([deviceId])
@@ -234,6 +237,9 @@ model GreenhouseSensorReading {
   isValid          Boolean     @default(true)  // Data validation flag
   errorMessage     String?     // Any error during reading
   
+  // Relations
+  irrigations      Irrigation[]
+  
   @@index([greenhouseId])
   @@index([timestamp])
   @@index([deviceId])
@@ -252,4 +258,27 @@ model RefreshToken {
   @@index([userId])
   @@index([token])
   @@index([expiresAt])
+}
+
+// Irrigation tracking model for monitoring watering events
+model Irrigation {
+  id               String      @id @default(uuid())
+  type             String      // 'manual', 'automatic', 'detected'
+  waterAmount      Float?      // Amount of water in liters
+  notes            String?     // Additional notes or reason
+  greenhouseId     String
+  greenhouse       Greenhouse  @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
+  userId           String?     // User who performed manual irrigation
+  user             User?       @relation(fields: [userId], references: [id])
+  plantId          String?     // Specific plant if applicable
+  plant            Plant?      @relation(fields: [plantId], references: [id])
+  sensorId         String?     // Sensor that detected irrigation
+  sensor           GreenhouseSensorReading? @relation(fields: [sensorId], references: [id])
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([greenhouseId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([userId])
 }

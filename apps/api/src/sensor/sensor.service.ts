@@ -36,6 +36,10 @@ export class SensorService {
           userPlantId: data.userPlant, // Ensure this property is provided in CreateSensorDataDto
         },
       });
+
+      // Check for irrigation detection after saving sensor data
+      await this.checkForIrrigationDetection(sensorData);
+
       this.logger.log('Data sent successfully:', sensorData);
       return sensorData;
     } catch (error) {
@@ -339,5 +343,97 @@ export class SensorService {
       totalReadings: readings.length,
       lastUpdated: latest?.timecreated?.toISOString() || null,
     };
+  }
+
+  /**
+   * Check for irrigation detection based on soil moisture changes
+   */
+  private async checkForIrrigationDetection(sensorData: any) {
+    try {
+      // Get the user plant to find the greenhouse
+      const userPlant = await this.prisma.userPlant.findUnique({
+        where: { id: sensorData.userPlantId },
+        include: { user: true },
+      });
+
+      if (!userPlant) {
+        this.logger.warn(
+          `UserPlant not found for sensor data: ${sensorData.id}`,
+        );
+        return;
+      }
+
+      // Get recent sensor readings for this user plant
+      const recentReadings = await this.prisma.sensor.findMany({
+        where: { userPlantId: sensorData.userPlantId },
+        orderBy: { timecreated: 'desc' },
+        take: 10, // Last 10 readings
+      });
+
+      if (recentReadings.length < 2) {
+        return; // Not enough data for comparison
+      }
+
+      const latest = recentReadings[0];
+      const previous = recentReadings[1];
+
+      // Check for significant moisture increase
+      const moistureIncrease = latest.soil_moisture - previous.soil_moisture;
+      const threshold = 15; // 15% increase threshold
+
+      if (moistureIncrease > threshold) {
+        // Check if there was a pump activation in the same timeframe
+        const pumpActivation = await this.checkPumpActivationInTimeframe(
+          latest.timecreated,
+          previous.timecreated,
+          userPlant.id,
+        );
+
+        if (!pumpActivation) {
+          // Detected manual/chuva irrigation
+          this.logger.log(
+            `Irrigation detected for user plant ${userPlant.id}: moisture increase ${moistureIncrease.toFixed(1)}%`,
+          );
+
+          // Get greenhouse ID from user plant
+          const greenhouse = await this.prisma.greenhouse.findFirst({
+            where: { ownerId: userPlant.userId },
+          });
+
+          if (greenhouse) {
+            // Create irrigation record
+            const irrigation = await this.prisma.irrigation.create({
+              data: {
+                type: 'detected',
+                waterAmount: null, // Will be filled by user
+                notes: `Detected moisture increase of ${moistureIncrease.toFixed(1)}%`,
+                greenhouseId: greenhouse.id,
+                sensorId: sensorData.id,
+              },
+            });
+
+            // TODO: Send notification via WebSocket
+            // This will be implemented when we integrate with the WebSocket gateway
+            this.logger.log(`Irrigation record created: ${irrigation.id}`);
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.error('Error checking for irrigation detection:', error);
+    }
+  }
+
+  /**
+   * Check if there was a pump activation in the given timeframe
+   */
+  private async checkPumpActivationInTimeframe(
+    startTime: Date,
+    endTime: Date,
+    userPlantId: string,
+  ): Promise<boolean> {
+    // TODO: Implement pump activation checking
+    // This would check the pump operations table for activations
+    // in the timeframe between startTime and endTime
+    return false; // For now, always return false to trigger detection
   }
 }

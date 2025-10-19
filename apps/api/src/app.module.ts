@@ -13,6 +13,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { IrrigationModule } from './irrigation/irrigation.module';
+import { WebsocketModule } from './websocket/websocket.module';
 
 @Module({
   imports: [
@@ -44,6 +46,8 @@ import { APP_GUARD } from '@nestjs/core';
         limit: 100, // 100 requests por minuto
       },
     ]),
+    IrrigationModule,
+    WebsocketModule,
   ],
   controllers: [AppController],
   providers: [

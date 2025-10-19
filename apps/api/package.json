@@ -18,6 +18,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:irrigation": "node scripts/test-irrigation.js",
+    "test:frontend-notifications": "node scripts/test-frontend-notifications.js",
     "prisma:seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
@@ -26,8 +28,10 @@
     "@nestjs/core": "^11.0.20",
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/platform-express": "^11.0.20",
+    "@nestjs/platform-socket.io": "^11.1.6",
     "@nestjs/swagger": "^11.1.4",
     "@nestjs/throttler": "^6.0.0",
+    "@nestjs/websockets": "^11.1.6",
     "@prisma/client": "^6.7.0",
     "@types/qrcode": "^1.5.5",
     "class-transformer": "^0.5.1",
@@ -37,6 +41,7 @@
     "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
+    "socket.io": "^4.8.1",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0"
   },
