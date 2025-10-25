@@ -18,43 +18,61 @@ import {
   getIrrigationStats,
 } from "@/server/actions/irrigation";
 import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function IrrigationPage() {
-  const [irrigations, setIrrigations] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const queryClient = useQueryClient();
 
-  const loadData = async () => {
-    try {
-      setIsLoading(true);
+  // Query para irrigações
+  const {
+    data: irrigationsData,
+    isLoading: irrigationsLoading,
+    error: irrigationsError,
+  } = useQuery({
+    queryKey: ["irrigations", typeFilter],
+    queryFn: async () => {
       const filters: any = { limit: 50 };
-
       if (typeFilter !== "all") {
         filters.type = typeFilter;
       }
+      return await getIrrigations(filters);
+    },
+    refetchInterval: 30000, // Auto-refresh a cada 30 segundos
+    refetchOnWindowFocus: true,
+  });
 
-      const [irrigationsResult, statsResult] = await Promise.all([
-        getIrrigations(filters),
-        getIrrigationStats(),
-      ]);
+  // Query para estatísticas
+  const {
+    data: statsData,
+    isLoading: statsLoading,
+    error: statsError,
+  } = useQuery({
+    queryKey: ["irrigation-stats"],
+    queryFn: getIrrigationStats,
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
+  });
 
-      setIrrigations(irrigationsResult.data.irrigations || []);
-      setStats(statsResult.data);
-    } catch (error) {
-      console.error("Error loading irrigation data:", error);
-      toast.error("Falha ao carregar dados de irrigação");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const irrigations = irrigationsData?.data?.irrigations || [];
+  const stats = statsData?.data;
+  const isLoading = irrigationsLoading || statsLoading;
 
+  // Tratamento de erros
   useEffect(() => {
-    loadData();
-  }, [typeFilter]);
+    if (irrigationsError) {
+      console.error("Error loading irrigations:", irrigationsError);
+      toast.error("Falha ao carregar dados de irrigação");
+    }
+    if (statsError) {
+      console.error("Error loading stats:", statsError);
+      toast.error("Falha ao carregar estatísticas");
+    }
+  }, [irrigationsError, statsError]);
 
   const handleRefresh = () => {
-    loadData();
+    queryClient.invalidateQueries({ queryKey: ["irrigations"] });
+    queryClient.invalidateQueries({ queryKey: ["irrigation-stats"] });
     toast.success("Dados atualizados!");
   };
 
@@ -152,9 +170,10 @@ export default function IrrigationPage() {
 
       {/* Table */}
       <IrrigationTable
-        irrigations={irrigations}
+        key={`irrigation-table-${irrigations.length}-${Date.now()}`}
+        irrigations={[...irrigations]} // Cria uma cópia do array para forçar re-render
         isLoading={isLoading}
-        onRefresh={loadData}
+        onRefresh={handleRefresh}
       />
     </div>
   );

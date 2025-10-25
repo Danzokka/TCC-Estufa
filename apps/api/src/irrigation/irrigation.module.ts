@@ -1,6 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { IrrigationController } from './irrigation.controller';
-import { PublicIrrigationController } from './public-irrigation.controller';
 import { IrrigationService } from './irrigation.service';
 import { PrismaService } from 'src/prisma.service';
 import { AuthModule } from '../auth/auth.module';
@@ -18,7 +17,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
       signOptions: { expiresIn: '1d' },
     }),
   ],
-  controllers: [IrrigationController, PublicIrrigationController],
+  controllers: [IrrigationController],
   providers: [IrrigationService, PrismaService],
   exports: [IrrigationService],
 })

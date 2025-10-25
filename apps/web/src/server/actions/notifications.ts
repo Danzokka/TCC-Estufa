@@ -1,84 +1,215 @@
-"use server";
+'use server';
 
-import { getSession } from "./session";
-import api from "@/lib/api";
+import { revalidatePath } from 'next/cache';
 
-export async function markNotificationAsRead(notificationId: string) {
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+/**
+ * Server Action para obter notificações do usuário
+ */
+export async function getUserNotifications() {
   try {
-    const session = await getSession();
+    const response = await fetch(`${API_BASE_URL}/notifications`, {
+      headers: {
+        'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
-    if (!session.isLoggedIn) {
-      throw new Error("Não autorizado");
+    if (!response.ok) {
+      throw new Error(`Backend responded with status: ${response.status}`);
     }
 
-    const response = await api.put(`/notifications/${notificationId}/read`);
-    return { success: true, data: response.data };
+    return await response.json();
   } catch (error) {
-    console.error("Error marking notification as read:", error);
-    throw new Error("Falha ao marcar notificação como lida");
+    console.error('Error fetching user notifications:', error);
+    throw new Error('Falha ao carregar notificações');
   }
 }
 
-export async function markAllNotificationsAsRead() {
-  try {
-    const session = await getSession();
-
-    if (!session.isLoggedIn) {
-      throw new Error("Não autorizado");
-    }
-
-    const response = await api.put("/notifications/mark-all-read");
-    return { success: true, data: response.data };
-  } catch (error) {
-    console.error("Error marking all notifications as read:", error);
-    throw new Error("Falha ao marcar todas as notificações como lidas");
-  }
-}
-
-export async function getNotifications(limit: number = 50) {
-  try {
-    const session = await getSession();
-
-    if (!session.isLoggedIn) {
-      throw new Error("Não autorizado");
-    }
-
-    const response = await api.get(`/notifications?limit=${limit}`);
-    return { success: true, data: response.data };
-  } catch (error) {
-    console.error("Error fetching notifications:", error);
-    throw new Error("Falha ao carregar notificações");
-  }
-}
-
+/**
+ * Server Action para obter contagem de notificações não lidas
+ */
 export async function getUnreadCount() {
   try {
-    const session = await getSession();
+    const response = await fetch(`${API_BASE_URL}/notifications/unread-count`, {
+      headers: {
+        'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
-    if (!session.isLoggedIn) {
-      throw new Error("Não autorizado");
+    if (!response.ok) {
+      throw new Error(`Backend responded with status: ${response.status}`);
     }
 
-    const response = await api.get("/notifications/unread-count");
-    return { success: true, data: response.data };
+    const data = await response.json();
+    return data.count;
   } catch (error) {
-    console.error("Error fetching unread count:", error);
-    throw new Error("Falha ao carregar contagem de não lidas");
+    console.error('Error fetching unread count:', error);
+    throw new Error('Falha ao carregar contagem de notificações');
   }
 }
 
-export async function clearReadNotifications() {
+/**
+ * Server Action para marcar notificação como lida
+ */
+export async function markNotificationAsRead(notificationId: string) {
   try {
-    const session = await getSession();
+    const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}/read`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-    if (!session.isLoggedIn) {
-      throw new Error("Não autorizado");
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Backend error:', errorText);
+      return { success: false, message: `Erro ao marcar como lida: ${response.status}` };
     }
 
-    const response = await api.delete("/notifications/clear-read");
-    return { success: true, data: response.data };
+    const data = await response.json();
+    revalidatePath('/dashboard');
+    return { success: true, data };
   } catch (error) {
-    console.error("Error clearing read notifications:", error);
-    throw new Error("Falha ao limpar notificações lidas");
+    console.error('Error marking notification as read:', error);
+    return { success: false, message: 'Falha ao marcar notificação como lida' };
+  }
+}
+
+/**
+ * Server Action para marcar todas as notificações como lidas
+ */
+export async function markAllNotificationsAsRead() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/notifications/mark-all-read`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Backend error:', errorText);
+      return { success: false, message: `Erro ao marcar todas como lidas: ${response.status}` };
+    }
+
+    const data = await response.json();
+    revalidatePath('/dashboard');
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error marking all notifications as read:', error);
+    return { success: false, message: 'Falha ao marcar todas as notificações como lidas' };
+  }
+}
+
+/**
+ * Server Action para deletar notificação
+ */
+export async function deleteNotification(notificationId: string) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Backend responded with status: ${response.status}`);
+    }
+
+    revalidatePath('/dashboard');
+    return await response.json();
+  } catch (error) {
+    console.error('Error deleting notification:', error);
+    throw new Error('Falha ao deletar notificação');
+  }
+}
+
+/**
+ * Server Action para limpar notificações antigas
+ */
+export async function cleanupOldNotifications(daysOld: number = 30) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/notifications/cleanup`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ daysOld }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Backend responded with status: ${response.status}`);
+    }
+
+    revalidatePath('/dashboard');
+    return await response.json();
+  } catch (error) {
+    console.error('Error cleaning up old notifications:', error);
+    throw new Error('Falha ao limpar notificações antigas');
+  }
+}
+
+/**
+ * Server Action para limpar notificações lidas
+ */
+export async function clearReadNotifications() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/notifications/clear-read`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Backend error:', errorText);
+      return { success: false, message: `Erro ao limpar notificações: ${response.status}`, count: 0 };
+    }
+
+    const data = await response.json();
+    revalidatePath('/dashboard');
+    return { success: true, count: data.count || 0, message: data.message };
+  } catch (error) {
+    console.error('Error clearing read notifications:', error);
+    return { success: false, message: 'Falha ao limpar notificações lidas', count: 0 };
+  }
+}
+
+/**
+ * Server Action para salvar notificação (endpoint público para testes)
+ */
+export async function saveNotification(notificationData: {
+  userId?: string;
+  type: string;
+  title: string;
+  message: string;
+  data?: Record<string, unknown>;
+}) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/notifications`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(notificationData),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Backend responded with status: ${response.status}`);
+    }
+
+    revalidatePath('/dashboard');
+    return await response.json();
+  } catch (error) {
+    console.error('Error saving notification:', error);
+    throw new Error('Falha ao salvar notificação');
   }
 }

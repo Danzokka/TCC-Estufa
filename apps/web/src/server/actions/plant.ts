@@ -12,7 +12,8 @@ export async function getUserPlants(): Promise<UserPlant[]> {
     return response.data;
   } catch (error) {
     console.error("Error fetching plant data:", error);
-    throw new Error("Failed to fetch plant data");
+    // Retornar array vazio em vez de lançar erro
+    return [];
   }
 }
 

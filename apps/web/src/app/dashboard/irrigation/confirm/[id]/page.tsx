@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { getIrrigationById, confirmIrrigation } from "@/server/actions/irrigation";
 import {
   Card,
   CardContent,
@@ -53,12 +54,12 @@ export default function ConfirmIrrigationPage() {
 
   const fetchIrrigationData = async (id: string) => {
     try {
-      const response = await fetch(`/api/irrigation/${id}`);
-      if (!response.ok) {
-        throw new Error("Falha ao carregar dados da irrigação");
+      const result = await getIrrigationById(id);
+      if (result.success) {
+        setIrrigationData(result.data);
+      } else {
+        throw new Error(result.message || "Falha ao carregar dados da irrigação");
       }
-      const data = await response.json();
-      setIrrigationData(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro desconhecido");
     } finally {
@@ -72,33 +73,25 @@ export default function ConfirmIrrigationPage() {
     setError(null);
 
     try {
-      const response = await fetch("/api/irrigation/confirm", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          irrigationId: params.id,
-          type: irrigationType,
-          waterAmount:
-            irrigationType === "manual" ? parseFloat(waterAmount) : null,
-          notes:
-            notes ||
-            (irrigationType === "rain"
-              ? "Irrigação por chuva"
-              : "Irrigação manual confirmada"),
-        }),
+      const result = await confirmIrrigation(params.id as string, {
+        type: irrigationType,
+        waterAmount:
+          irrigationType === "manual" ? parseFloat(waterAmount) : undefined,
+        notes:
+          notes ||
+          (irrigationType === "rain"
+            ? "Irrigação por chuva"
+            : "Irrigação manual confirmada"),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Falha ao confirmar irrigação");
+      if (result.success) {
+        setSuccess(true);
+        setTimeout(() => {
+          router.push("/dashboard/irrigation");
+        }, 2000);
+      } else {
+        throw new Error(result.message || "Falha ao confirmar irrigação");
       }
-
-      setSuccess(true);
-      setTimeout(() => {
-        router.push("/dashboard/irrigation");
-      }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro desconhecido");
     } finally {

@@ -65,7 +65,7 @@ export class NotificationGeneratorService {
       const hasRecentSimilar = recentNotifications.some(
         (notif) =>
           notif.type === alert.type &&
-          notif.data?.plantId === plantId &&
+          (notif.data as any)?.plantId === plantId &&
           new Date(notif.createdAt).getTime() > Date.now() - 2 * 60 * 60 * 1000,
       );
 

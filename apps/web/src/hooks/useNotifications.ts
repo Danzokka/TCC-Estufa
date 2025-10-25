@@ -1,20 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import axios from "axios";
+import { 
+  markNotificationAsRead, 
+  markAllNotificationsAsRead, 
+  clearReadNotifications, 
+  saveNotification 
+} from "@/server/actions/notifications";
 
 interface Notification {
   id: string;
   type: string;
   title: string;
   message: string;
-  data?: any;
+  data?: Record<string, unknown>;
   isRead?: boolean;
   createdAt?: string;
   timestamp: string;
 }
 
 export function useNotifications() {
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const [, setSocket] = useState<Socket | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -30,7 +36,7 @@ export function useNotifications() {
         console.log("Tocando som do sistema");
         // Criar um beep simples
         const context = new (window.AudioContext ||
-          (window as any).webkitAudioContext)();
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
         const oscillator = context.createOscillator();
         const gainNode = context.createGain();
 
@@ -47,14 +53,15 @@ export function useNotifications() {
         oscillator.start(context.currentTime);
         oscillator.stop(context.currentTime + 0.5);
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.log("Erro ao tocar som de notificação:", error);
     }
   };
 
   // Função para carregar notificações do banco (sem tocar som)
-  const loadNotifications = async (playSound = false) => {
+  const loadNotifications = useCallback(async (playSound = false) => {
     try {
+      // Token para autenticação futura
       const token = localStorage.getItem("token");
 
       // Usar proxy do Next.js ou URL direta
@@ -67,7 +74,7 @@ export function useNotifications() {
       if (response.data && response.data.notifications) {
         // Ordenar por data de criação (mais recentes primeiro)
         const sortedNotifications = response.data.notifications.sort(
-          (a: any, b: any) => {
+          (a: Notification, b: Notification) => {
             const dateA = new Date(a.createdAt || a.timestamp);
             const dateB = new Date(b.createdAt || b.timestamp);
             return dateB.getTime() - dateA.getTime();
@@ -76,7 +83,7 @@ export function useNotifications() {
 
         setNotifications(sortedNotifications);
         setUnreadCount(
-          sortedNotifications.filter((n: any) => !n.isRead).length
+          sortedNotifications.filter((n: Notification) => !n.isRead).length
         );
         console.log("Notificações carregadas:", sortedNotifications.length);
 
@@ -88,26 +95,25 @@ export function useNotifications() {
     } catch (error) {
       console.error("Erro ao carregar notificações:", error);
     }
-  };
+  }, []);
 
-  // Função para marcar como lida
-  const markNotificationAsRead = async (notificationId: string) => {
+  // Função para marcar como lida (remove da visualização)
+  const markNotificationAsReadAction = async (notificationId: string) => {
     try {
-      // Atualizar estado local imediatamente para UX responsivo
+      // Remover da visualização imediatamente (mas mantém no DB)
       setNotifications((prev) =>
-        prev.map((notification) =>
-          notification.id === notificationId
-            ? { ...notification, isRead: true }
-            : notification
-        )
+        prev.filter((notification) => notification.id !== notificationId)
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
 
       // Chamar server action para persistir no backend
-      const { markNotificationAsRead: serverAction } = await import(
-        "@/server/actions/notifications"
-      );
-      await serverAction(notificationId);
+      const result = await markNotificationAsRead(notificationId);
+      
+      if (!result.success) {
+        console.error("Erro ao marcar como lida:", result.message);
+        // Reverter estado em caso de erro
+        await loadNotifications(false);
+      }
     } catch (error) {
       console.error("Erro ao marcar como lida:", error);
       // Reverter estado em caso de erro
@@ -115,20 +121,26 @@ export function useNotifications() {
     }
   };
 
-  // Função para marcar todas como lidas
+  // Função para marcar todas como lidas (remove opções individuais, exceto preencher dados)
   const markAllAsRead = async () => {
     try {
-      // Atualizar estado local imediatamente para UX responsivo
+      // Remover todas as notificações da visualização, exceto as de "preencher dados"
       setNotifications((prev) =>
-        prev.map((notification) => ({ ...notification, isRead: true }))
+        prev.filter((notification) => 
+          notification.type === 'irrigation_detected' || 
+          notification.type === 'pump_activated'
+        )
       );
       setUnreadCount(0);
 
       // Chamar server action para persistir no backend
-      const { markAllNotificationsAsRead: serverAction } = await import(
-        "@/server/actions/notifications"
-      );
-      await serverAction();
+      const result = await markAllNotificationsAsRead();
+      
+      if (!result.success) {
+        console.error("Erro ao marcar todas como lidas:", result.message);
+        // Reverter estado em caso de erro
+        await loadNotifications(false);
+      }
     } catch (error) {
       console.error("Erro ao marcar todas como lidas:", error);
       // Reverter estado em caso de erro
@@ -136,37 +148,31 @@ export function useNotifications() {
     }
   };
 
-  // Função para limpar notificações lidas (exceto as que requerem ação)
-  const clearReadNotifications = async () => {
+  // Função para limpar TODAS as notificações (incluindo preencher dados)
+  const clearReadNotificationsAction = async () => {
     try {
       // Chamar server action para limpar no backend
-      const { clearReadNotifications: serverAction } = await import(
-        "@/server/actions/notifications"
-      );
-      const result = await serverAction();
+      const result = await clearReadNotifications();
 
-      // Atualizar estado local removendo TODAS as notificações lidas
-      // pois elas aparecem na tabela de irrigação para preencher
-      setNotifications((prev) =>
-        prev.filter((notification) => !notification.isRead)
-      );
-
-      // Recalcular contagem de não lidas
-      const newUnreadCount = notifications.filter(
-        (notification) => !notification.isRead
-      ).length;
-      setUnreadCount(newUnreadCount);
-
-      console.log(`✅ ${result.data.count} notificações lidas foram removidas`);
+      if (result.success) {
+        // Remover TODAS as notificações da visualização (incluindo preencher dados)
+        setNotifications([]);
+        setUnreadCount(0);
+        console.log(`✅ ${result.count} notificações foram removidas da visualização`);
+      } else {
+        console.error("Erro ao limpar notificações:", result.message);
+        // Reverter estado em caso de erro
+        await loadNotifications(false);
+      }
     } catch (error) {
-      console.error("Erro ao limpar notificações lidas:", error);
+      console.error("Erro ao limpar notificações:", error);
       // Reverter estado em caso de erro
       await loadNotifications(false);
     }
   };
 
   useEffect(() => {
-    // Get token from localStorage
+    // Get token from localStorage (for future authentication)
     const token = localStorage.getItem("token");
 
     // Carregar notificações existentes do banco (sem som)
@@ -212,13 +218,9 @@ export function useNotifications() {
       setNotifications((prev) => [notification, ...prev]);
       setUnreadCount((prev) => prev + 1);
 
-      // Sync automático com backend para persistir
+      // Sync automático com backend para persistir usando Server Action
       try {
-        const saveUrl = process.env.NEXT_PUBLIC_API_URL
-          ? `${process.env.NEXT_PUBLIC_API_URL}/notifications/public/save`
-          : "/api/notifications/public/save";
-
-        await axios.post(saveUrl, {
+        await saveNotification({
           userId: notification.data?.userId || "test-user-id",
           type: notification.type,
           title: notification.title,
@@ -245,7 +247,7 @@ export function useNotifications() {
     return () => {
       socketInstance.disconnect();
     };
-  }, []);
+  }, [loadNotifications]);
 
   const requestNotificationPermission = async () => {
     if ("Notification" in window) {
@@ -264,9 +266,9 @@ export function useNotifications() {
     isConnected,
     unreadCount,
     requestNotificationPermission,
-    markNotificationAsRead,
+    markNotificationAsRead: markNotificationAsReadAction,
     markAllAsRead,
-    clearReadNotifications,
+    clearReadNotifications: clearReadNotificationsAction,
     clearNotifications,
     loadNotifications,
   };

@@ -166,10 +166,10 @@ const NotificationItem = React.forwardRef<
                       notification.type === "irrigation_detected" &&
                       onIrrigationDetected
                     ) {
-                      // Redirecionar para formulário de irrigação
+                      // Redirecionar para formulário de irrigação (não remove da visualização)
                       onIrrigationDetected(notification);
                     } else if (onMarkAsRead) {
-                      // Marcar como lida para outros tipos
+                      // Marcar como lida para outros tipos (remove da visualização)
                       onMarkAsRead(notification.id);
                     }
                   }}
@@ -225,9 +225,9 @@ const NotificationHeader = React.forwardRef<
             variant="ghost"
             size="sm"
             onClick={onClearRead}
-            className="text-xs text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300 font-medium"
+            className="text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium"
           >
-            Limpar
+            Limpar todas
           </Button>
         )}
       </div>
@@ -436,7 +436,7 @@ export function AlertsBadge() {
     // Redirecionamento baseado no tipo
     if (notification.type === "irrigation_detected") {
       router.push(
-        `/dashboard/irrigation/confirm/${notification.data?.id || notification.id}`
+        `/dashboard/irrigation/confirm/${notification.data?.irrigationId || notification.id}`
       );
     } else if (notification.type === "pump_activated") {
       router.push("/dashboard/irrigation");
