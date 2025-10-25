@@ -12,6 +12,7 @@ from ..db.database import fetch_sensor_data, fetch_plant_metadata, fetch_user_pl
 from ..data_processing.preprocessor import DataPreprocessor
 from ..models.lstm_model import PlantLSTMTrainer
 from ..analysis.insights_generator import InsightsGenerator
+from ..analysis.report_generator import ReportGenerator
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO)
@@ -28,6 +29,7 @@ feature_columns = [
 ]
 model_trainer = PlantLSTMTrainer(feature_columns)
 insights_generator = InsightsGenerator()
+report_generator = ReportGenerator()
 
 # Cache para armazenar dados processados e previsões
 cache = {
@@ -113,6 +115,33 @@ def get_insights():
         'alerts': alerts,
         'insights': insights
     })
+
+
+@app.route('/api/generate-insights', methods=['POST'])
+def generate_insights():
+    """Gera insights detalhados para um relatório"""
+    try:
+        data = request.json
+        
+        if not data:
+            return jsonify({'error': 'Dados são obrigatórios'}), 400
+        
+        # Validar dados obrigatórios
+        required_fields = ['user_plant_id', 'period_type', 'start_date', 'end_date']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Campo {field} é obrigatório'}), 400
+        
+        logger.info(f"Gerando insights para planta {data['user_plant_id']}")
+        
+        # Gerar insights usando o ReportGenerator
+        insights = report_generator.generate_insights(data)
+        
+        return jsonify(insights)
+        
+    except Exception as e:
+        logger.error(f"Erro ao gerar insights: {str(e)}")
+        return jsonify({'error': f'Erro interno: {str(e)}'}), 500
 
 
 @app.route('/train', methods=['POST'])

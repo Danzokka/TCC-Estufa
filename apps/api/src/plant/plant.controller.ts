@@ -15,6 +15,7 @@ import {
   CreateUserPlantDto,
   UpdateUserPlantDto,
 } from './dto/plant.dto';
+import { LinkPlantDto } from './dto/link-plant.dto';
 import { AuthGuard, RequestAuthGuard } from 'src/auth/guards/auth.guard';
 
 @Controller('plant')
@@ -95,5 +96,34 @@ export class PlantController {
       request.user.id,
       createUserPlantDto,
     );
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('link')
+  async linkPlantToUser(
+    @Body() linkPlantDto: LinkPlantDto,
+    @Request()
+    request: Request & { user: { id: RequestAuthGuard['user']['id'] } },
+  ) {
+    return this.plantService.linkPlantToUser(
+      request.user.id,
+      linkPlantDto.plantId,
+      linkPlantDto.greenhouseId,
+      linkPlantDto.nickname,
+    );
+  }
+
+  @Get('available')
+  async getAvailablePlants() {
+    return this.plantService.getAvailablePlants();
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('greenhouses')
+  async getUserGreenhouses(
+    @Request()
+    request: Request & { user: { id: RequestAuthGuard['user']['id'] } },
+  ) {
+    return this.plantService.getUserGreenhouses(request.user.id);
   }
 }

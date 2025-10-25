@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { DataTable } from "@/components/plants/data-table";
 import { columns } from "@/components/plants/columns";
+import { AddPlantDialog } from "@/components/plants/add-plant-dialog";
 import {
   getUserPlantsWithStats,
   UserPlantWithStats,
@@ -34,11 +35,17 @@ export default function PlantsPage() {
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Minhas Plantas</h2>
-        <p className="text-muted-foreground mt-1">
-          Gerencie e monitore todas as suas plantas cadastradas
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Minhas Plantas</h2>
+          <p className="text-muted-foreground mt-1">
+            Gerencie e monitore todas as suas plantas cadastradas
+          </p>
+        </div>
+        <AddPlantDialog onSuccess={() => {
+          // Refetch data when plant is added
+          window.location.reload();
+        }} />
       </div>
 
       <Card className="p-6">

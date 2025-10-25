@@ -55,11 +55,14 @@ model UserPlant {
   id              String      @id @default(uuid())
   userId          String
   plantId         String
-  user            User     @relation(fields: [userId], references: [id])
-  plant           Plant    @relation(fields: [plantId], references: [id])
+  greenhouseId    String?     // Nova relação com estufa
+  greenhouse      Greenhouse? @relation(fields: [greenhouseId], references: [id])
+  user            User        @relation(fields: [userId], references: [id])
+  plant           Plant       @relation(fields: [plantId], references: [id])
   nickname        String?
-  dateAdded       DateTime @default(now())
+  dateAdded       DateTime    @default(now())
   sensorReadings  Sensor[]
+  reports         Report[]
 
   @@unique([userId, plantId])
 }
@@ -206,6 +209,8 @@ model Greenhouse {
   pumpOperations       PumpOperation[]
   sensorReadings       GreenhouseSensorReading[]
   irrigations          Irrigation[]
+  weatherData          WeatherData[]
+  userPlants           UserPlant[]
   
   @@index([ownerId])
   @@index([deviceId])
@@ -301,4 +306,69 @@ model Notification {
   @@index([isRead])
   @@index([createdAt])
   @@index([type])
+}
+
+// Weather data model for storing historical and forecast weather data
+model WeatherData {
+  id               String    @id @default(uuid())
+  greenhouseId     String
+  greenhouse       Greenhouse @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
+  date             DateTime  // Data da leitura climática
+  
+  // Dados meteorológicos
+  maxTemp          Float     // Temperatura máxima (°C)
+  minTemp          Float     // Temperatura mínima (°C)
+  avgTemp          Float     // Temperatura média (°C)
+  maxHumidity      Float     // Umidade máxima (%)
+  minHumidity      Float     // Umidade mínima (%)
+  avgHumidity      Float     // Umidade média (%)
+  totalPrecip      Float     // Precipitação total (mm)
+  avgWind          Float?    // Velocidade média do vento (km/h)
+  maxWind          Float?    // Rajada máxima (km/h)
+  condition        String?   // Condição climática (sunny, cloudy, rainy, etc.)
+  sunrise          String?   // Hora do nascer do sol
+  sunset           String?   // Hora do pôr do sol
+  
+  // Metadados
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  @@index([greenhouseId])
+  @@index([date])
+  @@unique([greenhouseId, date])
+}
+
+// Report model for storing generated analytics reports
+model Report {
+  id               String    @id @default(uuid())
+  userPlantId      String
+  userPlant        UserPlant @relation(fields: [userPlantId], references: [id], onDelete: Cascade)
+  type             String    // 'weekly', 'monthly', 'general'
+  
+  // Período do relatório
+  startDate        DateTime
+  endDate           DateTime
+  
+  // Dados calculados
+  totalReadings    Int       // Total de medições no período
+  totalIrrigations Int       // Total de irrigações no período
+  avgGrowthRate    Float?    // Taxa média de crescimento
+  
+  // Insights gerados pela IA
+  summary          String?   // Resumo geral
+  aiInsights       Json?     // Insights detalhados em JSON
+  recommendations  Json?     // Recomendações em JSON
+  
+  // Dados climáticos do período
+  weatherSummary   Json?     // Resumo do clima no período
+  
+  // Metadados
+  generatedAt      DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  @@index([userPlantId])
+  @@index([type])
+  @@index([startDate])
+  @@index([endDate])
 }

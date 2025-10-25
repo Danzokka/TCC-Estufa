@@ -234,4 +234,105 @@ export class PlantService {
 
     return plants.map((plant) => plant.name);
   }
+
+  /**
+   * Vincula uma planta existente ao usuário e estufa
+   */
+  async linkPlantToUser(
+    userId: string,
+    plantId: string,
+    greenhouseId: string,
+    nickname?: string,
+  ) {
+    // Verificar se a planta existe
+    const plant = await this.prisma.plant.findUnique({
+      where: { id: plantId },
+    });
+
+    if (!plant) {
+      throw new NotFoundException('Planta não encontrada');
+    }
+
+    // Verificar se a estufa existe e pertence ao usuário
+    const greenhouse = await this.prisma.greenhouse.findFirst({
+      where: { id: greenhouseId, ownerId: userId },
+    });
+
+    if (!greenhouse) {
+      throw new NotFoundException('Estufa não encontrada ou não pertence ao usuário');
+    }
+
+    // Verificar se já existe uma vinculação desta planta para este usuário
+    const existingUserPlant = await this.prisma.userPlant.findFirst({
+      where: {
+        userId,
+        plantId,
+      },
+    });
+
+    if (existingUserPlant) {
+      throw new ForbiddenException('Usuário já possui esta planta vinculada');
+    }
+
+    // Criar nova vinculação
+    const userPlant = await this.prisma.userPlant.create({
+      data: {
+        userId,
+        plantId,
+        greenhouseId,
+        nickname,
+      },
+      include: {
+        plant: true,
+        greenhouse: true,
+      },
+    });
+
+    return userPlant;
+  }
+
+  /**
+   * Busca todas as plantas disponíveis para vinculação
+   */
+  async getAvailablePlants() {
+    return this.prisma.plant.findMany({
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        air_temperature_initial: true,
+        air_temperature_final: true,
+        air_humidity_initial: true,
+        air_humidity_final: true,
+        soil_moisture_initial: true,
+        soil_moisture_final: true,
+        soil_temperature_initial: true,
+        soil_temperature_final: true,
+        light_intensity_initial: true,
+        light_intensity_final: true,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+  }
+
+  /**
+   * Busca estufas do usuário para vinculação
+   */
+  async getUserGreenhouses(userId: string) {
+    return this.prisma.greenhouse.findMany({
+      where: { ownerId: userId },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        location: true,
+        isOnline: true,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+  }
 }

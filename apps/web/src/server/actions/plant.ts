@@ -133,3 +133,65 @@ export async function deletePlant(id: string): Promise<void> {
     throw new Error("Falha ao deletar planta");
   }
 }
+
+// Interfaces para vinculação de plantas
+export interface AvailablePlant {
+  id: string;
+  name: string;
+  description: string;
+  air_temperature_initial: number;
+  air_temperature_final: number;
+  air_humidity_initial: number;
+  air_humidity_final: number;
+  soil_moisture_initial: number;
+  soil_moisture_final: number;
+  soil_temperature_initial: number;
+  soil_temperature_final: number;
+  light_intensity_initial: number;
+  light_intensity_final: number;
+}
+
+export interface UserGreenhouse {
+  id: string;
+  name: string;
+  description: string | null;
+  location: string | null;
+  isOnline: boolean;
+}
+
+export interface LinkPlantData {
+  plantId: string;
+  greenhouseId: string;
+  nickname?: string;
+}
+
+export async function getAvailablePlants(): Promise<AvailablePlant[]> {
+  try {
+    const response = await api.get("/plant/available");
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao buscar plantas disponíveis:", error);
+    throw new Error("Falha ao buscar plantas disponíveis");
+  }
+}
+
+export async function getUserGreenhouses(): Promise<UserGreenhouse[]> {
+  try {
+    const response = await api.get("/plant/greenhouses");
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao buscar estufas:", error);
+    throw new Error("Falha ao buscar estufas do usuário");
+  }
+}
+
+export async function linkPlantToUser(data: LinkPlantData): Promise<void> {
+  try {
+    await api.post("/plant/link", data);
+    revalidatePath("/plants");
+    revalidatePath("/"); // Revalidate dashboard para atualizar PlantSelect
+  } catch (error) {
+    console.error("Erro ao vincular planta:", error);
+    throw new Error("Falha ao vincular planta ao usuário");
+  }
+}

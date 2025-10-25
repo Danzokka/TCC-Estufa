@@ -16,6 +16,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { IrrigationModule } from './irrigation/irrigation.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { WeatherModule } from './weather/weather.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 @Module({
   imports: [
     SensorModule,
@@ -49,6 +51,8 @@ import { NotificationsModule } from './notifications/notifications.module';
     IrrigationModule,
     WebsocketModule,
     NotificationsModule,
+    WeatherModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [
