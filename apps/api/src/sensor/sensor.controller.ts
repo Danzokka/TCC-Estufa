@@ -8,10 +8,10 @@ export class SensorController {
   constructor(private readonly sensorService: SensorService) {}
 
   @Post()
-  sendData(@Body() data: CreateSensorDataDto) {
+  async sendData(@Body() data: CreateSensorDataDto) {
     try {
-      this.sensorService.sendData(data);
-      return { message: 'Data sent successfully' };
+      const result = await this.sensorService.sendData(data);
+      return { message: 'Data sent successfully', data: result };
     } catch (error) {
       console.error('Error sending data:', error);
       return { message: 'Error sending data', error: error.message };

@@ -1,10 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateIrrigationDto, UpdateIrrigationDto } from './dto/irrigation.dto';
+import { NotificationGeneratorService } from '../notifications/notification-generator.service';
 
 @Injectable()
 export class IrrigationService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(IrrigationService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private notificationGenerator: NotificationGeneratorService,
+  ) {}
 
   // Criar nova irrigação
   async createIrrigation(data: CreateIrrigationDto) {
@@ -407,7 +413,7 @@ export class IrrigationService {
           const irrigation = await this.prisma.irrigation.create({
             data: {
               type: 'detected',
-              notes: `Aumento de umidade detectado: +${moistureIncrease}%`,
+              notes: `Aumento de umidade detectado: +${moistureIncrease.toFixed(1)}%`,
               greenhouseId,
               sensorId: sensorReadingId,
             },
@@ -429,6 +435,19 @@ export class IrrigationService {
               },
             },
           });
+
+          // Criar notificação de irrigação detectada
+          if (irrigation.greenhouse.ownerId) {
+            await this.notificationGenerator.createIrrigationDetectedNotification(
+              irrigation.greenhouse.ownerId,
+              irrigation.id,
+              greenhouseId,
+              moistureIncrease,
+            );
+            this.logger.log(
+              `Notification created for detected irrigation: ${irrigation.id}`,
+            );
+          }
 
           return irrigation;
         }

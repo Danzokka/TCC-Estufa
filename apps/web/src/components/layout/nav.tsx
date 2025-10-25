@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Home, ChartNoAxesColumn, User } from "lucide-react";
+import { Home, ChartNoAxesColumn, User, Droplet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -34,6 +34,7 @@ const Nav = () => {
   const links = [
     { href: "/", label: "Home", icon: <Home /> },
     { href: "/dashboard", label: "Métricas", icon: <ChartNoAxesColumn /> },
+    { href: "/dashboard/irrigation", label: "Irrigação", icon: <Droplet /> },
     { href: "/profile", label: "Perfil", icon: <User /> },
   ];
 

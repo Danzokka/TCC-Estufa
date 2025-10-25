@@ -86,4 +86,17 @@ export class NotificationsService {
       },
     });
   }
+
+  async clearReadNotifications(userId: string): Promise<number> {
+    // Remove TODAS as notificações lidas (incluindo as que requerem ação)
+    // pois elas aparecem na tabela de irrigação para preencher
+    const result = await this.prisma.notification.deleteMany({
+      where: {
+        userId,
+        isRead: true,
+      },
+    });
+
+    return result.count;
+  }
 }

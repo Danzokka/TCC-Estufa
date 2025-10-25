@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useRouter } from "next/navigation";
+import { ConfirmIrrigationModal } from "@/components/irrigation/confirm-irrigation-modal";
 
 // ===== TIPOS =====
 export interface Notification {
@@ -192,13 +193,14 @@ NotificationItem.displayName = "NotificationItem";
 interface NotificationHeaderProps {
   unreadCount: number;
   onMarkAllAsRead?: () => void;
+  onClearRead?: () => void;
   className?: string;
 }
 
 const NotificationHeader = React.forwardRef<
   HTMLDivElement,
   NotificationHeaderProps
->(({ unreadCount, onMarkAllAsRead, className }, ref) => {
+>(({ unreadCount, onMarkAllAsRead, onClearRead, className }, ref) => {
   return (
     <div
       ref={ref}
@@ -207,16 +209,28 @@ const NotificationHeader = React.forwardRef<
       <h4 className="text-sm font-medium text-muted-foreground">
         Notificações do Sistema
       </h4>
-      {unreadCount > 0 && onMarkAllAsRead && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onMarkAllAsRead}
-          className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
-        >
-          Marcar todas como lida
-        </Button>
-      )}
+      <div className="flex gap-2">
+        {unreadCount > 0 && onMarkAllAsRead && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onMarkAllAsRead}
+            className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+          >
+            Marcar todas como lida
+          </Button>
+        )}
+        {onClearRead && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClearRead}
+            className="text-xs text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300 font-medium"
+          >
+            Limpar
+          </Button>
+        )}
+      </div>
     </div>
   );
 });
@@ -253,6 +267,7 @@ interface NotificationsProps {
   onNotificationClick?: (notification: Notification) => void;
   onMarkAsRead?: (id: string) => void;
   onMarkAllAsRead?: () => void;
+  onClearRead?: () => void;
   onIrrigationDetected?: (notification: Notification) => void;
   className?: string;
 }
@@ -268,6 +283,7 @@ export const Notifications = React.forwardRef<
       onNotificationClick,
       onMarkAsRead,
       onMarkAllAsRead,
+      onClearRead,
       onIrrigationDetected,
       className,
     },
@@ -282,6 +298,7 @@ export const Notifications = React.forwardRef<
         <NotificationHeader
           unreadCount={unreadCount}
           onMarkAllAsRead={onMarkAllAsRead}
+          onClearRead={onClearRead}
         />
 
         <NotificationContainer>
@@ -406,6 +423,7 @@ export function AlertsBadge() {
     unreadCount: notificationsUnreadCount,
     markNotificationAsRead,
     markAllAsRead,
+    clearReadNotifications,
     loadNotifications,
   } = useNotifications();
 
@@ -429,11 +447,20 @@ export function AlertsBadge() {
     }
   };
 
+  const [selectedIrrigation, setSelectedIrrigation] = React.useState<any>(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = React.useState(false);
+
   const handleIrrigationDetected = (notification: any) => {
-    // Redirecionar para formulário de irrigação
-    router.push(
-      `/dashboard/irrigation/confirm/${notification.data?.id || notification.id}`
-    );
+    // Abrir modal de confirmação de irrigação
+    setSelectedIrrigation(notification);
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleIrrigationConfirmed = async () => {
+    // Atualizar notificações após confirmar
+    await loadNotifications();
+    setIsConfirmModalOpen(false);
+    setSelectedIrrigation(null);
   };
 
   return (
@@ -493,11 +520,24 @@ export function AlertsBadge() {
               onNotificationClick={handleNotificationClick}
               onMarkAsRead={markNotificationAsRead}
               onMarkAllAsRead={markAllAsRead}
+              onClearRead={clearReadNotifications}
               onIrrigationDetected={handleIrrigationDetected}
             />
           )}
         </div>
       </PopoverContent>
+
+      {/* Modal de confirmação de irrigação */}
+      {selectedIrrigation && (
+        <ConfirmIrrigationModal
+          open={isConfirmModalOpen}
+          onOpenChange={setIsConfirmModalOpen}
+          irrigationId={
+            selectedIrrigation.data?.irrigationId || selectedIrrigation.id
+          }
+          onConfirmed={handleIrrigationConfirmed}
+        />
+      )}
     </Popover>
   );
 }

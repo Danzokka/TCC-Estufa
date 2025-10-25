@@ -3,6 +3,7 @@ import { PrismaService } from 'src/prisma.service';
 import { CreateSensorDataDto } from './dto/CreateSensorDataDto';
 import { GetAggregatedDataDto, PeriodEnum } from './dto/GetAggregatedDataDto';
 import { IrrigationService } from '../irrigation/irrigation.service';
+import { NotificationGeneratorService } from '../notifications/notification-generator.service';
 
 export interface DashboardKPIs {
   avgTemperature: number;
@@ -19,12 +20,13 @@ export interface DashboardKPIs {
 
 @Injectable()
 export class SensorService {
+  private readonly logger = new Logger(SensorService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly irrigationService: IrrigationService,
+    private readonly notificationGenerator: NotificationGeneratorService,
   ) {}
-
-  private readonly logger = new Logger(SensorService.name);
 
   async sendData(data: CreateSensorDataDto) {
     try {
@@ -43,6 +45,22 @@ export class SensorService {
 
       // Check for irrigation detection after saving sensor data
       await this.checkForIrrigationDetection(sensorData);
+
+      // Generate metric notifications for the user plant
+      try {
+        const userPlant = await this.prisma.userPlant.findUnique({
+          where: { id: data.userPlant },
+          select: { userId: true },
+        });
+
+        if (userPlant) {
+          await this.notificationGenerator.generateMetricNotifications(
+            userPlant.userId,
+          );
+        }
+      } catch (error) {
+        this.logger.error('Error generating metric notifications:', error);
+      }
 
       this.logger.log('Data sent successfully:', sensorData);
       return sensorData;

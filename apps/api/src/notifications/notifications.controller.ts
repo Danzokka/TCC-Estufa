@@ -59,4 +59,15 @@ export class NotificationsController {
       body.daysOld || 30,
     );
   }
+
+  @Delete('clear-read')
+  async clearReadNotifications(@Request() req) {
+    const userId = req.user.sub;
+    const count =
+      await this.notificationsService.clearReadNotifications(userId);
+    return {
+      message: `${count} notificações lidas foram removidas`,
+      count,
+    };
+  }
 }

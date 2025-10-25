@@ -93,18 +93,7 @@ export function useNotifications() {
   // Função para marcar como lida
   const markNotificationAsRead = async (notificationId: string) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/notifications/${notificationId}/read`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      // Atualizar estado local
+      // Atualizar estado local imediatamente para UX responsivo
       setNotifications((prev) =>
         prev.map((notification) =>
           notification.id === notificationId
@@ -113,32 +102,66 @@ export function useNotifications() {
         )
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
+
+      // Chamar server action para persistir no backend
+      const { markNotificationAsRead: serverAction } = await import(
+        "@/server/actions/notifications"
+      );
+      await serverAction(notificationId);
     } catch (error) {
       console.error("Erro ao marcar como lida:", error);
+      // Reverter estado em caso de erro
+      await loadNotifications(false);
     }
   };
 
   // Função para marcar todas como lidas
   const markAllAsRead = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/notifications/mark-all-read`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      // Atualizar estado local
+      // Atualizar estado local imediatamente para UX responsivo
       setNotifications((prev) =>
         prev.map((notification) => ({ ...notification, isRead: true }))
       );
       setUnreadCount(0);
+
+      // Chamar server action para persistir no backend
+      const { markAllNotificationsAsRead: serverAction } = await import(
+        "@/server/actions/notifications"
+      );
+      await serverAction();
     } catch (error) {
       console.error("Erro ao marcar todas como lidas:", error);
+      // Reverter estado em caso de erro
+      await loadNotifications(false);
+    }
+  };
+
+  // Função para limpar notificações lidas (exceto as que requerem ação)
+  const clearReadNotifications = async () => {
+    try {
+      // Chamar server action para limpar no backend
+      const { clearReadNotifications: serverAction } = await import(
+        "@/server/actions/notifications"
+      );
+      const result = await serverAction();
+
+      // Atualizar estado local removendo TODAS as notificações lidas
+      // pois elas aparecem na tabela de irrigação para preencher
+      setNotifications((prev) =>
+        prev.filter((notification) => !notification.isRead)
+      );
+
+      // Recalcular contagem de não lidas
+      const newUnreadCount = notifications.filter(
+        (notification) => !notification.isRead
+      ).length;
+      setUnreadCount(newUnreadCount);
+
+      console.log(`✅ ${result.data.count} notificações lidas foram removidas`);
+    } catch (error) {
+      console.error("Erro ao limpar notificações lidas:", error);
+      // Reverter estado em caso de erro
+      await loadNotifications(false);
     }
   };
 
@@ -243,6 +266,7 @@ export function useNotifications() {
     requestNotificationPermission,
     markNotificationAsRead,
     markAllAsRead,
+    clearReadNotifications,
     clearNotifications,
     loadNotifications,
   };
