@@ -13,23 +13,14 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import ThemeSwitcher from "@/components/layout/theme-switcher";
 import { LocationSettings } from "@/components/settings/location-settings";
+import { PWAInstallModal } from "@/components/pwa/pwa-install-modal";
 import {
-  Settings2,
   Bell,
-  Thermometer,
-  Droplets,
   User,
   Shield,
-  Clock,
+  Smartphone,
 } from "lucide-react";
 
 const SettingsPage = async () => {
@@ -42,6 +33,19 @@ const SettingsPage = async () => {
   // Buscar dados da estufa
   const greenhouseId = "8729d23b-984f-41c5-a4a6-698cd1a9fe18";
   const greenhouse = await getGreenhouseById(greenhouseId);
+
+  return (
+    <>
+      <SettingsContent greenhouseId={greenhouseId} greenhouse={greenhouse} />
+    </>
+  );
+};
+
+function SettingsContent({ greenhouseId, greenhouse }: { 
+  greenhouseId: string; 
+  greenhouse: { location?: string; latitude?: number; longitude?: number } | null; 
+}) {
+  const [showPWAModal, setShowPWAModal] = React.useState(false);
 
   return (
     <div className="container mx-auto py-8 px-4 lg:px-8 max-w-4xl">
@@ -75,25 +79,6 @@ const SettingsPage = async () => {
               <ThemeSwitcher />
             </div>
 
-            <Separator />
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Unidade de Temperatura</Label>
-                <p className="text-sm text-muted-foreground">
-                  Escolha como exibir as temperaturas
-                </p>
-              </div>
-              <Select defaultValue="celsius">
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="celsius">°C</SelectItem>
-                  <SelectItem value="fahrenheit">°F</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </CardContent>
         </Card>
 
@@ -153,115 +138,76 @@ const SettingsPage = async () => {
           </CardContent>
         </Card>
 
-        {/* Configurações da Estufa */}
+        {/* Instalação PWA */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Settings2 className="h-5 w-5" />
-              Configurações da Estufa
+              <Smartphone className="h-5 w-5" />
+              Instalação como App (PWA)
             </CardTitle>
             <CardDescription>
-              Parâmetros e automação da estufa inteligente
+              Instale a aplicação no seu dispositivo para acesso rápido
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Thermometer className="h-4 w-4" />
-                  Temperatura Ideal (°C)
-                </Label>
-                <Select defaultValue="22-26">
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="18-22">18°C - 22°C</SelectItem>
-                    <SelectItem value="22-26">22°C - 26°C</SelectItem>
-                    <SelectItem value="26-30">26°C - 30°C</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="space-y-4">
+              <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                  📱 Android (Chrome)
+                </h4>
+                <ol className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                  <li>1. Abra o Chrome no seu Android</li>
+                  <li>2. Toque no menu (⋮) no canto superior direito</li>
+                  <li>3. Selecione &quot;Adicionar à tela inicial&quot;</li>
+                  <li>4. Confirme a instalação</li>
+                </ol>
               </div>
 
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Droplets className="h-4 w-4" />
-                  Umidade do Solo Ideal (%)
-                </Label>
-                <Select defaultValue="60-80">
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="40-60">40% - 60%</SelectItem>
-                    <SelectItem value="60-80">60% - 80%</SelectItem>
-                    <SelectItem value="80-90">80% - 90%</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg">
+                <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2">
+                  🍎 iOS (Safari)
+                </h4>
+                <ol className="text-sm text-green-800 dark:text-green-200 space-y-1">
+                  <li>1. Abra o Safari no seu iPhone/iPad</li>
+                  <li>2. Toque no botão de compartilhar (□↗)</li>
+                  <li>3. Selecione &quot;Adicionar à Tela de Início&quot;</li>
+                  <li>4. Confirme a instalação</li>
+                </ol>
+              </div>
+
+              <div className="p-4 bg-purple-50 dark:bg-purple-950 rounded-lg">
+                <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">
+                  💻 Desktop (Chrome/Edge)
+                </h4>
+                <ol className="text-sm text-purple-800 dark:text-purple-200 space-y-1">
+                  <li>1. Abra Chrome ou Edge no seu computador</li>
+                  <li>2. Procure pelo ícone de instalação na barra de endereços</li>
+                  <li>3. Clique em &quot;Instalar&quot; quando aparecer</li>
+                  <li>4. Confirme a instalação</li>
+                </ol>
               </div>
             </div>
 
-            <Separator />
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Irrigação Automática</Label>
-                <p className="text-sm text-muted-foreground">
-                  Ativar irrigação automática baseada na umidade do solo
-                </p>
-              </div>
-              <Switch defaultChecked />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Sistema */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Sistema
-            </CardTitle>
-            <CardDescription>
-              Configurações técnicas e de performance
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Frequência de Atualização</Label>
-                <p className="text-sm text-muted-foreground">
-                  Intervalo entre atualizações dos dados dos sensores
-                </p>
-              </div>
-              <Select defaultValue="30">
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10 seg</SelectItem>
-                  <SelectItem value="30">30 seg</SelectItem>
-                  <SelectItem value="60">1 min</SelectItem>
-                  <SelectItem value="300">5 min</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                💡 <strong>Dica:</strong> Após a instalação, você poderá acessar a aplicação diretamente 
+                da tela inicial do seu dispositivo, como um app nativo!
+              </p>
             </div>
 
-            <Separator />
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Modo de Economia de Energia</Label>
-                <p className="text-sm text-muted-foreground">
-                  Reduzir consumo de energia dos sensores durante a noite
-                </p>
-              </div>
-              <Switch />
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowPWAModal(true)}
+                className="flex-1"
+              >
+                <Smartphone className="h-4 w-4 mr-2" />
+                Ver Instruções Detalhadas
+              </Button>
             </div>
           </CardContent>
         </Card>
-
-        {/* Segurança */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -278,9 +224,6 @@ const SettingsPage = async () => {
                 Alterar Senha
               </Button>
               <Button variant="outline" className="w-full justify-start">
-                Configurar Autenticação de Dois Fatores
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
                 Gerenciar Dispositivos Conectados
               </Button>
             </div>
@@ -293,6 +236,12 @@ const SettingsPage = async () => {
           <Button variant="outline">Restaurar Padrões</Button>
         </div>
       </div>
+
+      {/* Modal PWA */}
+      <PWAInstallModal 
+        open={showPWAModal} 
+        onOpenChange={setShowPWAModal} 
+      />
     </div>
   );
 };

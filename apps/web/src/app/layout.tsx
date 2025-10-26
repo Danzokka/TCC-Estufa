@@ -13,6 +13,7 @@ import { Providers } from "@/context/providers";
 import { getSession } from "@/server/actions/session";
 import { AlertsBadge } from "@/components/modules/notification/notifications";
 import { TokenRefreshProvider } from "@/components/providers/token-refresh-provider";
+import { PWAProvider } from "@/components/pwa/pwa-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -80,6 +81,7 @@ export default async function RootLayout({
                 <main className="min-h-screen">{children}</main>
               )}
             </Providers>
+            <PWAProvider />
           </TokenRefreshProvider>
         </ThemeProvider>
       </body>

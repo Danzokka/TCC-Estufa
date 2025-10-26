@@ -4,7 +4,6 @@ import axios from "axios";
 import { 
   markNotificationAsRead, 
   markAllNotificationsAsRead, 
-  clearReadNotifications, 
   saveNotification 
 } from "@/server/actions/notifications";
 
@@ -61,9 +60,6 @@ export function useNotifications() {
   // Função para carregar notificações do banco (sem tocar som)
   const loadNotifications = useCallback(async (playSound = false) => {
     try {
-      // Token para autenticação futura
-      const token = localStorage.getItem("token");
-
       // Usar proxy do Next.js ou URL direta
       const apiUrl = process.env.NEXT_PUBLIC_API_URL
         ? `${process.env.NEXT_PUBLIC_API_URL}/test-notifications/load-test`
@@ -121,16 +117,11 @@ export function useNotifications() {
     }
   };
 
-  // Função para marcar todas como lidas (remove opções individuais, exceto preencher dados)
+  // Função para marcar todas como lidas (remove todas da visualização)
   const markAllAsRead = async () => {
     try {
-      // Remover todas as notificações da visualização, exceto as de "preencher dados"
-      setNotifications((prev) =>
-        prev.filter((notification) => 
-          notification.type === 'irrigation_detected' || 
-          notification.type === 'pump_activated'
-        )
-      );
+      // Remover TODAS as notificações da visualização
+      setNotifications([]);
       setUnreadCount(0);
 
       // Chamar server action para persistir no backend
@@ -143,29 +134,6 @@ export function useNotifications() {
       }
     } catch (error) {
       console.error("Erro ao marcar todas como lidas:", error);
-      // Reverter estado em caso de erro
-      await loadNotifications(false);
-    }
-  };
-
-  // Função para limpar TODAS as notificações (incluindo preencher dados)
-  const clearReadNotificationsAction = async () => {
-    try {
-      // Chamar server action para limpar no backend
-      const result = await clearReadNotifications();
-
-      if (result.success) {
-        // Remover TODAS as notificações da visualização (incluindo preencher dados)
-        setNotifications([]);
-        setUnreadCount(0);
-        console.log(`✅ ${result.count} notificações foram removidas da visualização`);
-      } else {
-        console.error("Erro ao limpar notificações:", result.message);
-        // Reverter estado em caso de erro
-        await loadNotifications(false);
-      }
-    } catch (error) {
-      console.error("Erro ao limpar notificações:", error);
       // Reverter estado em caso de erro
       await loadNotifications(false);
     }
@@ -268,7 +236,6 @@ export function useNotifications() {
     requestNotificationPermission,
     markNotificationAsRead: markNotificationAsReadAction,
     markAllAsRead,
-    clearReadNotifications: clearReadNotificationsAction,
     clearNotifications,
     loadNotifications,
   };

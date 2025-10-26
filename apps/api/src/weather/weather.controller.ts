@@ -187,7 +187,34 @@ export class WeatherController {
     }
   }
 
-  @Post('sync/:greenhouseId')
+  @Get('weekly/:greenhouseId')
+  @ApiOperation({ summary: 'Buscar previsão semanal (segunda a domingo) para uma estufa' })
+  @ApiParam({ name: 'greenhouseId', description: 'ID da estufa' })
+  @ApiResponse({ status: 200, description: 'Previsão semanal retornada com sucesso' })
+  @ApiResponse({ status: 404, description: 'Estufa não encontrada' })
+  async getWeeklyForecast(
+    @Param('greenhouseId', ParseUUIDPipe) greenhouseId: string,
+  ) {
+    try {
+      const weeklyData = await this.weatherService.getWeeklyForecast(greenhouseId);
+
+      return {
+        success: true,
+        data: weeklyData,
+        greenhouseId,
+        count: weeklyData.length,
+        weekRange: {
+          start: weeklyData[0]?.date,
+          end: weeklyData[6]?.date,
+        },
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Erro ao buscar previsão semanal: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
   @ApiOperation({ summary: 'Sincronizar dados climáticos históricos para uma estufa' })
   @ApiParam({ name: 'greenhouseId', description: 'ID da estufa' })
   @ApiQuery({ name: 'days', description: 'Número de dias para sincronizar (padrão: 7)', required: false })

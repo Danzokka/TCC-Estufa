@@ -193,14 +193,13 @@ NotificationItem.displayName = "NotificationItem";
 interface NotificationHeaderProps {
   unreadCount: number;
   onMarkAllAsRead?: () => void;
-  onClearRead?: () => void;
   className?: string;
 }
 
 const NotificationHeader = React.forwardRef<
   HTMLDivElement,
   NotificationHeaderProps
->(({ unreadCount, onMarkAllAsRead, onClearRead, className }, ref) => {
+>(({ unreadCount, onMarkAllAsRead, className }, ref) => {
   return (
     <div
       ref={ref}
@@ -218,16 +217,6 @@ const NotificationHeader = React.forwardRef<
             className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
           >
             Marcar todas como lida
-          </Button>
-        )}
-        {onClearRead && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClearRead}
-            className="text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium"
-          >
-            Limpar todas
           </Button>
         )}
       </div>
@@ -267,7 +256,6 @@ interface NotificationsProps {
   onNotificationClick?: (notification: Notification) => void;
   onMarkAsRead?: (id: string) => void;
   onMarkAllAsRead?: () => void;
-  onClearRead?: () => void;
   onIrrigationDetected?: (notification: Notification) => void;
   className?: string;
 }
@@ -283,7 +271,6 @@ export const Notifications = React.forwardRef<
       onNotificationClick,
       onMarkAsRead,
       onMarkAllAsRead,
-      onClearRead,
       onIrrigationDetected,
       className,
     },
@@ -298,7 +285,6 @@ export const Notifications = React.forwardRef<
         <NotificationHeader
           unreadCount={unreadCount}
           onMarkAllAsRead={onMarkAllAsRead}
-          onClearRead={onClearRead}
         />
 
         <NotificationContainer>
@@ -520,7 +506,6 @@ export function AlertsBadge() {
               onNotificationClick={handleNotificationClick}
               onMarkAsRead={markNotificationAsRead}
               onMarkAllAsRead={markAllAsRead}
-              onClearRead={clearReadNotifications}
               onIrrigationDetected={handleIrrigationDetected}
             />
           )}

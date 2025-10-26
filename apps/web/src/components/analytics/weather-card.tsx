@@ -23,6 +23,7 @@ interface WeatherCardProps {
   condition: string;
   isWeekly?: boolean;
   weekNumber?: number;
+  isToday?: boolean;
 }
 
 const getWeatherIcon = (condition: string) => {
@@ -100,15 +101,17 @@ export function WeatherCard({
   totalPrecip, 
   condition,
   isWeekly = false,
-  weekNumber
+  weekNumber,
+  isToday = false
 }: WeatherCardProps) {
   return (
-    <Card className="min-w-[200px] flex-shrink-0">
+    <Card className={`min-w-[200px] flex-shrink-0 ${isToday ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950' : ''}`}>
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h4 className="font-semibold text-sm">
               {formatDate(date, isWeekly, weekNumber)}
+              {isToday && <span className="ml-2 text-xs bg-blue-500 text-white px-2 py-1 rounded">Hoje</span>}
             </h4>
             <p className="text-xs text-muted-foreground">
               {translateWeatherCondition(condition)}

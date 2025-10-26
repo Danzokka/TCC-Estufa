@@ -159,14 +159,14 @@ export async function updateGreenhouseLocationFromCoords(
 }
 
 /**
- * Busca previsão do tempo para o dashboard
+ * Busca previsão semanal (segunda a domingo) para o dashboard
  */
-export async function getDashboardForecast(greenhouseId: string): Promise<ForecastData[]> {
+export async function getWeeklyForecast(greenhouseId: string): Promise<ForecastData[]> {
   try {
-    const response = await api.get(`/weather/dashboard/${greenhouseId}`);
+    const response = await api.get(`/weather/weekly/${greenhouseId}`);
     return response.data.data || [];
   } catch (error) {
-    console.error("Erro ao buscar previsão:", error);
+    console.error("Erro ao buscar previsão semanal:", error);
     return [];
   }
 }

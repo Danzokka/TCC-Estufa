@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WeatherCard } from "@/components/analytics/weather-card";
 import { Cloud, Loader2 } from "lucide-react";
-import { getDashboardForecast } from "@/server/actions/greenhouse";
+import { getWeeklyForecast } from "@/server/actions/greenhouse";
 
 interface WeatherForecastProps {
   greenhouseId: string;
@@ -37,10 +37,10 @@ export function WeatherForecast({ greenhouseId }: WeatherForecastProps) {
         setIsLoading(true);
         setError(null);
         
-        const data = await getDashboardForecast(greenhouseId);
+        const data = await getWeeklyForecast(greenhouseId);
         setForecastData(data);
       } catch (err) {
-        console.error("Erro ao carregar previsão:", err);
+        console.error("Erro ao carregar previsão semanal:", err);
         setError("Erro ao carregar previsão do tempo");
       } finally {
         setIsLoading(false);
@@ -50,13 +50,20 @@ export function WeatherForecast({ greenhouseId }: WeatherForecastProps) {
     loadForecast();
   }, [greenhouseId]);
 
+  // Função para verificar se é hoje
+  const isToday = (dateString: string) => {
+    const today = new Date();
+    const date = new Date(dateString);
+    return date.toDateString() === today.toDateString();
+  };
+
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Cloud className="h-5 w-5" />
-            Previsão do Tempo
+            Previsão Semanal
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -75,7 +82,7 @@ export function WeatherForecast({ greenhouseId }: WeatherForecastProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Cloud className="h-5 w-5" />
-            Previsão do Tempo
+            Previsão Semanal
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -93,7 +100,7 @@ export function WeatherForecast({ greenhouseId }: WeatherForecastProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Cloud className="h-5 w-5" />
-            Previsão do Tempo
+            Previsão Semanal
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -112,12 +119,12 @@ export function WeatherForecast({ greenhouseId }: WeatherForecastProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Cloud className="h-5 w-5" />
-          Previsão do Tempo
+          Previsão Semanal
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex overflow-x-auto gap-4 pb-2">
-          {forecastData.slice(0, 3).map((day, index) => (
+          {forecastData.map((day, index) => (
             <WeatherCard
               key={day.id || index}
               date={day.date}
@@ -127,8 +134,14 @@ export function WeatherForecast({ greenhouseId }: WeatherForecastProps) {
               avgHumidity={day.avgHumidity}
               totalPrecip={day.totalPrecip}
               condition={day.condition}
+              isToday={isToday(day.date)}
             />
           ))}
+        </div>
+        <div className="mt-4 text-center">
+          <p className="text-xs text-muted-foreground">
+            Segunda-feira a Domingo • Dados históricos e previsão
+          </p>
         </div>
       </CardContent>
     </Card>

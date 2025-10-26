@@ -414,4 +414,210 @@ export class WeatherService {
       sunset: astro.sunset,
     };
   }
+
+  /**
+   * Busca previsão semanal (segunda a domingo) combinando histórico e previsão
+   */
+  async getWeeklyForecast(greenhouseId: string): Promise<WeatherData[]> {
+    try {
+      const greenhouse = await this.prisma.greenhouse.findUnique({
+        where: { id: greenhouseId },
+      });
+
+      if (!greenhouse) {
+        throw new NotFoundException(`Estufa com ID ${greenhouseId} não encontrada`);
+      }
+
+      if (!greenhouse.location && !greenhouse.latitude) {
+        this.logger.warn(`Estufa ${greenhouseId} não possui localização configurada`);
+        return [];
+      }
+
+      // Calcular início da semana (segunda-feira)
+      const today = new Date();
+      const dayOfWeek = today.getDay(); // 0 = domingo, 1 = segunda, etc.
+      const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Se domingo, volta 6 dias; senão, calcula dias até segunda
+      
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() + daysToMonday);
+      weekStart.setHours(0, 0, 0, 0);
+
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+
+      this.logger.log(`Buscando dados da semana: ${weekStart.toISOString().split('T')[0]} a ${weekEnd.toISOString().split('T')[0]}`);
+
+      // Buscar dados existentes no banco para toda a semana
+      const existingData = await this.prisma.weatherData.findMany({
+        where: {
+          greenhouseId,
+          date: {
+            gte: weekStart,
+            lte: weekEnd,
+          },
+        },
+        orderBy: {
+          date: 'asc',
+        },
+      });
+
+      // Criar array de 7 dias (segunda a domingo)
+      const weeklyData: WeatherData[] = [];
+      
+      for (let i = 0; i < 7; i++) {
+        const currentDate = new Date(weekStart);
+        currentDate.setDate(weekStart.getDate() + i);
+        
+        // Verificar se já temos dados para este dia
+        const existingDayData = existingData.find(data => {
+          const dataDate = new Date(data.date);
+          return dataDate.toDateString() === currentDate.toDateString();
+        });
+
+        if (existingDayData) {
+          // Usar dados existentes
+          weeklyData.push(existingDayData);
+        } else {
+          // Buscar dados históricos ou previsão para este dia
+          const isPastDay = currentDate < today;
+          
+          try {
+            let dayData: WeatherData;
+            
+            if (isPastDay) {
+              // Buscar dados históricos
+              const historicalData = await this.fetchHistoricalWeather(
+                greenhouse.location!,
+                currentDate.toISOString().split('T')[0]
+              );
+              
+              // Converter para formato WeatherData
+              dayData = {
+                id: `historical-${currentDate.toISOString().split('T')[0]}`,
+                greenhouseId,
+                date: currentDate,
+                maxTemp: historicalData.forecast?.forecastday?.[0]?.day?.maxtemp_c || 0,
+                minTemp: historicalData.forecast?.forecastday?.[0]?.day?.mintemp_c || 0,
+                avgTemp: historicalData.forecast?.forecastday?.[0]?.day?.avgtemp_c || 0,
+                maxHumidity: historicalData.forecast?.forecastday?.[0]?.day?.avghumidity || 0,
+                minHumidity: historicalData.forecast?.forecastday?.[0]?.day?.avghumidity || 0,
+                avgHumidity: historicalData.forecast?.forecastday?.[0]?.day?.avghumidity || 0,
+                totalPrecip: historicalData.forecast?.forecastday?.[0]?.day?.totalprecip_mm || 0,
+                avgWind: historicalData.forecast?.forecastday?.[0]?.day?.maxwind_kph || 0,
+                maxWind: historicalData.forecast?.forecastday?.[0]?.day?.maxwind_kph || 0,
+                condition: historicalData.forecast?.forecastday?.[0]?.day?.condition?.text || 'N/A',
+                sunrise: historicalData.forecast?.forecastday?.[0]?.astro?.sunrise || null,
+                sunset: historicalData.forecast?.forecastday?.[0]?.astro?.sunset || null,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              };
+            } else {
+              // Buscar previsão para dias futuros
+              const forecastData = await this.fetchForecast(
+                greenhouse.location!,
+                3 // Buscar próximos 3 dias
+              );
+              
+              // Encontrar dados para o dia específico
+              const forecastDay = forecastData.forecast?.forecastday?.find(day => {
+                const forecastDate = new Date(day.date);
+                return forecastDate.toDateString() === currentDate.toDateString();
+              });
+              
+              if (forecastDay) {
+                dayData = {
+                  id: `forecast-${currentDate.toISOString().split('T')[0]}`,
+                  greenhouseId,
+                  date: currentDate,
+                  maxTemp: forecastDay.day.maxtemp_c,
+                  minTemp: forecastDay.day.mintemp_c,
+                  avgTemp: forecastDay.day.avgtemp_c,
+                  maxHumidity: forecastDay.day.avghumidity,
+                  minHumidity: forecastDay.day.avghumidity,
+                  avgHumidity: forecastDay.day.avghumidity,
+                  totalPrecip: forecastDay.day.totalprecip_mm,
+                  avgWind: forecastDay.day.maxwind_kph,
+                  maxWind: forecastDay.day.maxwind_kph,
+                  condition: forecastDay.day.condition.text,
+                  sunrise: forecastDay.astro.sunrise,
+                  sunset: forecastDay.astro.sunset,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                };
+              } else {
+                // Criar dados vazios se não encontrar previsão
+                dayData = {
+                  id: `empty-${currentDate.toISOString().split('T')[0]}`,
+                  greenhouseId,
+                  date: currentDate,
+                  maxTemp: 0,
+                  minTemp: 0,
+                  avgTemp: 0,
+                  maxHumidity: 0,
+                  minHumidity: 0,
+                  avgHumidity: 0,
+                  totalPrecip: 0,
+                  avgWind: 0,
+                  maxWind: 0,
+                  condition: 'Sem dados',
+                  sunrise: null,
+                  sunset: null,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                };
+              }
+            }
+            
+            // Salvar no banco para cache
+            await this.prisma.weatherData.upsert({
+              where: {
+                greenhouseId_date: {
+                  greenhouseId,
+                  date: currentDate,
+                },
+              },
+              update: dayData,
+              create: dayData,
+            });
+            
+            weeklyData.push(dayData);
+            
+          } catch (error) {
+            this.logger.warn(`Erro ao buscar dados para ${currentDate.toISOString().split('T')[0]}: ${error.message}`);
+            
+            // Criar dados vazios em caso de erro
+            const emptyData: WeatherData = {
+              id: `error-${currentDate.toISOString().split('T')[0]}`,
+              greenhouseId,
+              date: currentDate,
+              maxTemp: 0,
+              minTemp: 0,
+              avgTemp: 0,
+              maxHumidity: 0,
+              minHumidity: 0,
+              avgHumidity: 0,
+              totalPrecip: 0,
+              avgWind: 0,
+              maxWind: 0,
+              condition: 'Erro ao carregar',
+              sunrise: null,
+              sunset: null,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+            
+            weeklyData.push(emptyData);
+          }
+        }
+      }
+
+      this.logger.log(`Retornando ${weeklyData.length} dias de dados semanais`);
+      return weeklyData;
+      
+    } catch (error) {
+      this.logger.error(`Erro ao buscar previsão semanal: ${error.message}`);
+      throw error;
+    }
+  }
 }
