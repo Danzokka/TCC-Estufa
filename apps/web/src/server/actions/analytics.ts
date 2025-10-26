@@ -18,7 +18,26 @@ export interface Report {
     priority: 'high' | 'medium' | 'low';
     description: string;
   }>;
-  weatherSummary?: Record<string, unknown>;
+  weatherSummary?: {
+    daily?: Array<{
+      date: string;
+      maxTemp: number;
+      minTemp: number;
+      avgTemp: number;
+      avgHumidity: number;
+      totalPrecip: number;
+      condition: string;
+    }>;
+    weekly?: Array<{
+      weekNumber: number;
+      startDate: string;
+      endDate: string;
+      avgTemp: number;
+      avgHumidity: number;
+      totalPrecip: number;
+      dominantCondition: string;
+    }>;
+  };
   generatedAt: string;
   createdAt: string;
   updatedAt: string;

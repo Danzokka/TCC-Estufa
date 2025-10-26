@@ -87,6 +87,18 @@ export class WeatherService {
   ) {}
 
   /**
+   * Determina a query de localização priorizando coordenadas
+   */
+  private getLocationQuery(greenhouse: any): string {
+    if (greenhouse.latitude && greenhouse.longitude) {
+      return `${greenhouse.latitude},${greenhouse.longitude}`;
+    } else if (greenhouse.location) {
+      return greenhouse.location;
+    }
+    throw new Error('Localização não configurada');
+  }
+
+  /**
    * Busca dados climáticos históricos para uma localização e data específica
    */
   async fetchHistoricalWeather(location: string, date: string): Promise<WeatherApiResponse> {
@@ -224,6 +236,91 @@ export class WeatherService {
   }
 
   /**
+   * Busca previsão do tempo para o dashboard (próximos 3 dias)
+   */
+  async getForecastForDashboard(greenhouseId: string): Promise<WeatherData[]> {
+    try {
+      const greenhouse = await this.prisma.greenhouse.findUnique({
+        where: { id: greenhouseId },
+      });
+
+      if (!greenhouse) {
+        throw new NotFoundException(`Estufa com ID ${greenhouseId} não encontrada`);
+      }
+
+      if (!greenhouse.location && !greenhouse.latitude) {
+        this.logger.warn(`Estufa ${greenhouseId} não possui localização configurada`);
+        return [];
+      }
+
+      // Busca dados de previsão já armazenados
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+
+      const threeDaysLater = new Date();
+      threeDaysLater.setDate(threeDaysLater.getDate() + 3);
+      threeDaysLater.setHours(23, 59, 59, 999);
+
+      const existingForecast = await this.prisma.weatherData.findMany({
+        where: {
+          greenhouseId,
+          date: {
+            gte: tomorrow,
+            lte: threeDaysLater,
+          },
+        },
+        orderBy: {
+          date: 'asc',
+        },
+      });
+
+      // Se já temos dados de previsão suficientes, retorna eles
+      if (existingForecast.length >= 3) {
+        this.logger.log(`Retornando ${existingForecast.length} registros de previsão existentes`);
+        return existingForecast.slice(0, 3);
+      }
+
+      // Caso contrário, busca novos dados da WeatherAPI
+      const locationQuery = this.getLocationQuery(greenhouse);
+      this.logger.log(`Buscando previsão do tempo para ${locationQuery}`);
+      const forecastData = await this.fetchForecast(locationQuery, 3);
+
+      if (!forecastData.forecast?.forecastday) {
+        this.logger.warn('Nenhum dado de previsão retornado pela WeatherAPI');
+        return [];
+      }
+
+      // Salva os dados de previsão no banco
+      const savedForecast: WeatherData[] = [];
+      for (const day of forecastData.forecast.forecastday) {
+        const weatherData = await this.saveWeatherData(greenhouseId, {
+          date: day.date,
+          maxTemp: day.day.maxtemp_c,
+          minTemp: day.day.mintemp_c,
+          avgTemp: day.day.avgtemp_c,
+          maxHumidity: day.day.avghumidity,
+          minHumidity: day.day.avghumidity,
+          avgHumidity: day.day.avghumidity,
+          totalPrecip: day.day.totalprecip_mm,
+          avgWind: day.day.maxwind_kph,
+          maxWind: day.day.maxwind_kph,
+          condition: day.day.condition.text,
+          sunrise: day.astro.sunrise,
+          sunset: day.astro.sunset,
+        });
+        savedForecast.push(weatherData);
+      }
+
+      this.logger.log(`Previsão de 3 dias salva para ${greenhouseId}`);
+      return savedForecast;
+    } catch (error) {
+      this.logger.error(`Erro ao buscar previsão para dashboard: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
    * Sincroniza dados climáticos históricos para uma estufa
    */
   async syncHistoricalData(greenhouseId: string, days: number = 7): Promise<void> {
@@ -236,11 +333,12 @@ export class WeatherService {
         throw new NotFoundException(`Estufa com ID ${greenhouseId} não encontrada`);
       }
 
-      if (!greenhouse.location) {
+      if (!greenhouse.location && !greenhouse.latitude) {
         throw new Error(`Estufa ${greenhouseId} não possui localização configurada`);
       }
 
-      this.logger.log(`Sincronizando dados históricos para ${greenhouse.location} (${days} dias)`);
+      const locationQuery = this.getLocationQuery(greenhouse);
+      this.logger.log(`Sincronizando dados históricos para ${locationQuery} (${days} dias)`);
 
       // Buscar dados dos últimos N dias
       for (let i = 1; i <= days; i++) {
@@ -250,7 +348,7 @@ export class WeatherService {
 
         try {
           const weatherResponse = await this.fetchHistoricalWeather(
-            greenhouse.location,
+            this.getLocationQuery(greenhouse),
             dateString,
           );
 

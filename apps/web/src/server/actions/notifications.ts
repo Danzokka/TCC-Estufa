@@ -1,26 +1,15 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import api from '@/lib/api';
 
 /**
  * Server Action para obter notificações do usuário
  */
 export async function getUserNotifications() {
   try {
-    const response = await fetch(`${API_BASE_URL}/notifications`, {
-      headers: {
-        'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Backend responded with status: ${response.status}`);
-    }
-
-    return await response.json();
+    const response = await api.get('/notifications');
+    return response.data;
   } catch (error) {
     console.error('Error fetching user notifications:', error);
     throw new Error('Falha ao carregar notificações');
@@ -32,19 +21,8 @@ export async function getUserNotifications() {
  */
 export async function getUnreadCount() {
   try {
-    const response = await fetch(`${API_BASE_URL}/notifications/unread-count`, {
-      headers: {
-        'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Backend responded with status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.count;
+    const response = await api.get('/notifications/unread-count');
+    return response.data.count;
   } catch (error) {
     console.error('Error fetching unread count:', error);
     throw new Error('Falha ao carregar contagem de notificações');
@@ -56,25 +34,12 @@ export async function getUnreadCount() {
  */
 export async function markNotificationAsRead(notificationId: string) {
   try {
-    const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}/read`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Backend error:', errorText);
-      return { success: false, message: `Erro ao marcar como lida: ${response.status}` };
-    }
-
-    const data = await response.json();
+    const response = await api.put(`/notifications/${notificationId}/read`);
     revalidatePath('/dashboard');
-    return { success: true, data };
-  } catch (error) {
+    return { success: true, data: response.data };
+  } catch (error: any) {
     console.error('Error marking notification as read:', error);
-    return { success: false, message: 'Falha ao marcar notificação como lida' };
+    return { success: false, message: error.response?.data?.message || 'Falha ao marcar notificação como lida' };
   }
 }
 
@@ -83,25 +48,12 @@ export async function markNotificationAsRead(notificationId: string) {
  */
 export async function markAllNotificationsAsRead() {
   try {
-    const response = await fetch(`${API_BASE_URL}/notifications/mark-all-read`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Backend error:', errorText);
-      return { success: false, message: `Erro ao marcar todas como lidas: ${response.status}` };
-    }
-
-    const data = await response.json();
+    const response = await api.put('/notifications/mark-all-read');
     revalidatePath('/dashboard');
-    return { success: true, data };
-  } catch (error) {
+    return { success: true, data: response.data };
+  } catch (error: any) {
     console.error('Error marking all notifications as read:', error);
-    return { success: false, message: 'Falha ao marcar todas as notificações como lidas' };
+    return { success: false, message: error.response?.data?.message || 'Falha ao marcar todas as notificações como lidas' };
   }
 }
 
@@ -110,20 +62,9 @@ export async function markAllNotificationsAsRead() {
  */
 export async function deleteNotification(notificationId: string) {
   try {
-    const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Backend responded with status: ${response.status}`);
-    }
-
+    const response = await api.delete(`/notifications/${notificationId}`);
     revalidatePath('/dashboard');
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error('Error deleting notification:', error);
     throw new Error('Falha ao deletar notificação');
@@ -135,21 +76,11 @@ export async function deleteNotification(notificationId: string) {
  */
 export async function cleanupOldNotifications(daysOld: number = 30) {
   try {
-    const response = await fetch(`${API_BASE_URL}/notifications/cleanup`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${process.env.API_TOKEN || ''}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ daysOld }),
+    const response = await api.delete('/notifications/cleanup', {
+      data: { daysOld }
     });
-
-    if (!response.ok) {
-      throw new Error(`Backend responded with status: ${response.status}`);
-    }
-
     revalidatePath('/dashboard');
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error('Error cleaning up old notifications:', error);
     throw new Error('Falha ao limpar notificações antigas');
@@ -161,25 +92,12 @@ export async function cleanupOldNotifications(daysOld: number = 30) {
  */
 export async function clearReadNotifications() {
   try {
-    const response = await fetch(`${API_BASE_URL}/notifications/clear-read`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Backend error:', errorText);
-      return { success: false, message: `Erro ao limpar notificações: ${response.status}`, count: 0 };
-    }
-
-    const data = await response.json();
+    const response = await api.delete('/notifications/clear-read');
     revalidatePath('/dashboard');
-    return { success: true, count: data.count || 0, message: data.message };
-  } catch (error) {
+    return { success: true, count: response.data.count || 0, message: response.data.message };
+  } catch (error: any) {
     console.error('Error clearing read notifications:', error);
-    return { success: false, message: 'Falha ao limpar notificações lidas', count: 0 };
+    return { success: false, message: error.response?.data?.message || 'Falha ao limpar notificações lidas', count: 0 };
   }
 }
 
@@ -194,20 +112,9 @@ export async function saveNotification(notificationData: {
   data?: Record<string, unknown>;
 }) {
   try {
-    const response = await fetch(`${API_BASE_URL}/notifications`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(notificationData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Backend responded with status: ${response.status}`);
-    }
-
+    const response = await api.post('/notifications', notificationData);
     revalidatePath('/dashboard');
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error('Error saving notification:', error);
     throw new Error('Falha ao salvar notificação');

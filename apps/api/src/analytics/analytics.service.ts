@@ -130,7 +130,7 @@ export class AnalyticsService {
 
       // Buscar dados climáticos se a estufa tiver localização
       let weatherData: WeatherData[] = [];
-      if (userPlant.greenhouse?.location && userPlant.greenhouseId) {
+      if (userPlant.greenhouseId) {
         weatherData = await this.weatherService.getWeatherDataForPeriod(
           userPlant.greenhouseId,
           startDate,
@@ -212,12 +212,7 @@ export class AnalyticsService {
           summary: aiInsights.summary,
           aiInsights: aiInsights.insights,
           recommendations: aiInsights.recommendations,
-          weatherSummary: weatherData.length > 0 ? {
-            totalDays: weatherData.length,
-            avgTemp: metrics.avgWeatherTemp,
-            totalPrecip: metrics.totalPrecipitation,
-            avgHumidity: metrics.avgWeatherHumidity,
-          } : undefined,
+          weatherSummary: this.formatWeatherSummary(weatherData, type, startDate, endDate),
         },
       });
 
@@ -420,5 +415,136 @@ export class AnalyticsService {
   private calculateAverage(numbers: number[]): number {
     if (numbers.length === 0) return 0;
     return numbers.reduce((sum, num) => sum + num, 0) / numbers.length;
+  }
+
+  /**
+   * Formata dados climáticos para exibição nos relatórios
+   */
+  private formatWeatherSummary(
+    weatherData: WeatherData[],
+    type: 'weekly' | 'monthly' | 'general',
+    startDate: Date,
+    endDate: Date,
+  ): any {
+    if (type === 'general' || weatherData.length === 0) {
+      return undefined;
+    }
+
+    if (type === 'weekly') {
+      // Agrupar por dia e retornar array de objetos diários
+      return {
+        daily: weatherData.map(day => ({
+          date: day.date.toISOString(),
+          maxTemp: day.maxTemp,
+          minTemp: day.minTemp,
+          avgTemp: day.avgTemp,
+          avgHumidity: day.avgHumidity,
+          totalPrecip: day.totalPrecip,
+          condition: day.condition || 'unknown',
+        }))
+      };
+    }
+
+    if (type === 'monthly') {
+      // Agrupar por semanas e calcular médias
+      const weeks = this.groupWeatherDataByWeeks(weatherData, startDate, endDate);
+      return {
+        weekly: weeks.map((week, index) => ({
+          weekNumber: index + 1,
+          startDate: week.startDate.toISOString(),
+          endDate: week.endDate.toISOString(),
+          avgTemp: week.avgTemp,
+          avgHumidity: week.avgHumidity,
+          totalPrecip: week.totalPrecip,
+          dominantCondition: week.dominantCondition,
+        }))
+      };
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Agrupa dados climáticos por semanas para relatórios mensais
+   */
+  private groupWeatherDataByWeeks(
+    weatherData: WeatherData[],
+    startDate: Date,
+    endDate: Date,
+  ): Array<{
+    startDate: Date;
+    endDate: Date;
+    avgTemp: number;
+    avgHumidity: number;
+    totalPrecip: number;
+    dominantCondition: string;
+  }> {
+    const weeks: Array<{
+      startDate: Date;
+      endDate: Date;
+      avgTemp: number;
+      avgHumidity: number;
+      totalPrecip: number;
+      dominantCondition: string;
+    }> = [];
+
+    // Dividir o período em 4 semanas
+    const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const daysPerWeek = Math.ceil(totalDays / 4);
+
+    for (let i = 0; i < 4; i++) {
+      const weekStart = new Date(startDate);
+      weekStart.setDate(startDate.getDate() + (i * daysPerWeek));
+      
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + daysPerWeek - 1);
+      
+      // Se for a última semana, usar a data final
+      if (i === 3) {
+        weekEnd.setTime(endDate.getTime());
+      }
+
+      // Filtrar dados da semana
+      const weekData = weatherData.filter(day => 
+        day.date >= weekStart && day.date <= weekEnd
+      );
+
+      if (weekData.length > 0) {
+        // Calcular médias da semana
+        const avgTemp = weekData.reduce((sum, day) => sum + day.avgTemp, 0) / weekData.length;
+        const avgHumidity = weekData.reduce((sum, day) => sum + day.avgHumidity, 0) / weekData.length;
+        const totalPrecip = weekData.reduce((sum, day) => sum + day.totalPrecip, 0);
+        
+        // Determinar condição predominante
+        const conditions = weekData.map(day => day.condition).filter(Boolean) as string[];
+        const dominantCondition = this.getDominantCondition(conditions);
+
+        weeks.push({
+          startDate: weekStart,
+          endDate: weekEnd,
+          avgTemp,
+          avgHumidity,
+          totalPrecip,
+          dominantCondition,
+        });
+      }
+    }
+
+    return weeks;
+  }
+
+  /**
+   * Determina a condição climática predominante
+   */
+  private getDominantCondition(conditions: string[]): string {
+    if (conditions.length === 0) return 'unknown';
+    
+    const conditionCounts = conditions.reduce((acc, condition) => {
+      acc[condition] = (acc[condition] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(conditionCounts)
+      .sort(([, a], [, b]) => b - a)[0][0];
   }
 }

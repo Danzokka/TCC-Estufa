@@ -23,6 +23,7 @@ import {
   getLatestReport,
   Report,
 } from "@/server/actions/analytics";
+import { WeatherImpact } from "@/components/analytics/weather-impact";
 
 export default function AnalyticsPage() {
   const [selectedPlant, setSelectedPlant] = useState<string>("");
@@ -41,13 +42,6 @@ export default function AnalyticsPage() {
     refetchInterval: 5 * 60 * 1000,
   });
 
-  // Buscar relatório quando planta ou período mudar
-  useEffect(() => {
-    if (selectedPlant && selectedPeriod) {
-      loadLatestReport();
-    }
-  }, [selectedPlant, selectedPeriod, loadLatestReport]);
-
   const loadLatestReport = useCallback(async () => {
     if (!selectedPlant) return;
     
@@ -58,6 +52,13 @@ export default function AnalyticsPage() {
       console.error("Erro ao carregar relatório:", error);
     }
   }, [selectedPlant, selectedPeriod]);
+
+  // Buscar relatório quando planta ou período mudar
+  useEffect(() => {
+    if (selectedPlant && selectedPeriod) {
+      loadLatestReport();
+    }
+  }, [selectedPlant, selectedPeriod, loadLatestReport]);
 
   const handleGenerateReport = async () => {
     if (!selectedPlant) {
@@ -200,6 +201,12 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
+              {/* Weather Impact - NOVO */}
+              <WeatherImpact 
+                weatherSummary={currentReport.weatherSummary} 
+                reportType={selectedPeriod}
+              />
+              
               {/* Resumo Geral */}
               {currentReport.summary && (
                 <div className="p-4 bg-muted rounded-lg">

@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,63 +8,61 @@ datasource db {
 }
 
 model User {
-  id            String      @id @default(uuid())
-  username      String      @unique
+  id            String         @id @default(uuid())
   name          String
-  email         String      @unique
+  email         String         @unique
   image         String
   password      String
-  datecreated   DateTime    @default(now())
-  dateupdated   DateTime    @updatedAt
-  userPlants    UserPlant[]
+  datecreated   DateTime       @default(now())
+  dateupdated   DateTime       @updatedAt
+  username      String         @unique
   blogPosts     BlogPost[]
   comments      Comment[]
-  likes         Like[]
   greenhouses   Greenhouse[]
-  refreshTokens RefreshToken[]
   irrigations   Irrigation[]
+  likes         Like[]
   notifications Notification[]
+  refreshTokens RefreshToken[]
+  userPlants    UserPlant[]
 }
 
 model Plant {
-  id                      String          @id @default(uuid())
-  name                    String       @unique
-  description             String
-  dateadded               DateTime     @default(now())
-  air_temperature_initial Float
-  air_humidity_initial    Float
-  soil_moisture_initial   Int
+  id                       String       @id @default(uuid())
+  name                     String       @unique
+  description              String
+  dateadded                DateTime     @default(now())
+  air_humidity_final       Float
+  air_humidity_initial     Float
+  air_temperature_final    Float
+  air_temperature_initial  Float
+  light_intensity_final    Float
+  light_intensity_initial  Float
+  soil_moisture_final      Int
+  soil_moisture_initial    Int
+  soil_temperature_final   Float
   soil_temperature_initial Float
-  light_intensity_initial Float
-  air_temperature_final   Float
-  air_humidity_final      Float
-  soil_moisture_final     Int
-  soil_temperature_final  Float
-  light_intensity_final   Float
-  userPlants              UserPlant[]
-  irrigations             Irrigation[]
+  irrigations              Irrigation[]
+  userPlants               UserPlant[]
 }
 
 model UserPlant {
-  id              String      @id @default(uuid())
-  userId          String
-  plantId         String
-  greenhouseId    String?     // Nova relação com estufa
-  greenhouse      Greenhouse? @relation(fields: [greenhouseId], references: [id])
-  user            User        @relation(fields: [userId], references: [id])
-  plant           Plant       @relation(fields: [plantId], references: [id])
-  nickname        String?
-  dateAdded       DateTime    @default(now())
-  sensorReadings  Sensor[]
-  reports         Report[]
+  id             String      @id @default(uuid())
+  userId         String
+  plantId        String
+  nickname       String?
+  dateAdded      DateTime    @default(now())
+  greenhouseId   String?
+  reports        Report[]
+  sensorReadings Sensor[]
+  greenhouse     Greenhouse? @relation(fields: [greenhouseId], references: [id])
+  plant          Plant       @relation(fields: [plantId], references: [id])
+  user           User        @relation(fields: [userId], references: [id])
 
   @@unique([userId, plantId])
 }
 
 model Sensor {
-  id               String       @id @default(uuid())
-  userPlantId      String
-  userPlant        UserPlant @relation(fields: [userPlantId], references: [id])
+  id               String    @id @default(uuid())
   air_temperature  Float
   air_humidity     Float
   soil_moisture    Int
@@ -79,209 +71,187 @@ model Sensor {
   water_level      Float
   water_reserve    Float
   timecreated      DateTime  @default(now())
+  userPlantId      String
+  userPlant        UserPlant @relation(fields: [userPlantId], references: [id])
 }
 
 model BlogPost {
-  id          String    @id @default(uuid())
-  title       String
-  slug        String    @unique
-  content     String
-  authorId    String
-  author      User      @relation(fields: [authorId], references: [id])
-  published   Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  comments    Comment[]
-  likes       Like[]
-  
+  id        String    @id @default(uuid())
+  title     String
+  slug      String    @unique
+  content   String
+  authorId  String
+  published Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  author    User      @relation(fields: [authorId], references: [id])
+  comments  Comment[]
+  likes     Like[]
+
   @@index([authorId])
   @@index([slug])
 }
 
 model Comment {
-  id          String    @id @default(uuid())
-  content     String
-  blogPostId  String
-  blogPost    BlogPost  @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
-  authorId    String
-  author      User      @relation(fields: [authorId], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         String   @id @default(uuid())
+  content    String
+  blogPostId String
+  authorId   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  author     User     @relation(fields: [authorId], references: [id])
+  blogPost   BlogPost @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
 
   @@index([blogPostId])
   @@index([authorId])
 }
 
 model Like {
-  id          String    @id @default(uuid())
-  blogPostId  String
-  blogPost    BlogPost  @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User      @relation(fields: [userId], references: [id])
-  createdAt   DateTime  @default(now())
+  id         String   @id @default(uuid())
+  blogPostId String
+  userId     String
+  createdAt  DateTime @default(now())
+  blogPost   BlogPost @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, blogPostId])
   @@index([blogPostId])
 }
 
-// Pump operation tracking model
 model PumpOperation {
-  id               String      @id @default(uuid())
-  greenhouseId     String      
-  greenhouse       Greenhouse  @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
-  duration         Int         // Duration in seconds
-  waterAmount      Float?      // Target water amount in liters
-  reason           String?     // Reason for activation
-  startedAt        DateTime    @default(now())
-  endedAt          DateTime?   // When operation completed
-  status           String      @default("active") // active, completed, cancelled, error
-  errorMessage     String?     // Error details if status is error
-  esp32Response    String?     // Response from ESP32 device
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  id            String     @id @default(uuid())
+  greenhouseId  String
+  duration      Int
+  waterAmount   Float?
+  reason        String?
+  startedAt     DateTime   @default(now())
+  endedAt       DateTime?
+  status        String     @default("active")
+  errorMessage  String?
+  esp32Response String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  greenhouse    Greenhouse @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
 
   @@index([greenhouseId])
   @@index([status])
   @@index([startedAt])
 }
 
-// Device management model for ESP32 devices
 model Device {
-  id               String      @id @default(uuid())
-  name             String
-  greenhouseId     String      
-  greenhouse       Greenhouse  @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
-  type             String      @default("esp32") // Device type
-  ipAddress        String?     // Current IP address
-  macAddress       String?     @unique // MAC address for identification
-  isOnline         Boolean     @default(false)
-  lastSeen         DateTime?   // Last communication timestamp
-  firmwareVersion  String?     // Current firmware version
-  configuration    Json?       // Device-specific configuration
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  id              String     @id @default(uuid())
+  name            String
+  greenhouseId    String
+  type            String     @default("esp32")
+  ipAddress       String?
+  macAddress      String?    @unique
+  isOnline        Boolean    @default(false)
+  lastSeen        DateTime?
+  firmwareVersion String?
+  configuration   Json?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  greenhouse      Greenhouse @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
 
   @@index([greenhouseId])
   @@index([type])
   @@index([isOnline])
 }
 
-// Greenhouse model for managing smart greenhouse environments
 model Greenhouse {
-  id               String      @id @default(uuid())
-  name             String
-  description      String?
-  location         String?     // Physical location or address
-  ownerId          String
-  owner            User        @relation(fields: [ownerId], references: [id])
-  
-  // Current environmental conditions
-  currentTemperature    Float?   // Current air temperature in Celsius
-  currentHumidity       Float?   // Current air humidity percentage
-  currentSoilMoisture   Int?     // Current soil moisture percentage
-  currentLightIntensity Float?   // Current light intensity
-  currentWaterLevel     Float?   // Current water tank level
-  
-  // Configuration and thresholds
-  targetTemperature     Float    @default(25.0)  // Target temperature
-  targetHumidity        Float    @default(60.0)  // Target humidity
-  targetSoilMoisture    Int      @default(50)    // Target soil moisture
-  minWaterLevel         Float    @default(20.0)  // Minimum water level alert
-  
-  // Device and connectivity information
-  deviceId             String?   @unique  // Associated ESP32 device ID
-  wifiSSID             String?   // WiFi network name
-  wifiPassword         String?   // WiFi password (encrypted)
-  isOnline             Boolean   @default(false)
-  lastDataUpdate       DateTime? // Last sensor data received
-  
-  // QR Code configuration
-  qrCodeData           String?   // Encrypted QR code payload
-  qrCodeGeneratedAt    DateTime? // When QR code was generated
-  isConfigured         Boolean   @default(false) // Whether device is configured
-  
-  // Timestamps
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-  
-  // Relations
-  devices              Device[]
-  pumpOperations       PumpOperation[]
-  sensorReadings       GreenhouseSensorReading[]
-  irrigations          Irrigation[]
-  weatherData          WeatherData[]
-  userPlants           UserPlant[]
-  
+  id                    String                    @id @default(uuid())
+  name                  String
+  description           String?
+  location              String?
+  ownerId               String
+  currentTemperature    Float?
+  currentHumidity       Float?
+  currentSoilMoisture   Int?
+  currentLightIntensity Float?
+  currentWaterLevel     Float?
+  targetTemperature     Float                     @default(25.0)
+  targetHumidity        Float                     @default(60.0)
+  targetSoilMoisture    Int                       @default(50)
+  minWaterLevel         Float                     @default(20.0)
+  deviceId              String?                   @unique
+  wifiSSID              String?
+  wifiPassword          String?
+  isOnline              Boolean                   @default(false)
+  lastDataUpdate        DateTime?
+  qrCodeData            String?
+  qrCodeGeneratedAt     DateTime?
+  isConfigured          Boolean                   @default(false)
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  latitude              Float?
+  longitude             Float?
+  devices               Device[]
+  owner                 User                      @relation(fields: [ownerId], references: [id])
+  sensorReadings        GreenhouseSensorReading[]
+  irrigations           Irrigation[]
+  pumpOperations        PumpOperation[]
+  userPlants            UserPlant[]
+  weatherData           WeatherData[]
+
   @@index([ownerId])
   @@index([deviceId])
   @@index([isOnline])
   @@index([lastDataUpdate])
 }
 
-// Enhanced sensor readings specific to greenhouse monitoring
 model GreenhouseSensorReading {
-  id               String      @id @default(uuid())
-  greenhouseId     String
-  greenhouse       Greenhouse  @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
-  
-  // Environmental sensors
-  airTemperature   Float
-  airHumidity      Float
-  soilMoisture     Int
-  soilTemperature  Float?
-  lightIntensity   Float
-  waterLevel       Float
-  waterReserve     Float?
-  
-  // Device information
-  deviceId         String?     // ESP32 device that sent the data
-  batteryLevel     Float?      // Battery level percentage
-  signalStrength   Int?        // WiFi signal strength (RSSI)
-  
-  // Metadata
-  timestamp        DateTime    @default(now())
-  isValid          Boolean     @default(true)  // Data validation flag
-  errorMessage     String?     // Any error during reading
-  
-  // Relations
-  irrigations      Irrigation[]
-  
+  id              String       @id @default(uuid())
+  greenhouseId    String
+  airTemperature  Float
+  airHumidity     Float
+  soilMoisture    Int
+  soilTemperature Float?
+  lightIntensity  Float
+  waterLevel      Float
+  waterReserve    Float?
+  deviceId        String?
+  batteryLevel    Float?
+  signalStrength  Int?
+  timestamp       DateTime     @default(now())
+  isValid         Boolean      @default(true)
+  errorMessage    String?
+  greenhouse      Greenhouse   @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
+  irrigations     Irrigation[]
+
   @@index([greenhouseId])
   @@index([timestamp])
   @@index([deviceId])
 }
 
-// Refresh token model for secure session management
 model RefreshToken {
   id        String   @id @default(uuid())
   token     String   @unique
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
   isRevoked Boolean  @default(false)
-  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@index([token])
   @@index([expiresAt])
 }
 
-// Irrigation tracking model for monitoring watering events
 model Irrigation {
-  id               String      @id @default(uuid())
-  type             String      // 'manual', 'automatic', 'detected'
-  waterAmount      Float?      // Amount of water in liters
-  notes            String?     // Additional notes or reason
-  greenhouseId     String
-  greenhouse       Greenhouse  @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
-  userId           String?     // User who performed manual irrigation
-  user             User?       @relation(fields: [userId], references: [id])
-  plantId          String?     // Specific plant if applicable
-  plant            Plant?      @relation(fields: [plantId], references: [id])
-  sensorId         String?     // Sensor that detected irrigation
-  sensor           GreenhouseSensorReading? @relation(fields: [sensorId], references: [id])
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  id           String                   @id @default(uuid())
+  type         String
+  waterAmount  Float?
+  notes        String?
+  greenhouseId String
+  userId       String?
+  plantId      String?
+  sensorId     String?
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  greenhouse   Greenhouse               @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
+  plant        Plant?                   @relation(fields: [plantId], references: [id])
+  sensor       GreenhouseSensorReading? @relation(fields: [sensorId], references: [id])
+  user         User?                    @relation(fields: [userId], references: [id])
 
   @@index([greenhouseId])
   @@index([type])
@@ -290,83 +260,66 @@ model Irrigation {
 }
 
 model Notification {
-  id          String   @id @default(uuid())
-  userId      String
-  type        String   // 'pump_activated', 'irrigation_detected', 'irrigation_confirmed'
-  title       String
-  message     String
-  data        Json?    // Dados adicionais da notificação
-  isRead      Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  data      Json?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@index([isRead])
   @@index([createdAt])
   @@index([type])
 }
 
-// Weather data model for storing historical and forecast weather data
 model WeatherData {
-  id               String    @id @default(uuid())
-  greenhouseId     String
-  greenhouse       Greenhouse @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
-  date             DateTime  // Data da leitura climática
-  
-  // Dados meteorológicos
-  maxTemp          Float     // Temperatura máxima (°C)
-  minTemp          Float     // Temperatura mínima (°C)
-  avgTemp          Float     // Temperatura média (°C)
-  maxHumidity      Float     // Umidade máxima (%)
-  minHumidity      Float     // Umidade mínima (%)
-  avgHumidity      Float     // Umidade média (%)
-  totalPrecip      Float     // Precipitação total (mm)
-  avgWind          Float?    // Velocidade média do vento (km/h)
-  maxWind          Float?    // Rajada máxima (km/h)
-  condition        String?   // Condição climática (sunny, cloudy, rainy, etc.)
-  sunrise          String?   // Hora do nascer do sol
-  sunset           String?   // Hora do pôr do sol
-  
-  // Metadados
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  
+  id           String     @id @default(uuid())
+  greenhouseId String
+  date         DateTime
+  maxTemp      Float
+  minTemp      Float
+  avgTemp      Float
+  maxHumidity  Float
+  minHumidity  Float
+  avgHumidity  Float
+  totalPrecip  Float
+  avgWind      Float?
+  maxWind      Float?
+  condition    String?
+  sunrise      String?
+  sunset       String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  greenhouse   Greenhouse @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
+
+  @@unique([greenhouseId, date])
   @@index([greenhouseId])
   @@index([date])
-  @@unique([greenhouseId, date])
 }
 
-// Report model for storing generated analytics reports
 model Report {
   id               String    @id @default(uuid())
   userPlantId      String
-  userPlant        UserPlant @relation(fields: [userPlantId], references: [id], onDelete: Cascade)
-  type             String    // 'weekly', 'monthly', 'general'
-  
-  // Período do relatório
+  type             String
   startDate        DateTime
-  endDate           DateTime
-  
-  // Dados calculados
-  totalReadings    Int       // Total de medições no período
-  totalIrrigations Int       // Total de irrigações no período
-  avgGrowthRate    Float?    // Taxa média de crescimento
-  
-  // Insights gerados pela IA
-  summary          String?   // Resumo geral
-  aiInsights       Json?     // Insights detalhados em JSON
-  recommendations  Json?     // Recomendações em JSON
-  
-  // Dados climáticos do período
-  weatherSummary   Json?     // Resumo do clima no período
-  
-  // Metadados
+  endDate          DateTime
+  totalReadings    Int
+  totalIrrigations Int
+  avgGrowthRate    Float?
+  summary          String?
+  aiInsights       Json?
+  recommendations  Json?
+  weatherSummary   Json?
   generatedAt      DateTime  @default(now())
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
-  
+  userPlant        UserPlant @relation(fields: [userPlantId], references: [id], onDelete: Cascade)
+
   @@index([userPlantId])
   @@index([type])
   @@index([startDate])

@@ -1,5 +1,6 @@
 import React from "react";
 import { getSession } from "@/server/actions/session";
+import { getGreenhouseById } from "@/server/actions/greenhouse";
 import { redirect } from "next/navigation";
 import {
   Card,
@@ -20,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import ThemeSwitcher from "@/components/layout/theme-switcher";
+import { LocationSettings } from "@/components/settings/location-settings";
 import {
   Settings2,
   Bell,
@@ -36,6 +38,10 @@ const SettingsPage = async () => {
   if (!session.isLoggedIn) {
     redirect("/login");
   }
+
+  // Buscar dados da estufa
+  const greenhouseId = "8729d23b-984f-41c5-a4a6-698cd1a9fe18";
+  const greenhouse = await getGreenhouseById(greenhouseId);
 
   return (
     <div className="container mx-auto py-8 px-4 lg:px-8 max-w-4xl">
@@ -90,6 +96,14 @@ const SettingsPage = async () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Localização da Estufa */}
+        <LocationSettings 
+          greenhouseId={greenhouseId}
+          currentLocation={greenhouse?.location || undefined}
+          currentLatitude={greenhouse?.latitude || undefined}
+          currentLongitude={greenhouse?.longitude || undefined}
+        />
 
         {/* Notificações */}
         <Card>

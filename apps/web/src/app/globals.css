@@ -144,3 +144,110 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Leaflet Map Styles */
+.leaflet-container {
+  z-index: 0;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  transition: all 0.3s ease;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+}
+
+.leaflet-popup-content {
+  margin: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.leaflet-popup-tip {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  background-color: var(--popover);
+}
+
+.leaflet-control-zoom {
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+}
+
+.leaflet-control-zoom a {
+  border-radius: 0.25rem;
+  margin: 2px;
+  background-color: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  transition: all 0.2s ease;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.leaflet-control-zoom a:active {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* Custom marker styles */
+.leaflet-marker-icon {
+  filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.1));
+}
+
+.custom-pin-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Attribution control styling */
+.leaflet-control-attribution {
+  background-color: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.leaflet-control-attribution a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.leaflet-control-attribution a:hover {
+  text-decoration: underline;
+}
+
+/* Dark mode specific adjustments */
+.dark .leaflet-control-zoom a {
+  background-color: var(--card);
+  color: var(--card-foreground);
+  border-color: var(--border);
+}
+
+.dark .leaflet-control-zoom a:hover {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.dark .leaflet-control-attribution {
+  background-color: var(--card);
+  color: var(--card-foreground);
+  border-color: var(--border);
+}
+
+/* Smooth transitions for theme changes */
+.leaflet-container,
+.leaflet-control-zoom,
+.leaflet-control-attribution,
+.leaflet-popup-content-wrapper {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}

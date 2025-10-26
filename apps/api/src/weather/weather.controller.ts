@@ -162,6 +162,31 @@ export class WeatherController {
     }
   }
 
+  @Get('dashboard/:greenhouseId')
+  @ApiOperation({ summary: 'Buscar previsão do tempo para o dashboard (próximos 3 dias)' })
+  @ApiParam({ name: 'greenhouseId', description: 'ID da estufa' })
+  @ApiResponse({ status: 200, description: 'Previsão do tempo para dashboard retornada com sucesso' })
+  @ApiResponse({ status: 404, description: 'Estufa não encontrada' })
+  async getForecastForDashboard(
+    @Param('greenhouseId', ParseUUIDPipe) greenhouseId: string,
+  ) {
+    try {
+      const forecastData = await this.weatherService.getForecastForDashboard(greenhouseId);
+
+      return {
+        success: true,
+        data: forecastData,
+        greenhouseId,
+        count: forecastData.length,
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Erro ao buscar previsão para dashboard: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Post('sync/:greenhouseId')
   @ApiOperation({ summary: 'Sincronizar dados climáticos históricos para uma estufa' })
   @ApiParam({ name: 'greenhouseId', description: 'ID da estufa' })

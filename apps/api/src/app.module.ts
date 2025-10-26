@@ -18,6 +18,8 @@ import { WebsocketModule } from './websocket/websocket.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { WeatherModule } from './weather/weather.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { IbgeModule } from './ibge/ibge.module';
+import { GeocodingModule } from './geocoding/geocoding.module';
 @Module({
   imports: [
     SensorModule,
@@ -53,6 +55,8 @@ import { AnalyticsModule } from './analytics/analytics.module';
     NotificationsModule,
     WeatherModule,
     AnalyticsModule,
+    IbgeModule,
+    GeocodingModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,8 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import api from '@/lib/api';
 
 /**
  * Server Action para obter irrigações
@@ -18,19 +17,11 @@ export async function getIrrigations(filters?: {
     if (filters?.type) params.append('type', filters.type);
     if (filters?.limit) params.append('take', filters.limit.toString());
 
-    const response = await fetch(`${API_BASE_URL}/irrigation?${params.toString()}`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    const response = await api.get(`/irrigation?${params.toString()}`, {
       cache: 'no-store',
     });
 
-    if (!response.ok) {
-      console.error('Backend error:', response.status);
-      return { success: false, data: { irrigations: [] } };
-    }
-
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error('Error fetching irrigations:', error);
     return { success: false, data: { irrigations: [] } };
@@ -42,19 +33,11 @@ export async function getIrrigations(filters?: {
  */
 export async function getIrrigationById(id: string) {
   try {
-    const response = await fetch(`${API_BASE_URL}/irrigation/${id}`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    const response = await api.get(`/irrigation/${id}`, {
       cache: 'no-store',
     });
 
-    if (!response.ok) {
-      console.error('Backend error:', response.status);
-      return { success: false, message: 'Irrigação não encontrada' };
-    }
-
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error('Error fetching irrigation data:', error);
     return { success: false, message: 'Falha ao carregar dados da irrigação' };
@@ -72,26 +55,13 @@ export async function createIrrigation(irrigationData: {
   userId?: string;
 }) {
   try {
-    const response = await fetch(`${API_BASE_URL}/test-irrigation`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(irrigationData),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.message || `Backend responded with status: ${response.status}`
-      );
-    }
+    const response = await api.post('/test-irrigation', irrigationData);
 
     revalidatePath('/dashboard/irrigation');
-    return await response.json();
-  } catch (error) {
+    return response.data;
+  } catch (error: any) {
     console.error('Error creating irrigation:', error);
-    throw new Error('Falha ao criar irrigação');
+    throw new Error(error.response?.data?.message || 'Falha ao criar irrigação');
   }
 }
 
@@ -108,32 +78,18 @@ export async function confirmIrrigation(
   }
 ) {
   try {
-    const response = await fetch(`${API_BASE_URL}/irrigation/${irrigationId}/confirm`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(confirmationData),
-    });
+    const response = await api.post(`/irrigation/${irrigationId}/confirm`, confirmationData);
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Backend error:', errorData);
-      return { 
-        success: false, 
-        message: errorData.message || `Erro ${response.status}: Falha ao confirmar irrigação` 
-      };
-    }
-
-    const result = await response.json();
-    
     revalidatePath('/dashboard/irrigation');
     revalidatePath(`/dashboard/irrigation/confirm/${irrigationId}`);
     
-    return result;
-  } catch (error) {
+    return response.data;
+  } catch (error: any) {
     console.error('Error confirming irrigation:', error);
-    return { success: false, message: 'Falha ao confirmar irrigação' };
+    return { 
+      success: false, 
+      message: error.response?.data?.message || 'Falha ao confirmar irrigação' 
+    };
   }
 }
 
@@ -151,29 +107,11 @@ export async function getIrrigationStats(filters?: {
     if (filters?.period) params.append('period', filters.period);
     if (filters?.hours) params.append('hours', filters.hours.toString());
 
-    const response = await fetch(`${API_BASE_URL}/irrigation/stats/overview?${params.toString()}`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    const response = await api.get(`/irrigation/stats/overview?${params.toString()}`, {
       cache: 'no-store',
     });
 
-    if (!response.ok) {
-      console.error('Backend error:', response.status);
-      return { 
-        success: false, 
-        data: { 
-          total: 0, 
-          manual: 0, 
-          rain: 0, 
-          detected: 0,
-          totalWater: 0,
-          avgWaterPerIrrigation: 0 
-        } 
-      };
-    }
-
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error('Error fetching irrigation stats:', error);
     return { 

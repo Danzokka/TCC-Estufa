@@ -51,84 +51,52 @@ export async function configureGreenhouseDevice(
 
     console.log("Configuring device:", validatedData.deviceId);
 
-    // Get API base URL from environment
-    const apiBaseUrl = process.env.API_BASE_URL || "http://localhost:5000";
-
     // Step 1: Create or get greenhouse
-    const greenhouseResponse = await fetch(`${apiBaseUrl}/greenhouse`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        // Note: In production, you'd need proper authentication headers
+    const greenhouseResponse = await api.post('/greenhouse', {
+      name: `Greenhouse for ${validatedData.deviceName}`,
+      location: "Auto-configured",
+      description: `Greenhouse automatically configured for device ${validatedData.deviceId}`,
+      // Environmental settings with default values
+      temperature: {
+        min: 18,
+        max: 28,
+        optimal: { min: 20, max: 25 },
       },
-      body: JSON.stringify({
-        name: `Greenhouse for ${validatedData.deviceName}`,
-        location: "Auto-configured",
-        description: `Greenhouse automatically configured for device ${validatedData.deviceId}`,
-        // Environmental settings with default values
-        temperature: {
-          min: 18,
-          max: 28,
-          optimal: { min: 20, max: 25 },
-        },
-        humidity: {
-          min: 60,
-          max: 80,
-          optimal: { min: 65, max: 75 },
-        },
-        soilMoisture: {
-          min: 30,
-          max: 70,
-          optimal: { min: 40, max: 60 },
-        },
-        // Device and QR code information
-        qrCodeData: JSON.stringify(validatedData),
-        deviceMacAddress: validatedData.macAddress,
-        isActive: true,
-      }),
+      humidity: {
+        min: 60,
+        max: 80,
+        optimal: { min: 65, max: 75 },
+      },
+      soilMoisture: {
+        min: 30,
+        max: 70,
+        optimal: { min: 40, max: 60 },
+      },
+      // Device and QR code information
+      qrCodeData: JSON.stringify(validatedData),
+      deviceMacAddress: validatedData.macAddress,
+      isActive: true,
     });
 
-    if (!greenhouseResponse.ok) {
-      const errorData = await greenhouseResponse.json().catch(() => ({}));
-      throw new Error(
-        errorData.message ||
-          `Failed to create greenhouse: ${greenhouseResponse.status}`
-      );
-    }
-
-    const greenhouse = await greenhouseResponse.json();
+    const greenhouse = greenhouseResponse.data;
     console.log("Greenhouse created/updated:", greenhouse.id);
 
     // Step 2: Register device in the database
-    const deviceResponse = await fetch(`${apiBaseUrl}/device`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        deviceId: validatedData.deviceId,
-        name: validatedData.deviceName,
-        type: validatedData.deviceType,
-        macAddress: validatedData.macAddress,
-        greenhouseId: greenhouse.id,
-        sensors: validatedData.sensors || [],
-        actuators: validatedData.actuators || [],
-        wifiSSID: validatedData.wifiSSID,
-        serverURL: validatedData.serverURL,
-        isActive: true,
-        lastSeen: new Date().toISOString(),
-      }),
+    const deviceResponse = await api.post('/device', {
+      deviceId: validatedData.deviceId,
+      name: validatedData.deviceName,
+      type: validatedData.deviceType,
+      macAddress: validatedData.macAddress,
+      greenhouseId: greenhouse.id,
+      sensors: validatedData.sensors || [],
+      actuators: validatedData.actuators || [],
+      wifiSSID: validatedData.wifiSSID,
+      serverURL: validatedData.serverURL,
+      isActive: true,
+      lastSeen: new Date().toISOString(),
     });
 
-    if (!deviceResponse.ok) {
-      const errorData = await deviceResponse.json().catch(() => ({}));
-      throw new Error(
-        errorData.message ||
-          `Failed to register device: ${deviceResponse.status}`
-      );
-    }
-
-    const device = await deviceResponse.json();
+    const device = deviceResponse.data;
     console.log("Device registered:", device.id); // Step 3: Send configuration to ESP32 device
     try {
       const deviceConfig = {
@@ -243,23 +211,11 @@ async function sendConfigurationToDevice(config: {
  */
 export async function getAvailableGreenhouses() {
   try {
-    const apiBaseUrl = process.env.API_BASE_URL || "http://localhost:5000";
+    const response = await api.get('/greenhouse');
 
-    const response = await fetch(`${apiBaseUrl}/greenhouse`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch greenhouses: ${response.status}`);
-    }
-
-    const greenhouses = await response.json();
     return {
       success: true,
-      data: greenhouses,
+      data: response.data,
     };
   } catch (error) {
     console.error("Error fetching greenhouses:", error);
@@ -277,23 +233,11 @@ export async function getAvailableGreenhouses() {
  */
 export async function getDeviceStatus(deviceId: string) {
   try {
-    const apiBaseUrl = process.env.API_BASE_URL || "http://localhost:5000";
+    const response = await api.get(`/device/${deviceId}`);
 
-    const response = await fetch(`${apiBaseUrl}/device/${deviceId}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch device status: ${response.status}`);
-    }
-
-    const device = await response.json();
     return {
       success: true,
-      data: device,
+      data: response.data,
     };
   } catch (error) {
     console.error("Error fetching device status:", error);

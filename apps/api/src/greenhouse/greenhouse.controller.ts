@@ -13,18 +13,23 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { GreenhouseService } from './greenhouse.service';
+import { GeocodingService } from '../geocoding/geocoding.service';
 import {
   CreateGreenhouseDto,
   UpdateGreenhouseDto,
   GreenhouseConfigurationDto,
   SensorDataDto,
 } from './dto/greenhouse.dto';
+import { UpdateLocationDto } from './dto/update-location.dto';
 import { AuthGuard, RequestAuthGuard } from '../auth/guards/auth.guard';
 import { ApiKeyGuard } from '../auth/api-key.guard';
 
 @Controller('greenhouses')
 export class GreenhouseController {
-  constructor(private readonly greenhouseService: GreenhouseService) {}
+  constructor(
+    private readonly greenhouseService: GreenhouseService,
+    private readonly geocodingService: GeocodingService,
+  ) {}
   /**
    * Create a new greenhouse
    */
@@ -68,6 +73,49 @@ export class GreenhouseController {
     @Body(ValidationPipe) updateGreenhouseDto: UpdateGreenhouseDto,
   ) {
     return this.greenhouseService.update(id, req.user.id, updateGreenhouseDto);
+  }
+
+  /**
+   * Update greenhouse location
+   */
+  @Patch(':id/location')
+  @UseGuards(AuthGuard)
+  async updateLocation(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: RequestAuthGuard,
+    @Body(ValidationPipe) updateLocationDto: UpdateLocationDto,
+  ) {
+    return this.greenhouseService.updateLocation(id, req.user.id, {
+      location: updateLocationDto.location,
+      latitude: updateLocationDto.latitude,
+      longitude: updateLocationDto.longitude,
+    });
+  }
+
+  /**
+   * Update greenhouse location from coordinates
+   */
+  @Post(':id/location/from-coords')
+  @UseGuards(AuthGuard)
+  async updateLocationFromCoords(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: RequestAuthGuard,
+    @Body() body: { latitude: number; longitude: number },
+  ) {
+    const stateName = await this.geocodingService.getStateFromCoordinates(
+      body.latitude,
+      body.longitude,
+    );
+
+    return this.greenhouseService.updateLocation(
+      id,
+      req.user.id,
+      {
+        latitude: body.latitude,
+        longitude: body.longitude,
+        location: stateName,
+      },
+    );
   }
 
   /**

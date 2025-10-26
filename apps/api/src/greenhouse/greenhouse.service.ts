@@ -160,6 +160,35 @@ export class GreenhouseService {
   }
 
   /**
+   * Update greenhouse location
+   */
+  async updateLocation(
+    id: string,
+    userId: string,
+    data: { location: string; latitude?: number; longitude?: number },
+  ): Promise<Greenhouse> {
+    // Check ownership
+    await this.findOne(id, userId);
+
+    // Validate coordinates if provided
+    if (data.latitude !== undefined && (data.latitude < -90 || data.latitude > 90)) {
+      throw new BadRequestException('Latitude inválida');
+    }
+    if (data.longitude !== undefined && (data.longitude < -180 || data.longitude > 180)) {
+      throw new BadRequestException('Longitude inválida');
+    }
+
+    return this.prisma.greenhouse.update({
+      where: { id },
+      data: {
+        location: data.location,
+        latitude: data.latitude,
+        longitude: data.longitude,
+      },
+    });
+  }
+
+  /**
    * Delete a greenhouse
    */
   async remove(id: string, userId: string): Promise<void> {

@@ -23,9 +23,8 @@ import {
 } from "@/app/dashboard/_components/sensor-chart";
 import { DashboardFilters } from "@/app/dashboard/_components/dashboard-filters";
 import { generateAlerts } from "@/app/dashboard/_components/alerts-widget";
+import { WeatherForecast } from "@/components/dashboard/weather-forecast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import PlantSelect from "@/components/home/plant-select";
 
 interface DashboardContentProps {
@@ -75,7 +74,6 @@ export function DashboardContent({
   const {
     data: dashboardData,
     isLoading: isDashboardLoading,
-    refetch: refetchDashboard,
   } = useQuery({
     queryKey: ["dashboard", plantId, period, hours],
     queryFn: () => getDashboardData(plantId!, filters),
@@ -165,6 +163,9 @@ export function DashboardContent({
         hours={hours}
         onHoursChange={setHours}
       />
+
+      {/* Previsão do Tempo */}
+      <WeatherForecast greenhouseId="8729d23b-984f-41c5-a4a6-698cd1a9fe18" />
 
       {/* KPIs - Métricas atuais */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">

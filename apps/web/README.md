@@ -1,5 +1,33 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Configuração de Ambiente
+
+Antes de executar o projeto, você precisa configurar as seguintes variáveis de ambiente:
+
+1. Crie um arquivo `.env.local` na raiz do projeto `apps/web/`
+2. Adicione as seguintes variáveis:
+
+```bash
+# Configurações da API
+NEXT_PUBLIC_API_URL=http://localhost:5000
+
+# Configurações de Push Notifications
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_vapid_public_key_here
+
+# Configurações do MapTiler (obrigatório para o mapa funcionar)
+# Obtenha sua chave gratuita em: https://www.maptiler.com/
+NEXT_PUBLIC_MAPTILER_KEY=your_maptiler_key_here
+```
+
+### MapTiler Setup
+
+O mapa utiliza o MapTiler Streets v4 com suporte a temas claro e escuro. Para obter uma chave gratuita:
+
+1. Acesse [maptiler.com](https://www.maptiler.com/)
+2. Crie uma conta gratuita
+3. Copie sua chave de API
+4. Adicione-a ao arquivo `.env.local` como `NEXT_PUBLIC_MAPTILER_KEY`
+
 ## Getting Started
 
 First, run the development server:
