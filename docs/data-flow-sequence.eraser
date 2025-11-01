@@ -1,0 +1,45 @@
+title Diagrama de Sequência - Fluxo de Dados dos Sensores
+
+// Fluxo Principal
+esp32 -> esp32: "Coletar dados dos sensores"
+esp32 -> esp32: "Calcular média dos dados"
+esp32 -> backend: "POST /greenhouses/sensor-data\n{médias calculadas}"
+
+activate backend
+
+backend -> prisma: "Prisma Client"
+activate prisma
+
+prisma -> db: "INSERT INTO GreenhouseSensorReading"
+activate db
+
+db -> prisma: "Dados salvos"
+deactivate db
+
+prisma -> backend: "Dados persistidos"
+deactivate prisma
+
+backend -> esp32: "Confirmação de recebimento"
+deactivate backend
+
+// Uso dos dados salvos
+ai -> db: "Consultar dados históricos\npara análise"
+activate ai
+activate db
+db -> ai: "Retornar dados"
+deactivate db
+deactivate ai
+
+frontend -> backend: "GET /greenhouses/:id/sensor-history"
+activate backend
+backend -> prisma: "Consultar dados"
+activate prisma
+prisma -> db: "SELECT ... FROM GreenhouseSensorReading"
+activate db
+db -> prisma: "Dados"
+deactivate db
+prisma -> backend: "Dados formatados"
+deactivate prisma
+backend -> frontend: "Dados para visualização"
+deactivate backend
+

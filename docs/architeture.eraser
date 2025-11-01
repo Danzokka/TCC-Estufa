@@ -1,0 +1,41 @@
+direction right
+title Arquitetura do Projeto TCC - Estufa Inteligente
+
+Dispositivo ESP32 [icon: cpu, color: orange] {
+  ESP32 + Sensores [icon: cpu, label: "ESP32 + Sensores"]
+}
+
+Docker Compose [icon: docker] {
+  Backend [icon: nodejs, color: blue] {
+    NestJS [icon: nest, label: "API"]
+    Prisma ORM [icon:prisma, label:"Prisma ORM"]
+    Socket.IO [icon: websocket, color: yellow, label: "Socket.IO"]
+  }
+
+  Frontend [icon: next, color: green] {
+    NextJS [icon: next, label: "NextJS"]
+  }
+
+  Database [icon: postgresql, color: purple] {
+    PostgreSQL DB [icon: postgresql]
+  }
+  AI [icon: python, color: red] {
+    IA [icon: python, label: "IA"]
+  }
+}
+
+WeatherAPI [icon: cloud, color: lightblue, label: "WeatherAPI"]
+
+// Connections
+ESP32 + Sensores > NestJS : "envia dados dos sensores (HTTP POST)"
+NestJS  <> PostgreSQL DB: "grava/consulta dados"
+PostgreSQL DB --> IA : "dados históricos para treinamento"
+NestJS  < IA : "insights e recomendações"
+NestJS  <> NextJS : "HTTP REST (consulta dados / ações)"
+NestJS  < Socket.IO : "comunicação em tempo real"
+Socket.IO <> NextJS : "comunicação em tempo real"
+ESP32 + Sensores < NestJS : "comando de controle (ex: ativar bomba)"
+NestJS  --> Prisma ORM: "salva/lê dados"
+Prisma ORM > PostgreSQL DB: "acesso ao banco de dado"
+NestJS  > WeatherAPI: "consulta dados meteorológicos"
+WeatherAPI > NestJS : "previsão e histórico do tempo"

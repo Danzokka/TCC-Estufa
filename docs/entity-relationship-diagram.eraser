@@ -1,0 +1,155 @@
+title Diagrama de Entidade-Relacionamento - Sistema de Estufa Inteligente
+
+// Entidades Principais - Usuários e Autenticação
+users [icon: user, color: blue] {
+  id string pk
+  name string
+  email string unique
+  username string unique
+  password string
+  datecreated timestamp
+}
+
+refreshTokens [icon: key, color: blue] {
+  id string pk
+  token string unique
+  userId string
+  expiresAt timestamp
+  isRevoked boolean
+}
+
+// Relacionamento: User - RefreshToken (One-to-Many)
+users.id > refreshTokens.userId
+
+// Entidades - Estufas
+greenhouses [icon: home, color: green] {
+  id string pk
+  name string
+  ownerId string
+  activeUserPlantId string unique
+  location string
+  latitude float
+  longitude float
+  isOnline boolean
+  isConfigured boolean
+  lastDataUpdate timestamp
+}
+
+greenhouseSensorReadings [icon: activity, color: green] {
+  id string pk
+  greenhouseId string
+  airTemperature float
+  airHumidity float
+  soilMoisture int
+  soilTemperature float
+  waterReserve float
+  timestamp timestamp
+}
+
+weatherData [icon: cloud, color: lightblue] {
+  id string pk
+  greenhouseId string
+  date timestamp
+  maxTemp float
+  minTemp float
+  avgTemp float
+  totalPrecip float
+}
+
+// Relacionamentos: Greenhouse
+users.id > greenhouses.ownerId
+greenhouses.id > greenhouseSensorReadings.greenhouseId
+greenhouses.id > weatherData.greenhouseId
+greenhouses.activeUserPlantId > userPlants.id
+
+// Entidades - Plantas e Cultivos
+plants [icon: flower, color: yellow] {
+  id string pk
+  name string unique
+  description string
+  air_temperature_initial float
+  air_temperature_final float
+  air_humidity_initial float
+  air_humidity_final float
+  soil_moisture_initial int
+  soil_moisture_final int
+}
+
+userPlants [icon: sprout, color: yellow] {
+  id string pk
+  userId string
+  plantId string
+  greenhouseId string
+  nickname string
+  dateAdded timestamp
+}
+
+// Relacionamentos: Plantas
+users.id > userPlants.userId
+plants.id > userPlants.plantId
+greenhouses.id > userPlants.greenhouseId
+
+// Entidades - Irrigação
+irrigations [icon: droplet, color: cyan] {
+  id string pk
+  greenhouseId string
+  userId string
+  plantId string
+  sensorId string
+  type string
+  waterAmount float
+  notes string
+  createdAt timestamp
+}
+
+pumpOperations [icon: zap, color: cyan] {
+  id string pk
+  greenhouseId string
+  duration int
+  waterAmount float
+  status string
+  startedAt timestamp
+  endedAt timestamp
+}
+
+// Relacionamentos: Irrigação
+greenhouses.id > irrigations.greenhouseId
+users.id > irrigations.userId
+plants.id > irrigations.plantId
+greenhouseSensorReadings.id > irrigations.sensorId
+greenhouses.id > pumpOperations.greenhouseId
+
+// Nota: ESP32 envia dados apenas para Greenhouse (sem saber qual planta)
+// Greenhouse possui activeUserPlantId que define qual planta está sendo monitorada
+// GreenhouseSensorReading é vinculado apenas à Greenhouse
+
+// Entidades - Notificações
+notifications [icon: bell, color: red] {
+  id string pk
+  userId string
+  type string
+  title string
+  message string
+  data json
+  isRead boolean
+  createdAt timestamp
+}
+
+// Relacionamento: Notificações
+users.id > notifications.userId
+
+// Entidades - Relatórios
+reports [icon: file-text, color: purple] {
+  id string pk
+  userPlantId string
+  type string
+  startDate timestamp
+  endDate timestamp
+  totalReadings int
+  totalIrrigations int
+  aiInsights json
+  recommendations json
+}
+
+// Relacionamento: Relatórios
+userPlants.id > reports.userPlantId

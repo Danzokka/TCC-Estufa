@@ -16,11 +16,8 @@ model User {
   datecreated   DateTime       @default(now())
   dateupdated   DateTime       @updatedAt
   username      String         @unique
-  blogPosts     BlogPost[]
-  comments      Comment[]
   greenhouses   Greenhouse[]
   irrigations   Irrigation[]
-  likes         Like[]
   notifications Notification[]
   refreshTokens RefreshToken[]
   userPlants    UserPlant[]
@@ -46,76 +43,18 @@ model Plant {
 }
 
 model UserPlant {
-  id             String      @id @default(uuid())
-  userId         String
-  plantId        String
-  nickname       String?
-  dateAdded      DateTime    @default(now())
-  greenhouseId   String?
-  reports        Report[]
-  sensorReadings Sensor[]
-  greenhouse     Greenhouse? @relation(fields: [greenhouseId], references: [id])
-  plant          Plant       @relation(fields: [plantId], references: [id])
-  user           User        @relation(fields: [userId], references: [id])
+  id                    String       @id @default(uuid())
+  userId                String
+  plantId               String
+  nickname               String?
+  dateAdded              DateTime     @default(now())
+  greenhouseId           String?
+  reports                Report[]
+  greenhouse             Greenhouse?  @relation(fields: [greenhouseId], references: [id])
+  plant                  Plant        @relation(fields: [plantId], references: [id])
+  user                   User         @relation(fields: [userId], references: [id])
 
   @@unique([userId, plantId])
-}
-
-model Sensor {
-  id               String    @id @default(uuid())
-  air_temperature  Float
-  air_humidity     Float
-  soil_moisture    Int
-  soil_temperature Float
-  light_intensity  Float
-  water_level      Float
-  water_reserve    Float
-  timecreated      DateTime  @default(now())
-  userPlantId      String
-  userPlant        UserPlant @relation(fields: [userPlantId], references: [id])
-}
-
-model BlogPost {
-  id        String    @id @default(uuid())
-  title     String
-  slug      String    @unique
-  content   String
-  authorId  String
-  published Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  author    User      @relation(fields: [authorId], references: [id])
-  comments  Comment[]
-  likes     Like[]
-
-  @@index([authorId])
-  @@index([slug])
-}
-
-model Comment {
-  id         String   @id @default(uuid())
-  content    String
-  blogPostId String
-  authorId   String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  author     User     @relation(fields: [authorId], references: [id])
-  blogPost   BlogPost @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
-
-  @@index([blogPostId])
-  @@index([authorId])
-}
-
-model Like {
-  id         String   @id @default(uuid())
-  blogPostId String
-  userId     String
-  createdAt  DateTime @default(now())
-  blogPost   BlogPost @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id])
-
-  @@unique([userId, blogPostId])
-  @@index([blogPostId])
 }
 
 model PumpOperation {
@@ -138,32 +77,13 @@ model PumpOperation {
   @@index([startedAt])
 }
 
-model Device {
-  id              String     @id @default(uuid())
-  name            String
-  greenhouseId    String
-  type            String     @default("esp32")
-  ipAddress       String?
-  macAddress      String?    @unique
-  isOnline        Boolean    @default(false)
-  lastSeen        DateTime?
-  firmwareVersion String?
-  configuration   Json?
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
-  greenhouse      Greenhouse @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
-
-  @@index([greenhouseId])
-  @@index([type])
-  @@index([isOnline])
-}
-
 model Greenhouse {
   id                    String                    @id @default(uuid())
   name                  String
   description           String?
   location              String?
   ownerId               String
+  activeUserPlantId     String?                   @unique
   currentTemperature    Float?
   currentHumidity       Float?
   currentSoilMoisture   Int?
@@ -173,7 +93,6 @@ model Greenhouse {
   targetHumidity        Float                     @default(60.0)
   targetSoilMoisture    Int                       @default(50)
   minWaterLevel         Float                     @default(20.0)
-  deviceId              String?                   @unique
   wifiSSID              String?
   wifiPassword          String?
   isOnline              Boolean                   @default(false)
@@ -185,8 +104,8 @@ model Greenhouse {
   updatedAt             DateTime                  @updatedAt
   latitude              Float?
   longitude             Float?
-  devices               Device[]
   owner                 User                      @relation(fields: [ownerId], references: [id])
+  activeUserPlant       UserPlant?                @relation("ActivePlant", fields: [activeUserPlantId], references: [id], onDelete: SetNull)
   sensorReadings        GreenhouseSensorReading[]
   irrigations           Irrigation[]
   pumpOperations        PumpOperation[]
@@ -194,7 +113,7 @@ model Greenhouse {
   weatherData           WeatherData[]
 
   @@index([ownerId])
-  @@index([deviceId])
+  @@index([activeUserPlantId])
   @@index([isOnline])
   @@index([lastDataUpdate])
 }
@@ -209,7 +128,6 @@ model GreenhouseSensorReading {
   lightIntensity  Float
   waterLevel      Float
   waterReserve    Float?
-  deviceId        String?
   batteryLevel    Float?
   signalStrength  Int?
   timestamp       DateTime     @default(now())
@@ -220,7 +138,6 @@ model GreenhouseSensorReading {
 
   @@index([greenhouseId])
   @@index([timestamp])
-  @@index([deviceId])
 }
 
 model RefreshToken {
