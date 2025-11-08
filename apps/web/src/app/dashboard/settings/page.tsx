@@ -16,12 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import ThemeSwitcher from "@/components/layout/theme-switcher";
 import { LocationSettings } from "@/components/settings/location-settings";
 import { PWAInstallModal } from "@/components/pwa/pwa-install-modal";
-import {
-  Bell,
-  User,
-  Shield,
-  Smartphone,
-} from "lucide-react";
+import { Bell, User, Shield, Smartphone } from "lucide-react";
 
 const SettingsPage = async () => {
   const session = await getSession();
@@ -41,12 +36,17 @@ const SettingsPage = async () => {
   );
 };
 
-function SettingsContent({ greenhouseId, greenhouse }: { 
-  greenhouseId: string; 
-  greenhouse: { location?: string; latitude?: number; longitude?: number } | null; 
+function SettingsContent({
+  greenhouseId,
+  greenhouse,
+}: {
+  greenhouseId: string;
+  greenhouse: {
+    location?: string;
+    latitude?: number;
+    longitude?: number;
+  } | null;
 }) {
-  const [showPWAModal, setShowPWAModal] = React.useState(false);
-
   return (
     <div className="container mx-auto py-8 px-4 lg:px-8 max-w-4xl">
       <div className="mb-8">
@@ -78,12 +78,11 @@ function SettingsContent({ greenhouseId, greenhouse }: {
               </div>
               <ThemeSwitcher />
             </div>
-
           </CardContent>
         </Card>
 
         {/* Localização da Estufa */}
-        <LocationSettings 
+        <LocationSettings
           greenhouseId={greenhouseId}
           currentLocation={greenhouse?.location || undefined}
           currentLatitude={greenhouse?.latitude || undefined}
@@ -139,6 +138,7 @@ function SettingsContent({ greenhouseId, greenhouse }: {
         </Card>
 
         {/* Instalação PWA */}
+        {/*false && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -195,19 +195,9 @@ function SettingsContent({ greenhouseId, greenhouse }: {
               </p>
             </div>
 
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setShowPWAModal(true)}
-                className="flex-1"
-              >
-                <Smartphone className="h-4 w-4 mr-2" />
-                Ver Instruções Detalhadas
-              </Button>
-            </div>
           </CardContent>
         </Card>
+        */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -236,14 +226,8 @@ function SettingsContent({ greenhouseId, greenhouse }: {
           <Button variant="outline">Restaurar Padrões</Button>
         </div>
       </div>
-
-      {/* Modal PWA */}
-      <PWAInstallModal 
-        open={showPWAModal} 
-        onOpenChange={setShowPWAModal} 
-      />
     </div>
   );
-};
+}
 
 export default SettingsPage;

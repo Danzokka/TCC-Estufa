@@ -49,13 +49,13 @@ export default function IrrigationPage() {
     error: statsError,
   } = useQuery({
     queryKey: ["irrigation-stats"],
-    queryFn: getIrrigationStats,
+    queryFn: () => getIrrigationStats(),
     refetchInterval: 30000,
     refetchOnWindowFocus: true,
   });
 
-  const irrigations = irrigationsData?.data?.irrigations || [];
-  const stats = statsData?.data;
+  const irrigations = irrigationsData?.irrigations ?? [];
+  const stats = statsData ?? null;
   const isLoading = irrigationsLoading || statsLoading;
 
   // Tratamento de erros

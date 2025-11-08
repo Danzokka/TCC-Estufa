@@ -29,13 +29,13 @@ export function PWAInstallModal({ open, onOpenChange }: PWAInstallModalProps) {
     platform, 
     isInstalled, 
     isInstallable, 
-    showInstallPrompt, 
+    triggerInstallPrompt, 
     dismissInstallPrompt 
   } = usePWA();
 
   const handleInstall = async () => {
     if (isInstallable) {
-      await showInstallPrompt();
+      await triggerInstallPrompt();
     }
   };
 

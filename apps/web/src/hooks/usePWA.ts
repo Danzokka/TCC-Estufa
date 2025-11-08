@@ -125,7 +125,7 @@ export function usePWA() {
   }, []);
 
   // Função para mostrar o prompt de instalação
-  const showInstallPrompt = async () => {
+  const triggerInstallPrompt = async () => {
     if (pwaState.installPrompt) {
       await pwaState.installPrompt.prompt();
       const choiceResult = await pwaState.installPrompt.userChoice;
@@ -140,6 +140,7 @@ export function usePWA() {
         ...prev,
         installPrompt: null,
         isInstallable: false,
+        showInstallPrompt: false,
       }));
     }
   };
@@ -168,7 +169,7 @@ export function usePWA() {
 
   return {
     ...pwaState,
-    showInstallPrompt: showInstallPrompt,
+    triggerInstallPrompt,
     dismissInstallPrompt,
     enableInstallPrompt,
   };

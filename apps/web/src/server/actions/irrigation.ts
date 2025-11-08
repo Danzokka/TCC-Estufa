@@ -15,20 +15,22 @@ export async function getIrrigations(filters?: {
     const params = new URLSearchParams();
     if (filters?.greenhouseId) params.append('greenhouseId', filters.greenhouseId);
     if (filters?.type) params.append('type', filters.type);
-    if (filters?.limit) params.append('take', filters.limit.toString());
+    // Evita enviar limit para não quebrar validação do backend
 
     console.log('🔍 Buscando irrigações com filtros:', filters);
     console.log('📡 URL:', `/irrigation?${params.toString()}`);
 
     const response = await api.get(`/irrigation?${params.toString()}`);
-    
-    console.log('✅ Dados recebidos:', response.data);
-    return response.data;
+
+    const payload = response.data?.data ?? response.data;
+
+    console.log('✅ Dados recebidos:', payload);
+    return payload;
   } catch (error: any) {
     console.error('❌ Erro ao buscar irrigações:', error);
     console.error('❌ Status:', error.response?.status);
     console.error('❌ Data:', error.response?.data);
-    return { success: false, data: { irrigations: [] } };
+    return { irrigations: [], total: 0, hasMore: false };
   }
 }
 
@@ -138,23 +140,20 @@ export async function getIrrigationStats(filters?: {
     console.log('📊 Buscando estatísticas de irrigação com filtros:', filters);
     
     const response = await api.get(`/irrigation/stats/overview?${params.toString()}`);
+
+    const payload = response.data?.data ?? response.data;
     
-    console.log('✅ Estatísticas recebidas:', response.data);
-    return response.data;
+    console.log('✅ Estatísticas recebidas:', payload);
+    return payload;
   } catch (error: any) {
     console.error('❌ Erro ao buscar estatísticas:', error);
     console.error('❌ Status:', error.response?.status);
     console.error('❌ Data:', error.response?.data);
     return { 
-      success: false, 
-      data: { 
-        total: 0, 
-        manual: 0, 
-        rain: 0, 
-        detected: 0,
-        totalWater: 0,
-        avgWaterPerIrrigation: 0 
-      } 
+      totalIrrigations: 0,
+      totalWater: 0,
+      byType: [],
+      recentIrrigations: [],
     };
   }
 }
