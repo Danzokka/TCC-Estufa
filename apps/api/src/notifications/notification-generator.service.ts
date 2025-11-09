@@ -1,9 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
-import {
-  PlantMetricsService,
-  PlantAlert,
-} from '../plant/plant-metrics.service';
+// import {
+//   PlantMetricsService,
+//   PlantAlert,
+// } from '../plant/plant-metrics.service'; // TEMPORARILY DISABLED
+
+// Temporary types
+export type PlantAlert = any;
+export class PlantMetricsService {
+  async checkPlantHealth(_userPlantId: string): Promise<PlantAlert | null> {
+    return null;
+  }
+  async analyzeUserPlants(_userId: string): Promise<any[]> {
+    // Temporarily disabled - returns empty array
+    return [];
+  }
+}
+
 import { GreenhouseGateway } from '../websocket/greenhouse.gateway';
 
 @Injectable()
@@ -12,7 +25,7 @@ export class NotificationGeneratorService {
 
   constructor(
     private readonly notificationsService: NotificationsService,
-    private readonly plantMetricsService: PlantMetricsService,
+    // private readonly plantMetricsService: PlantMetricsService, // TEMPORARILY DISABLED
     private readonly greenhouseGateway: GreenhouseGateway,
   ) {}
 
@@ -21,8 +34,10 @@ export class NotificationGeneratorService {
    */
   async generateMetricNotifications(userId: string): Promise<number> {
     try {
-      const plantsMetrics =
-        await this.plantMetricsService.analyzeUserPlants(userId);
+      // TEMPORARILY DISABLED - PlantMetricsService not available
+      // const plantsMetrics =
+      //   await this.plantMetricsService.analyzeUserPlants(userId);
+      const plantsMetrics: any[] = [];
       let notificationsCreated = 0;
 
       for (const plantMetrics of plantsMetrics) {

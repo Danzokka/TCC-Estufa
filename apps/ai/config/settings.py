@@ -8,19 +8,21 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Configurações do modelo
+from pathlib import Path
+BASE_DIR = Path(__file__).parent.parent
 MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models", "saved")
+MODELS_DIR = BASE_DIR / "models" / "saved"  # Path object para compatibilidade
 WINDOW_SIZE = 24  # Janela de tempo para análise (24 horas)
 PREDICTION_HORIZON = 12  # Horizonte de previsão (12 horas)
 
 # Limites de variáveis para alertas (podem ser ajustados por planta)
+# Apenas os 4 campos reais de sensores
 THRESHOLDS = {
     "default": {
-        "air_temperature": {"min": 18.0, "max": 30.0},
-        "air_humidity": {"min": 40.0, "max": 80.0},
-        "soil_moisture": {"min": 0, "max": 4095},
-        "soil_temperature": {"min": 15.0, "max": 28.0},
-        "light_intensity": {"min": 2000.0, "max": 10000.0},
-        "water_level": {"min": 20.0, "max": 100.0},
+        "airTemperature": {"min": 18.0, "max": 30.0},
+        "airHumidity": {"min": 40.0, "max": 80.0},
+        "soilMoisture": {"min": 10, "max": 100},  # Porcentagem
+        "soilTemperature": {"min": 15.0, "max": 28.0},
     }
 }
 

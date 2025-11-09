@@ -20,7 +20,9 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:irrigation": "node scripts/test-irrigation.js",
     "test:frontend-notifications": "node scripts/test-frontend-notifications.js",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "seed:plant-health": "ts-node prisma/seed-plant-health-dataset.ts",
+    "seed:sensor-data": "ts-node prisma/seed-sensor-data.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
@@ -39,6 +41,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "compression": "^1.8.1",
+    "csv-parser": "^3.2.0",
     "helmet": "^8.1.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.501.0",

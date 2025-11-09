@@ -1,123 +1,220 @@
-import os
-import logging
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import SQLAlchemyError
+"""
+Database layer using Prisma Client Python
+Provides async access to PostgreSQL with type safety matching NestJS backend
+"""
 import pandas as pd
+from datetime import datetime, timedelta
+import os
+from dotenv import load_dotenv
+import logging
+from typing import Optional, List
+import asyncio
 
-from ..config.settings import DATABASE_URL
+from prisma import Prisma
+from prisma.models import GreenhouseSensorReading
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Criação da engine SQLAlchemy
-try:
-    engine = create_engine(DATABASE_URL)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    Base = declarative_base()
-    logger.info("Conexão com o banco de dados estabelecida com sucesso")
-except Exception as e:
-    logger.error(f"Erro ao conectar com o banco de dados: {e}")
-    raise
+# Carrega variáveis de ambiente
+load_dotenv()
 
-def get_db_session():
-    """Fornece uma sessão do banco de dados"""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Global Prisma client instance
+_prisma_client: Optional[Prisma] = None
 
-def fetch_sensor_data(user_plant_id=None, days=30):
+async def get_prisma_client() -> Prisma:
     """
-    Busca dados dos sensores do banco de dados
+    Get or create Prisma client singleton
+    Ensures only one connection is maintained
+    """
+    global _prisma_client
+    
+    if _prisma_client is None:
+        _prisma_client = Prisma()
+        await _prisma_client.connect()
+        logger.info("✅ Prisma Client Python conectado ao banco de dados")
+    
+    return _prisma_client
+
+async def close_prisma_client():
+    """Close Prisma client connection"""
+    global _prisma_client
+    
+    if _prisma_client is not None:
+        await _prisma_client.disconnect()
+        _prisma_client = None
+        logger.info("Prisma Client desconectado")
+
+async def fetch_sensor_data_async(hours: int = 24, greenhouse_id: Optional[str] = None) -> pd.DataFrame:
+    """
+    Fetch sensor data from database using Prisma Client Python
     
     Args:
-        user_plant_id: ID opcional da planta do usuário para filtrar
-        days: Número de dias de dados a retornar (padrão: 30)
-    
+        hours: Number of hours to fetch (default: 24)
+        greenhouse_id: Optional Greenhouse ID to filter data
+        
     Returns:
-        DataFrame pandas com os dados dos sensores
+        DataFrame with sensor readings (4 real fields only)
     """
     try:
-        db = next(get_db_session())
-        query = """
-            SELECT 
-                s.*,
-                up.nickname as plant_nickname,
-                p.name as plant_name,
-                p.air_temperature_initial, p.air_temperature_final,
-                p.air_humidity_initial, p.air_humidity_final,
-                p.soil_moisture_initial, p.soil_moisture_final,
-                p.soil_temperature_initial, p.soil_temperature_final,
-                p.light_intensity_initial, p.light_intensity_final
-            FROM "Sensor" s
-            JOIN "UserPlant" up ON s.userPlantId = up.id
-            JOIN "Plant" p ON up.plantId = p.id
-            WHERE s.timecreated >= NOW() - INTERVAL '{} days'
-        """.format(days)
+        prisma = await get_prisma_client()
         
-        if user_plant_id:
-            query += f" AND s.userPlantId = '{user_plant_id}'"
+        # Calculate start time
+        start_time = datetime.now() - timedelta(hours=hours)
+        
+        # Build query filters
+        where_conditions = {
+            'timestamp': {
+                'gte': start_time
+            }
+        }
+        
+        if greenhouse_id:
+            where_conditions['greenhouseId'] = greenhouse_id
+        
+        # Fetch data using Prisma
+        sensors: List[GreenhouseSensorReading] = await prisma.greenhousesensorreading.find_many(
+            where=where_conditions,
+            order={
+                'timestamp': 'asc'
+            }
+        )
+        
+        if not sensors:
+            logger.warning(f"⚠️  Nenhum dado encontrado para as últimas {hours} horas")
+            return pd.DataFrame()
+        
+        # Convert to DataFrame
+        data = []
+        for sensor in sensors:
+            data.append({
+                'id': sensor.id,
+                'timestamp': sensor.timestamp,
+                'airTemperature': sensor.airTemperature,
+                'airHumidity': sensor.airHumidity,
+                'soilMoisture': float(sensor.soilMoisture),  # Convert Int to Float
+                'soilTemperature': sensor.soilTemperature,
+                'greenhouse_id': sensor.greenhouseId,
+                'plantHealthScore': sensor.plantHealthScore,
+            })
+        
+        df = pd.DataFrame(data)
+        
+        # Ensure timestamp is datetime
+        if 'timestamp' in df.columns:
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+        
+        logger.info(f"✅ Dados carregados: {len(df)} registros (últimas {hours}h)")
+        return df
+        
+    except Exception as e:
+        logger.error(f"❌ Erro ao buscar dados dos sensores: {e}")
+        raise
+
+def fetch_sensor_data(hours: int = 24, greenhouse_id: Optional[str] = None) -> pd.DataFrame:
+    """
+    Synchronous wrapper for async fetch_sensor_data_async
+    Used for compatibility with existing Flask code
+    
+    Args:
+        hours: Number of hours to fetch
+        greenhouse_id: Optional Greenhouse ID filter
+        
+    Returns:
+        DataFrame with sensor data
+    """
+    global _prisma_client
+    
+    try:
+        # Always create a fresh event loop for each request to avoid conflicts
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        async def fetch_with_fresh_connection():
+            # Disconnect old client if exists
+            global _prisma_client
+            if _prisma_client is not None:
+                try:
+                    await _prisma_client.disconnect()
+                except:
+                    pass
+                _prisma_client = None
             
-        query += " ORDER BY s.timecreated ASC"
+            # Fetch data (will create new connection)
+            return await fetch_sensor_data_async(hours, greenhouse_id)
         
-        df = pd.read_sql(query, engine)
-        logger.info(f"Dados de sensores recuperados: {len(df)} registros")
-        return df
-    
-    except SQLAlchemyError as e:
-        logger.error(f"Erro ao buscar dados dos sensores: {e}")
-        return pd.DataFrame()
+        result = loop.run_until_complete(fetch_with_fresh_connection())
+        loop.close()
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Erro na busca síncrona: {e}")
+        raise
 
-def fetch_plant_metadata():
+async def update_plant_health_async(sensor_id: str, health_score: float, predicted_moisture: Optional[List[float]] = None):
     """
-    Busca metadados das plantas do banco de dados
+    Update sensor record with AI predictions
     
-    Returns:
-        DataFrame pandas com os metadados das plantas
+    Args:
+        sensor_id: GreenhouseSensorReading record ID
+        health_score: Predicted plant health score (0-100)
+        predicted_moisture: Optional array of 12h moisture predictions
     """
     try:
-        db = next(get_db_session())
-        query = """
-            SELECT 
-                p.*
-            FROM "Plant" p
-        """
+        prisma = await get_prisma_client()
         
-        df = pd.read_sql(query, engine)
-        logger.info(f"Metadados de plantas recuperados: {len(df)} registros")
-        return df
-    
-    except SQLAlchemyError as e:
-        logger.error(f"Erro ao buscar metadados das plantas: {e}")
-        return pd.DataFrame()
+        update_data = {
+            'plantHealthScore': health_score
+        }
+        
+        # Note: predictedMoisture not in GreenhouseSensorReading model
+        # Health score is the main AI prediction stored
+        
+        await prisma.greenhousesensorreading.update(
+            where={'id': sensor_id},
+            data=update_data
+        )
+        
+        logger.info(f"✅ Health score atualizado: {health_score:.2f} (sensor: {sensor_id[:8]}...)")
+        
+    except Exception as e:
+        logger.error(f"❌ Erro ao atualizar health score: {e}")
+        raise
 
-def fetch_user_plants():
+def update_plant_health(sensor_id: str, health_score: float, predicted_moisture: Optional[List[float]] = None):
     """
-    Busca plantas dos usuários do banco de dados
+    Synchronous wrapper for update_plant_health_async
     
-    Returns:
-        DataFrame pandas com as plantas dos usuários
+    Args:
+        sensor_id: Sensor record ID
+        health_score: Predicted plant health score
+        predicted_moisture: Optional moisture predictions
     """
+    global _prisma_client
+    
     try:
-        db = next(get_db_session())
-        query = """
-            SELECT 
-                up.*,
-                u.username,
-                p.name as plant_name
-            FROM "UserPlant" up
-            JOIN "User" u ON up.userId = u.id
-            JOIN "Plant" p ON up.plantId = p.id
-        """
+        # Always create a fresh event loop for each request
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         
-        df = pd.read_sql(query, engine)
-        logger.info(f"Plantas dos usuários recuperadas: {len(df)} registros")
-        return df
-    
-    except SQLAlchemyError as e:
-        logger.error(f"Erro ao buscar plantas dos usuários: {e}")
-        return pd.DataFrame()
+        async def update_with_fresh_connection():
+            # Disconnect old client if exists
+            global _prisma_client
+            if _prisma_client is not None:
+                try:
+                    await _prisma_client.disconnect()
+                except:
+                    pass
+                _prisma_client = None
+            
+            # Update (will create new connection)
+            return await update_plant_health_async(sensor_id, health_score, predicted_moisture)
+        
+        loop.run_until_complete(update_with_fresh_connection())
+        loop.close()
+        
+    except Exception as e:
+        logger.error(f"❌ Erro na atualização síncrona: {e}")
+        raise

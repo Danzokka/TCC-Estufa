@@ -1,15 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
 import { PrismaService } from 'src/prisma.service';
 import { CreateSensorDataDto } from './dto/CreateSensorDataDto';
+import { PlantHealthDto } from './dto/PlantHealthDto';
 import { GetAggregatedDataDto, PeriodEnum } from './dto/GetAggregatedDataDto';
 import { IrrigationService } from '../irrigation/irrigation.service';
 import { NotificationGeneratorService } from '../notifications/notification-generator.service';
+import { firstValueFrom } from 'rxjs';
 
 export interface DashboardKPIs {
   avgTemperature: number;
   avgHumidity: number;
   avgSoilMoisture: number;
-  avgWaterLevel: number;
   maxTemperature: number;
   minTemperature: number;
   maxHumidity: number;
@@ -21,39 +23,84 @@ export interface DashboardKPIs {
 @Injectable()
 export class SensorService {
   private readonly logger = new Logger(SensorService.name);
+  private readonly AI_SERVICE_URL =
+    process.env.AI_SERVICE_URL || 'http://localhost:5001';
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly irrigationService: IrrigationService,
     private readonly notificationGenerator: NotificationGeneratorService,
+    private readonly httpService: HttpService,
   ) {}
 
+  /**
+   * Recebe dados simplificados (4 campos) e persiste diretamente no GreenhouseSensorReading
+   */
   async sendData(data: CreateSensorDataDto) {
     try {
-      const sensorData = await this.prisma.sensor.create({
+      // Get the greenhouse associated with the userPlant
+      const userPlant = await this.prisma.userPlant.findUnique({
+        where: { id: data.userPlant },
+        select: {
+          greenhouseId: true,
+          userId: true,
+          greenhouse: { select: { id: true } },
+        },
+      });
+
+      if (!userPlant?.greenhouseId) {
+        throw new Error(
+          `UserPlant ${data.userPlant} has no associated greenhouse`,
+        );
+      }
+
+      const greenhouse = await this.prisma.greenhouse.findUnique({
+        where: { id: userPlant.greenhouseId },
+      });
+
+      if (!greenhouse) {
+        throw new Error(`Greenhouse ${userPlant.greenhouseId} not found`);
+      }
+
+      // Create the greenhouse sensor reading directly
+      const sensorReading = await this.prisma.greenhouseSensorReading.create({
         data: {
-          air_temperature: data.air_temperature,
-          air_humidity: data.air_humidity,
-          soil_temperature: data.soil_temperature,
-          soil_moisture: data.soil_moisture,
-          light_intensity: data.light_intensity,
-          water_level: data.water_level,
-          water_reserve: data.water_reserve,
-          userPlantId: data.userPlant, // Ensure this property is provided in CreateSensorDataDto
+          greenhouseId: greenhouse.id,
+          airTemperature: data.air_temperature,
+          airHumidity: data.air_humidity,
+          soilMoisture: data.soil_moisture,
+          soilTemperature: data.soil_temperature,
+        },
+      });
+
+      // Update greenhouse current values
+      await this.prisma.greenhouse.update({
+        where: { id: greenhouse.id },
+        data: {
+          currentTemperature: data.air_temperature,
+          currentHumidity: data.air_humidity,
+          currentSoilMoisture: data.soil_moisture,
         },
       });
 
       // Check for irrigation detection after saving sensor data
-      await this.checkForIrrigationDetection(sensorData);
+      await this.checkForIrrigationDetection(sensorReading);
+
+      // Call AI service to analyze plant health (async, non-blocking)
+      this.callAIServiceAsync(
+        greenhouse.id,
+        sensorReading.id,
+        data.userPlant,
+      ).catch((error) => {
+        this.logger.error(
+          'AI service call failed (non-blocking):',
+          error.message,
+        );
+      });
 
       // Generate metric notifications for the user plant
       try {
-        const userPlant = await this.prisma.userPlant.findUnique({
-          where: { id: data.userPlant },
-          select: { userId: true },
-        });
-
-        if (userPlant) {
+        if (userPlant.userId) {
           await this.notificationGenerator.generateMetricNotifications(
             userPlant.userId,
           );
@@ -62,8 +109,8 @@ export class SensorService {
         this.logger.error('Error generating metric notifications:', error);
       }
 
-      this.logger.log('Data sent successfully:', sensorData);
-      return sensorData;
+      this.logger.log('Sensor data saved successfully:', sensorReading);
+      return sensorReading;
     } catch (error) {
       this.logger.error('Error sending data:', error);
       throw new Error('Failed to send data');
@@ -72,9 +119,17 @@ export class SensorService {
 
   async getData() {
     try {
-      const data = await this.prisma.sensor.findMany({
+      const data = await this.prisma.greenhouseSensorReading.findMany({
         orderBy: {
-          timecreated: 'desc',
+          timestamp: 'desc',
+        },
+        include: {
+          greenhouse: {
+            select: {
+              name: true,
+              location: true,
+            },
+          },
         },
       });
       this.logger.log('Data retrieved successfully:', data);
@@ -156,16 +211,26 @@ export class SensorService {
         `Filter: plantId=${filters.plantId}, period=${filters.period}, hours=${filters.hours}`,
       );
 
+      // Get greenhouse ID from plantId if provided
+      let greenhouseId: string | undefined;
+      if (filters.plantId) {
+        const userPlant = await this.prisma.userPlant.findUnique({
+          where: { id: filters.plantId },
+          select: { greenhouseId: true },
+        });
+        greenhouseId = userPlant?.greenhouseId || undefined;
+      }
+
       // Buscar todos os dados do período usando Prisma
-      const readings = await this.prisma.sensor.findMany({
+      const readings = await this.prisma.greenhouseSensorReading.findMany({
         where: {
-          timecreated: {
+          timestamp: {
             gte: startDate,
           },
-          ...(filters.plantId && { userPlantId: filters.plantId }),
+          ...(greenhouseId && { greenhouseId }),
         },
         orderBy: {
-          timecreated: 'asc',
+          timestamp: 'asc',
         },
       });
 
@@ -175,7 +240,7 @@ export class SensorService {
 
       if (readings.length > 0) {
         this.logger.log(
-          `First reading: ${readings[0].timecreated}, Last reading: ${readings[readings.length - 1].timecreated}`,
+          `First reading: ${readings[0].timestamp}, Last reading: ${readings[readings.length - 1].timestamp}`,
         );
       }
 
@@ -183,7 +248,7 @@ export class SensorService {
       const intervalMap = new Map<string, typeof readings>();
 
       readings.forEach((reading) => {
-        const readingTime = new Date(reading.timecreated);
+        const readingTime = new Date(reading.timestamp);
 
         // Calcular o timestamp arredondado para o intervalo
         // Usar timestamp completo em minutos desde epoch, não apenas horas do dia
@@ -210,25 +275,19 @@ export class SensorService {
         ([intervalKey, intervalReadings]) => {
           const count = intervalReadings.length;
 
-          // Calcular somas
+          // Calcular somas (apenas 4 campos)
           const sums = intervalReadings.reduce(
             (acc, reading) => ({
-              air_temperature: acc.air_temperature + reading.air_temperature,
-              air_humidity: acc.air_humidity + reading.air_humidity,
-              soil_temperature: acc.soil_temperature + reading.soil_temperature,
-              soil_moisture: acc.soil_moisture + reading.soil_moisture,
-              light_intensity: acc.light_intensity + reading.light_intensity,
-              water_level: acc.water_level + reading.water_level,
-              water_reserve: acc.water_reserve + reading.water_reserve,
+              air_temperature: acc.air_temperature + reading.airTemperature,
+              air_humidity: acc.air_humidity + reading.airHumidity,
+              soil_temperature: acc.soil_temperature + reading.soilTemperature,
+              soil_moisture: acc.soil_moisture + reading.soilMoisture,
             }),
             {
               air_temperature: 0,
               air_humidity: 0,
               soil_temperature: 0,
               soil_moisture: 0,
-              light_intensity: 0,
-              water_level: 0,
-              water_reserve: 0,
             },
           );
 
@@ -241,10 +300,7 @@ export class SensorService {
               (sums.soil_temperature / count).toFixed(2),
             ),
             soil_moisture: Number((sums.soil_moisture / count).toFixed(2)),
-            light_intensity: Number((sums.light_intensity / count).toFixed(2)),
-            water_level: Number((sums.water_level / count).toFixed(2)),
-            water_reserve: Number((sums.water_reserve / count).toFixed(2)),
-            timecreated: intervalKey,
+            timestamp: intervalKey,
             reading_count: count,
           };
         },
@@ -253,7 +309,7 @@ export class SensorService {
       // Ordenar por timestamp
       formattedData.sort(
         (a, b) =>
-          new Date(a.timecreated).getTime() - new Date(b.timecreated).getTime(),
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
       );
 
       this.logger.log(
@@ -280,19 +336,29 @@ export class SensorService {
     try {
       const startDate = this.getStartDate(filters.period, filters.hours);
 
+      // Get greenhouse ID from plantId if provided
+      let greenhouseId: string | undefined;
+      if (filters.plantId) {
+        const userPlant = await this.prisma.userPlant.findUnique({
+          where: { id: filters.plantId },
+          select: { greenhouseId: true },
+        });
+        greenhouseId = userPlant?.greenhouseId || undefined;
+      }
+
       // Buscar última leitura usando Prisma
-      const latest = await this.prisma.sensor.findFirst({
-        where: filters.plantId ? { userPlantId: filters.plantId } : {},
-        orderBy: { timecreated: 'desc' },
+      const latest = await this.prisma.greenhouseSensorReading.findFirst({
+        where: greenhouseId ? { greenhouseId } : {},
+        orderBy: { timestamp: 'desc' },
       });
 
       // Buscar todas as leituras do período para calcular KPIs
-      const readings = await this.prisma.sensor.findMany({
+      const readings = await this.prisma.greenhouseSensorReading.findMany({
         where: {
-          timecreated: {
+          timestamp: {
             gte: startDate,
           },
-          ...(filters.plantId && { userPlantId: filters.plantId }),
+          ...(greenhouseId && { greenhouseId }),
         },
       });
 
@@ -324,24 +390,22 @@ export class SensorService {
   private calculateKPIs(readings: any[], latest: any): DashboardKPIs {
     if (readings.length === 0) {
       return {
-        avgTemperature: latest?.air_temperature || 0,
-        avgHumidity: latest?.air_humidity || 0,
-        avgSoilMoisture: latest?.soil_moisture || 0,
-        avgWaterLevel: latest?.water_level || 0,
-        maxTemperature: latest?.air_temperature || 0,
-        minTemperature: latest?.air_temperature || 0,
-        maxHumidity: latest?.air_humidity || 0,
-        minHumidity: latest?.air_humidity || 0,
+        avgTemperature: latest?.airTemperature || 0,
+        avgHumidity: latest?.airHumidity || 0,
+        avgSoilMoisture: latest?.soilMoisture || 0,
+        maxTemperature: latest?.airTemperature || 0,
+        minTemperature: latest?.airTemperature || 0,
+        maxHumidity: latest?.airHumidity || 0,
+        minHumidity: latest?.airHumidity || 0,
         totalReadings: 0,
-        lastUpdated: latest?.timecreated?.toISOString() || null,
+        lastUpdated: latest?.timestamp?.toISOString() || null,
       };
     }
 
-    // Extrair valores
-    const temperatures = readings.map((r) => r.air_temperature);
-    const humidities = readings.map((r) => r.air_humidity);
-    const soilMoistures = readings.map((r) => r.soil_moisture);
-    const waterLevels = readings.map((r) => r.water_level);
+    // Extrair valores (apenas 4 campos)
+    const temperatures = readings.map((r) => r.airTemperature);
+    const humidities = readings.map((r) => r.airHumidity);
+    const soilMoistures = readings.map((r) => r.soilMoisture);
 
     // Calcular médias
     const avgTemperature =
@@ -350,71 +414,29 @@ export class SensorService {
       humidities.reduce((a, b) => a + b, 0) / humidities.length;
     const avgSoilMoisture =
       soilMoistures.reduce((a, b) => a + b, 0) / soilMoistures.length;
-    const avgWaterLevel =
-      waterLevels.reduce((a, b) => a + b, 0) / waterLevels.length;
 
     return {
       avgTemperature: Number(avgTemperature.toFixed(2)),
       avgHumidity: Number(avgHumidity.toFixed(2)),
       avgSoilMoisture: Number(avgSoilMoisture.toFixed(2)),
-      avgWaterLevel: Number(avgWaterLevel.toFixed(2)),
       maxTemperature: Number(Math.max(...temperatures).toFixed(2)),
       minTemperature: Number(Math.min(...temperatures).toFixed(2)),
       maxHumidity: Number(Math.max(...humidities).toFixed(2)),
       minHumidity: Number(Math.min(...humidities).toFixed(2)),
       totalReadings: readings.length,
-      lastUpdated: latest?.timecreated?.toISOString() || null,
+      lastUpdated: latest?.timestamp?.toISOString() || null,
     };
   }
 
   /**
    * Check for irrigation detection based on soil moisture changes
    */
-  async checkForIrrigationDetection(sensorData: any) {
+  async checkForIrrigationDetection(greenhouseSensorReading: any) {
     try {
-      // Get the user plant to find the greenhouse
-      const userPlant = await this.prisma.userPlant.findUnique({
-        where: { id: sensorData.userPlantId },
-        include: { user: true },
-      });
-
-      if (!userPlant) {
-        this.logger.warn(
-          `UserPlant not found for sensor data: ${sensorData.id}`,
-        );
-        return;
-      }
-
-      // Get recent greenhouse sensor readings for this user plant's greenhouse
-      const greenhouse = await this.prisma.greenhouse.findFirst({
-        where: { ownerId: userPlant.userId },
-      });
-
-      if (!greenhouse) {
-        this.logger.warn(`Greenhouse not found for user: ${userPlant.userId}`);
-        return;
-      }
-
-      // Create a greenhouse sensor reading from the sensor data
-      const greenhouseReading =
-        await this.prisma.greenhouseSensorReading.create({
-          data: {
-            greenhouseId: greenhouse.id,
-            airTemperature: sensorData.air_temperature,
-            airHumidity: sensorData.air_humidity,
-            soilMoisture: sensorData.soil_moisture,
-            soilTemperature: sensorData.soil_temperature,
-            lightIntensity: sensorData.light_intensity,
-            waterLevel: sensorData.water_level,
-            waterReserve: sensorData.water_reserve,
-            deviceId: null, // Will be set when device is properly configured
-          },
-        });
-
       // Use the irrigation service to detect moisture-based irrigation
       await this.irrigationService.detectMoistureIrrigation(
-        greenhouse.id,
-        greenhouseReading.id,
+        greenhouseSensorReading.greenhouseId,
+        greenhouseSensorReading.soilMoisture,
       );
     } catch (error) {
       this.logger.error('Error checking for irrigation detection:', error);
@@ -448,6 +470,138 @@ export class SensorService {
     } catch (error) {
       this.logger.error('Error checking pump activation:', error);
       return false; // Default to no pump activation on error
+    }
+  }
+
+  /**
+   * Chama o Flask AI Service para análise de saúde da planta
+   * Esta função é non-blocking e não deve falhar o fluxo principal
+   */
+  private async callAIServiceAsync(
+    greenhouseId: string,
+    sensorReadingId: string,
+    userPlantId: string,
+  ): Promise<void> {
+    try {
+      this.logger.log(
+        `🤖 Calling AI service for greenhouse ${greenhouseId}...`,
+      );
+
+      // Call Flask AI service
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.AI_SERVICE_URL}/analyze-sensors`,
+          { greenhouseId },
+          {
+            timeout: 10000, // 10 second timeout
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+      );
+
+      const aiResult = response.data;
+
+      this.logger.log(
+        `✅ AI analysis complete: Health=${aiResult.healthScore}, Status=${aiResult.healthStatus}`,
+      );
+
+      // Update the sensor reading with AI predictions
+      await this.prisma.greenhouseSensorReading.update({
+        where: { id: sensorReadingId },
+        data: {
+          plantHealthScore: aiResult.healthScore,
+          // Note: predictedMoisture array would need schema update to store
+        },
+      });
+
+      // Create notification if plant health is critical
+      if (aiResult.healthStatus === 'HIGH_STRESS') {
+        try {
+          const userPlant = await this.prisma.userPlant.findUnique({
+            where: { id: userPlantId },
+            select: { userId: true, plant: { select: { name: true } } },
+          });
+
+          if (userPlant?.userId) {
+            await this.prisma.notification.create({
+              data: {
+                userId: userPlant.userId,
+                title: '⚠️ Alerta de Saúde da Planta',
+                message: `Planta ${userPlant.plant?.name || 'desconhecida'} com estresse crítico (Score: ${aiResult.healthScore.toFixed(1)}). ${aiResult.recommendations?.[0] || 'Verifique as condições.'}`,
+                type: 'ALERT',
+                isRead: false,
+              },
+            });
+            this.logger.log(
+              `📢 Critical health notification created for user ${userPlant.userId}`,
+            );
+          }
+        } catch (notifError) {
+          this.logger.error(
+            'Failed to create health notification:',
+            notifError,
+          );
+        }
+      }
+
+      this.logger.log(`💾 AI predictions saved to database`);
+    } catch (error) {
+      // Log error but don't throw - AI service failure should not block sensor data saving
+      if (error.code === 'ECONNREFUSED') {
+        this.logger.warn('⚠️  AI service not available (connection refused)');
+      } else if (error.code === 'ETIMEDOUT') {
+        this.logger.warn('⚠️  AI service timeout');
+      } else {
+        this.logger.error('❌ AI service error:', error.message);
+      }
+    }
+  }
+
+  /**
+   * Atualiza o plantHealthScore da última leitura de uma greenhouse associada ao userPlant
+   */
+  async updatePlantHealthScore(dto: PlantHealthDto) {
+    try {
+      const userPlant = await this.prisma.userPlant.findUnique({
+        where: { id: dto.userPlantId },
+        select: { greenhouseId: true, userId: true },
+      });
+      if (!userPlant || !userPlant.greenhouseId) {
+        this.logger.warn(
+          `UserPlant ${dto.userPlantId} não possui greenhouse associada.`,
+        );
+        return null;
+      }
+
+      const latestReading = await this.prisma.greenhouseSensorReading.findFirst(
+        {
+          where: { greenhouseId: userPlant.greenhouseId },
+          orderBy: { timestamp: 'desc' },
+        },
+      );
+
+      if (!latestReading) {
+        this.logger.warn(
+          `Nenhuma leitura encontrada para greenhouse ${userPlant.greenhouseId}.`,
+        );
+        return null;
+      }
+
+      const updated = await this.prisma.greenhouseSensorReading.update({
+        where: { id: latestReading.id },
+        data: { plantHealthScore: dto.confidence },
+      });
+
+      // Geração opcional de notificação pode ser integrada aqui (futuro)
+      return {
+        reading: updated,
+        healthStatus: dto.healthStatus,
+        confidence: dto.confidence,
+        recommendations: dto.recommendations,
+      };
+    } catch (err) {
+      this.logger.error('Erro ao atualizar plantHealthScore', err);
+      throw err;
     }
   }
 }

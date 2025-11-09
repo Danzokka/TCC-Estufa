@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { SensorService } from './sensor.service';
 import { CreateSensorDataDto } from './dto/CreateSensorDataDto';
+import { PlantHealthDto } from './dto/PlantHealthDto';
 import { GetAggregatedDataDto } from './dto/GetAggregatedDataDto';
 
 @Controller('sensor')
@@ -15,6 +16,23 @@ export class SensorController {
     } catch (error) {
       console.error('Error sending data:', error);
       return { message: 'Error sending data', error: error.message };
+    }
+  }
+
+  /**
+   * Endpoint para AI Service enviar análise de saúde da planta
+   */
+  @Post('health-status')
+  async updateHealthStatus(@Body() healthDto: PlantHealthDto) {
+    try {
+      const result = await this.sensorService.updatePlantHealthScore(healthDto);
+      return {
+        message: 'Plant health status updated successfully',
+        data: result,
+      };
+    } catch (error) {
+      console.error('Error updating health status:', error);
+      return { message: 'Error updating health status', error: error.message };
     }
   }
 

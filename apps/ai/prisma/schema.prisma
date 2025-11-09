@@ -1,5 +1,10 @@
+// Prisma Schema for Python AI Service
+// MUST MATCH NestJS backend schema exactly
+
 generator client {
-  provider = "prisma-client-js"
+  provider             = "prisma-client-py"
+  interface            = "asyncio"
+  recursive_type_depth = 5
 }
 
 datasource db {
@@ -58,26 +63,6 @@ model UserPlant {
   @@unique([userId, plantId])
 }
 
-model PumpOperation {
-  id            String     @id @default(uuid())
-  greenhouseId  String
-  duration      Int
-  waterAmount   Float?
-  reason        String?
-  startedAt     DateTime   @default(now())
-  endedAt       DateTime?
-  status        String     @default("active")
-  errorMessage  String?
-  esp32Response String?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  greenhouse    Greenhouse @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
-
-  @@index([greenhouseId])
-  @@index([status])
-  @@index([startedAt])
-}
-
 model Greenhouse {
   id                    String                    @id @default(uuid())
   name                  String
@@ -120,11 +105,11 @@ model Greenhouse {
 model GreenhouseSensorReading {
   id               String       @id @default(uuid())
   greenhouseId     String
-  airTemperature   Float        // DHT22 sensor
-  airHumidity      Float        // DHT22 sensor
-  soilMoisture     Int          // Soil moisture sensor
-  soilTemperature  Float        // Soil temperature sensor
-  plantHealthScore Float?       // AI-calculated health score (0-100)
+  airTemperature   Float
+  airHumidity      Float
+  soilMoisture     Int
+  soilTemperature  Float
+  plantHealthScore Float?
   timestamp        DateTime     @default(now())
   isValid          Boolean      @default(true)
   errorMessage     String?
@@ -134,6 +119,26 @@ model GreenhouseSensorReading {
   @@index([greenhouseId])
   @@index([timestamp])
   @@index([plantHealthScore])
+}
+
+model PumpOperation {
+  id            String     @id @default(uuid())
+  greenhouseId  String
+  duration      Int
+  waterAmount   Float?
+  reason        String?
+  startedAt     DateTime   @default(now())
+  endedAt       DateTime?
+  status        String     @default("active")
+  errorMessage  String?
+  esp32Response String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  greenhouse    Greenhouse @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
+
+  @@index([greenhouseId])
+  @@index([status])
+  @@index([startedAt])
 }
 
 model RefreshToken {

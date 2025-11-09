@@ -6,8 +6,13 @@ import numpy as np
 import logging
 import joblib
 from datetime import datetime
+from dotenv import load_dotenv
 
-from ..config.settings import MODEL_PATH, WINDOW_SIZE, PREDICTION_HORIZON
+# Carregar variáveis de ambiente
+load_dotenv()
+MODEL_PATH = os.getenv("MODEL_PATH", "./models/saved")
+WINDOW_SIZE = int(os.getenv("WINDOW_SIZE", "24"))
+PREDICTION_HORIZON = int(os.getenv("PREDICTION_HORIZON", "12"))
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO)
@@ -65,9 +70,6 @@ class LSTMModel(nn.Module):
         Returns:
             Tensor de saída (batch_size, output_size)
         """
-        # Mover dados para GPU se disponível
-        x = x.to(device)
-        
         # Dimensões iniciais do tensor: (batch_size, seq_len, input_size)
         batch_size = x.size(0)
         
@@ -130,7 +132,7 @@ class PlantLSTMTrainer:
             hidden_size=64,
             num_layers=2,
             output_size=y_train.shape[1]
-        )
+        ).to(device)  # Mover modelo para device (CPU ou GPU)
         
         # Definir função de perda e otimizador
         criterion = nn.MSELoss()
@@ -143,6 +145,10 @@ class PlantLSTMTrainer:
         for epoch in range(epochs):
             epoch_loss = 0
             for X_batch, y_batch in train_loader:
+                # Mover dados para o mesmo device do modelo
+                X_batch = X_batch.to(device)
+                y_batch = y_batch.to(device)
+                
                 # Zerar gradientes
                 optimizer.zero_grad()
                 

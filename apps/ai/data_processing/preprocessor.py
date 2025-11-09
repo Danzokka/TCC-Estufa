@@ -12,11 +12,42 @@ class DataPreprocessor:
     
     def __init__(self):
         self.scalers = {}
+        # Apenas os 4 campos reais de sensores (camelCase do banco de dados)
         self.feature_columns = [
-            'air_temperature', 'air_humidity', 
-            'soil_moisture', 'soil_temperature', 
-            'light_intensity', 'water_level', 'water_reserve'
+            'airTemperature', 'airHumidity', 
+            'soilMoisture', 'soilTemperature'
         ]
+        # Mapeamento snake_case para camelCase (compatibilidade)
+        self.column_mapping = {
+            'air_temperature': 'airTemperature',
+            'air_humidity': 'airHumidity',
+            'soil_moisture': 'soilMoisture',
+            'soil_temperature': 'soilTemperature'
+        }
+    
+    def normalize_column_names(self, df):
+        """
+        Normaliza os nomes das colunas para o padrão camelCase do banco de dados
+        
+        Args:
+            df: DataFrame com nomes de colunas em snake_case ou camelCase
+            
+        Returns:
+            DataFrame com nomes de colunas normalizados
+        """
+        normalized_df = df.copy()
+        
+        # Aplicar mapeamento se necessário
+        for old_name, new_name in self.column_mapping.items():
+            if old_name in normalized_df.columns and new_name not in normalized_df.columns:
+                normalized_df.rename(columns={old_name: new_name}, inplace=True)
+                logger.info(f"Renomeada coluna {old_name} para {new_name}")
+        
+        # Também normalizar timestamp
+        if 'timecreated' in normalized_df.columns:
+            normalized_df.rename(columns={'timecreated': 'timestamp'}, inplace=True)
+        
+        return normalized_df
         
     def clean_data(self, df):
         """
@@ -30,13 +61,13 @@ class DataPreprocessor:
         """
         logger.info("Iniciando limpeza de dados...")
         
-        # Criar cópia para não modificar o original
-        clean_df = df.copy()
+        # Normalizar nomes de colunas primeiro
+        clean_df = self.normalize_column_names(df)
         
         # Converter coluna de tempo para datetime
-        if 'timecreated' in clean_df.columns:
-            clean_df['timecreated'] = pd.to_datetime(clean_df['timecreated'])
-            clean_df = clean_df.sort_values('timecreated')
+        if 'timestamp' in clean_df.columns:
+            clean_df['timestamp'] = pd.to_datetime(clean_df['timestamp'])
+            clean_df = clean_df.sort_values('timestamp')
         
         # Remover duplicatas
         original_len = len(clean_df)
@@ -165,19 +196,19 @@ class DataPreprocessor:
         Adiciona características de tempo ao DataFrame
         
         Args:
-            df: DataFrame com coluna 'timecreated'
+            df: DataFrame com coluna 'timestamp'
             
         Returns:
             DataFrame com características de tempo adicionadas
         """
-        if 'timecreated' not in df.columns:
-            logger.warning("Coluna 'timecreated' não encontrada")
+        if 'timestamp' not in df.columns:
+            logger.warning("Coluna 'timestamp' não encontrada")
             return df
             
         enhanced_df = df.copy()
-        enhanced_df['hour'] = enhanced_df['timecreated'].dt.hour
-        enhanced_df['day_of_week'] = enhanced_df['timecreated'].dt.dayofweek
-        enhanced_df['month'] = enhanced_df['timecreated'].dt.month
+        enhanced_df['hour'] = enhanced_df['timestamp'].dt.hour
+        enhanced_df['day_of_week'] = enhanced_df['timestamp'].dt.dayofweek
+        enhanced_df['month'] = enhanced_df['timestamp'].dt.month
         
         # Convertendo hora para característica cíclica
         enhanced_df['hour_sin'] = np.sin(enhanced_df['hour'] * (2 * np.pi / 24))

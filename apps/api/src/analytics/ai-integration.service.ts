@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { ReportData } from './analytics.service';
+// import { ReportData } from './analytics.service'; // TEMPORARILY DISABLED
+export type ReportData = any; // Temporary placeholder
 
 export interface AIInsights {
   summary: string;
@@ -28,7 +29,8 @@ export interface AIInsights {
 @Injectable()
 export class AiIntegrationService {
   private readonly logger = new Logger(AiIntegrationService.name);
-  private readonly aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+  private readonly aiServiceUrl =
+    process.env.AI_SERVICE_URL || 'http://localhost:8000';
 
   constructor(private readonly httpService: HttpService) {}
 
@@ -37,7 +39,9 @@ export class AiIntegrationService {
    */
   async generateInsights(reportData: ReportData): Promise<AIInsights> {
     try {
-      this.logger.log(`Enviando dados para análise de IA: ${reportData.userPlantId}`);
+      this.logger.log(
+        `Enviando dados para análise de IA: ${reportData.userPlantId}`,
+      );
 
       const payload = {
         user_plant_id: reportData.userPlantId,
@@ -52,16 +56,22 @@ export class AiIntegrationService {
       };
 
       const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/api/generate-insights`, payload, {
-          timeout: 30000, // 30 segundos
-        }),
+        this.httpService.post(
+          `${this.aiServiceUrl}/api/generate-insights`,
+          payload,
+          {
+            timeout: 30000, // 30 segundos
+          },
+        ),
       );
 
-      this.logger.log(`Insights gerados com sucesso para ${reportData.userPlantId}`);
+      this.logger.log(
+        `Insights gerados com sucesso para ${reportData.userPlantId}`,
+      );
       return response.data;
     } catch (error) {
       this.logger.error(`Erro ao gerar insights via IA: ${error.message}`);
-      
+
       // Retornar insights padrão em caso de erro
       return this.getDefaultInsights(reportData);
     }
@@ -72,7 +82,7 @@ export class AiIntegrationService {
    */
   private getDefaultInsights(reportData: ReportData): AIInsights {
     const { metrics } = reportData;
-    
+
     // Análise básica de temperatura
     let temperatureInsight = `Temperatura média de ${metrics.avgTemperature.toFixed(1)}°C`;
     if (Math.abs(metrics.temperatureDeviation) > 5) {
@@ -107,13 +117,16 @@ export class AiIntegrationService {
 
     // Análise de irrigação
     const irrigationInsight = `Total de ${metrics.totalIrrigations} irrigações no período. ${
-      metrics.totalIrrigations > 0 ? 'Atividade de irrigação registrada.' : 'Nenhuma irrigação detectada.'
+      metrics.totalIrrigations > 0
+        ? 'Atividade de irrigação registrada.'
+        : 'Nenhuma irrigação detectada.'
     }`;
 
     // Análise de impacto climático
-    const weatherInsight = reportData.weatherData.length > 0
-      ? `Dados climáticos disponíveis para ${reportData.weatherData.length} dias. Temperatura externa média: ${metrics.avgWeatherTemp?.toFixed(1) || 'N/A'}°C`
-      : 'Dados climáticos não disponíveis para análise.';
+    const weatherInsight =
+      reportData.weatherData.length > 0
+        ? `Dados climáticos disponíveis para ${reportData.weatherData.length} dias. Temperatura externa média: ${metrics.avgWeatherTemp?.toFixed(1) || 'N/A'}°C`
+        : 'Dados climáticos não disponíveis para análise.';
 
     // Gerar recomendações básicas
     const recommendations: Array<{
@@ -121,7 +134,7 @@ export class AiIntegrationService {
       priority: 'high' | 'medium' | 'low';
       description: string;
     }> = [];
-    
+
     if (Math.abs(metrics.temperatureDeviation) > 5) {
       recommendations.push({
         category: 'temperature',
@@ -150,13 +163,16 @@ export class AiIntegrationService {
       recommendations.push({
         category: 'irrigation',
         priority: 'medium' as const,
-        description: 'Considerar irrigação manual ou verificar sistema automático',
+        description:
+          'Considerar irrigação manual ou verificar sistema automático',
       });
     }
 
     return {
       summary: `Relatório ${reportData.type} gerado com ${metrics.totalReadings} medições e ${metrics.totalIrrigations} irrigações. ${
-        Math.abs(metrics.temperatureDeviation) > 5 || Math.abs(metrics.humidityDeviation) > 10 || Math.abs(metrics.soilMoistureDeviation) > 15
+        Math.abs(metrics.temperatureDeviation) > 5 ||
+        Math.abs(metrics.humidityDeviation) > 10 ||
+        Math.abs(metrics.soilMoistureDeviation) > 15
           ? 'Atenção necessária para ajustes ambientais.'
           : 'Condições ambientais dentro dos parâmetros ideais.'
       }`,
