@@ -144,49 +144,9 @@ async function main() {
 
   // Create user plants (plants assigned to users)
   console.log('🌱 Assigning plants to users...');
-  const adminTomato = await prisma.userPlant.create({
-    data: {
-      userId: adminUser.id,
-      plantId: tomato.id,
-      nickname: 'Tomates da Estufa 1',
-    },
-  });
-
-  const adminLettuce = await prisma.userPlant.create({
-    data: {
-      userId: adminUser.id,
-      plantId: lettuce.id,
-      nickname: 'Alfaces Hidropônicas',
-    },
-  });
-
-  const adminBasil = await prisma.userPlant.create({
-    data: {
-      userId: adminUser.id,
-      plantId: basil.id,
-      nickname: 'Manjericão Aromático',
-    },
-  });
-
-  const adminStrawberry = await prisma.userPlant.create({
-    data: {
-      userId: adminUser.id,
-      plantId: strawberry.id,
-      nickname: 'Morangos Verticais',
-    },
-  });
-
-  const adminPepper = await prisma.userPlant.create({
-    data: {
-      userId: adminUser.id,
-      plantId: pepper.id,
-      nickname: 'Pimentões Coloridos',
-    },
-  });
-
   console.log(`✅ Created ${5} user-plant assignments`);
 
-  // Create greenhouses
+  // Create greenhouses FIRST (needed for greenhouseId in UserPlant)
   console.log('🏠 Creating greenhouses...');
   const greenhouse1 = await prisma.greenhouse.create({
     data: {
@@ -260,6 +220,56 @@ async function main() {
   });
 
   console.log(`✅ Created ${3} greenhouses`);
+
+  // Now create UserPlants with greenhouseId assignments
+  console.log('🌱 Creating user-plant assignments with greenhouses...');
+
+  const adminTomato = await prisma.userPlant.create({
+    data: {
+      userId: adminUser.id,
+      plantId: tomato.id,
+      greenhouseId: greenhouse1.id, // Estufa Principal
+      nickname: 'Tomates da Estufa 1',
+    },
+  });
+
+  const adminLettuce = await prisma.userPlant.create({
+    data: {
+      userId: adminUser.id,
+      plantId: lettuce.id,
+      greenhouseId: greenhouse3.id, // Estufa Hidropônica
+      nickname: 'Alfaces Hidropônicas',
+    },
+  });
+
+  const adminBasil = await prisma.userPlant.create({
+    data: {
+      userId: adminUser.id,
+      plantId: basil.id,
+      greenhouseId: greenhouse1.id, // Estufa Principal
+      nickname: 'Manjericão Aromático',
+    },
+  });
+
+  const adminStrawberry = await prisma.userPlant.create({
+    data: {
+      userId: adminUser.id,
+      plantId: strawberry.id,
+      greenhouseId: greenhouse2.id, // Estufa Experimental
+      nickname: 'Morangos Verticais',
+    },
+  });
+
+  const adminPepper = await prisma.userPlant.create({
+    data: {
+      userId: adminUser.id,
+      plantId: pepper.id,
+      greenhouseId: greenhouse1.id, // Estufa Principal
+      nickname: 'Pimentões Coloridos',
+    },
+  });
+
+  console.log(`✅ Created ${5} user-plant assignments with greenhouses`);
 
   // Create devices (ESP32)
   console.log('📱 Creating IoT devices...');

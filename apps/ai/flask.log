@@ -65,19 +65,16 @@ INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 14:18:27] "POST /predict/moisture HTTP/
 INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 14:18:38] "GET /health HTTP/1.1" 200 -
 INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 14:18:38] "GET /models/info HTTP/1.1" 200 -
 INFO:httpx:HTTP Request: GET http://localhost:36695/status "HTTP/1.1 200 OK"
-INFO:db.database:✅ Prisma Client Python conectado ao banco de dados
-INFO:httpx:HTTP Request: POST http://localhost:36695/ "HTTP/1.1 200 OK"
-INFO:db.database:✅ Dados carregados: 27 registros (últimas 24h)
+INFO:db{"timestamp":"2025-11-10T06:09:13.629829Z","level":"ERROR","fields":{"message":"Error in PostgreSQL connection: Error { kind: Closed, cause: None }"},"target":"quaint::connector::postgres::native"}
+4h)
 INFO:data_processing.preprocessor:Iniciando limpeza de dados...
 INFO:data_processing.preprocessor:Limpeza de dados concluída
 INFO:data_processing.preprocessor:Características de tempo adicionadas ao DataFrame
 INFO:data_processing.preprocessor:Normalizando dados...
 INFO:data_processing.preprocessor:Normalização concluída
 INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 14:18:38] "POST /analyze-sensors HTTP/1.1" 200 -
-INFO:httpx:HTTP Request: GET http://localhost:56013/status "HTTP/1.1 200 OK"
-INFO:db.database:✅ Prisma Client Python conectado ao banco de dados
-INFO:httpx:HTTP Request: POST http://localhost:56013/ "HTTP/1.1 200 OK"
-INFO:db.database:✅ Dados carregados: 27 registros (últimas 24h)
+INFO:httpx:HTTP Request: GET http://localhost:56013/status "HTTP/1.1 200 O{"timestamp":"2025-11-10T06:09:13.629828Z","level":"ERROR","fields":{"message":"Error in PostgreSQL connection: Error { kind: Closed, cause: None }"},"target":"quaint::connector::postgres::native"}
+últimas 24h)
 INFO:data_processing.preprocessor:Iniciando limpeza de dados...
 INFO:data_processing.preprocessor:Limpeza de dados concluída
 INFO:data_processing.preprocessor:Características de tempo adicionadas ao DataFrame
@@ -167,3 +164,4 @@ INFO:data_processing.preprocessor:Características de tempo adicionadas ao DataF
 INFO:data_processing.preprocessor:Normalizando dados...
 INFO:data_processing.preprocessor:Normalização concluída
 INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 16:27:51] "POST /analyze-sensors HTTP/1.1" 200 -
+{"timestamp":"2025-11-10T06:09:13.631426Z","level":"ERROR","fields":{"message":"Error in PostgreSQL connection: Error { kind: Closed, cause: None }"},"target":"quaint::connector::postgres::native"}

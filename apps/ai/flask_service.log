@@ -86,3 +86,4 @@ Traceback (most recent call last):
              ^^^^^^^^^
 RuntimeError: Input and parameter tensors are not at the same device, found input tensor at cpu and parameter tensor at cuda:0
 INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 14:13:33] "[35m[1mPOST /analyze-sensors HTTP/1.1[0m" 500 -
+{"timestamp":"2025-11-10T06:09:13.637455Z","level":"ERROR","fields":{"message":"Error in PostgreSQL connection: Error { kind: Closed, cause: None }"},"target":"quaint::connector::postgres::native"}

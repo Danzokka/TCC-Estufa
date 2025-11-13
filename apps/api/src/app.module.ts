@@ -5,7 +5,7 @@ import { SensorModule } from './sensor/sensor.module';
 import { PrismaService } from './prisma.service';
 import { UserModule } from './user/user.module';
 import { BlogModule } from './blog/blog.module';
-// import { PlantModule } from './plant/plant.module'; // TEMPORARILY DISABLED - Schema migration needed
+import { PlantModule } from './plant/plant.module';
 import { AuthModule } from './auth/auth.module';
 // import { PumpModule } from './pump/pump.module'; // TEMPORARILY DISABLED - Schema migration needed
 // import { GreenhouseModule } from './greenhouse/greenhouse.module'; // TEMPORARILY DISABLED - Schema migration needed
@@ -25,7 +25,7 @@ import { GeocodingModule } from './geocoding/geocoding.module';
     SensorModule,
     UserModule,
     BlogModule,
-    // PlantModule, // TEMPORARILY DISABLED
+    PlantModule,
     AuthModule,
     // PumpModule, // TEMPORARILY DISABLED
     // GreenhouseModule, // TEMPORARILY DISABLED
