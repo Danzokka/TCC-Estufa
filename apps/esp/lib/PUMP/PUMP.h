@@ -12,7 +12,7 @@
 #define PUMP_RELAY_PIN 2         // GPIO pin for LED/relay control (Built-in LED for testing)
 #define PUMP_MAX_DURATION 300000 // Maximum 5 minutes (300 seconds) for safety
 #define HTTP_SERVER_PORT 8080    // HTTP server port for pump control (changed to avoid conflict)
-#define PUMP_ML_PER_SECOND 30.0  // Approximate water flow rate: 30 mL per second
+#define PUMP_ML_PER_SECOND 42.0  // Approximate water flow rate: 42 mL per second (calibrated)
 
 // Pump status enumeration
 enum PumpStatus

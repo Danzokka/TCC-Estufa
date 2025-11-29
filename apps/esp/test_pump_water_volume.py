@@ -23,7 +23,7 @@ import time
 import argparse
 
 # Pump water release rate (mL per second) - matches ESP32 PUMP_ML_PER_SECOND
-PUMP_ML_PER_SECOND = 30.0
+PUMP_ML_PER_SECOND = 42.0
 
 
 def get_pump_status(ip_address):
