@@ -33,6 +33,7 @@ export interface UserPlantWithStatsDto {
   plantId: string;
   nickname: string | null;
   dateAdded: Date;
+  greenhouseId: string | null;
   // Dados da planta
   plant: {
     id: string;

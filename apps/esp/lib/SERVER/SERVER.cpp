@@ -104,7 +104,7 @@ void SERVER::sendAverageSensorData()
     float avgSoilMoisture = soilMoistureSum / readingsCount;
     float avgFlowRate = flowRateSum / readingsCount;
 
-    avgSoilMoisture = avgSoilMoisture / 4095.0 * 100.0; // Converte para porcentagem
+    avgSoilMoisture = (1.0 - (avgSoilMoisture / 4095.0)) * 100.0; // Converte para porcentagem e inverte
 
     // Construir JSON com todos os dados dos sensores
     String jsonData = "{";
