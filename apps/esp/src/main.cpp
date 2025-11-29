@@ -154,7 +154,7 @@ void handleDisplayMode(bool showSystemInfo)
 
 void setup()
 {
-    Serial.begin(115200); // Aumenta baud rate para logs mais rápidos
+    Serial.begin(9600); // Aumenta baud rate para logs mais rápidos
 
     // Inicializa o gerador de números aleatórios
     randomSeed(analogRead(0));
