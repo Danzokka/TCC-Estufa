@@ -37,12 +37,6 @@ float currentTotalVolume = 0; // Volume total acumulado em litros
 // Tarefa que roda no núcleo 0: Leitura dos sensores e envio de dados
 void Task1code(void *pvParameters)
 {
-    Serial.print("Tarefa de Sensores iniciada no núcleo: ");
-    Serial.println(xPortGetCoreID());
-
-    // Contador de leituras para debug
-    uint32_t readingCounter = 0;
-
     for (;;)
     {
         // Registra tempo de início para otimização
@@ -52,15 +46,6 @@ void Task1code(void *pvParameters)
         th_sensor.read();
         soil_sensor.read();
         flow_sensor.read();
-
-        readingCounter++;
-
-        // A cada 30 leituras, mostra estatística
-        if (readingCounter % 30 == 0)
-        {
-            Serial.print("Core 0: Leituras realizadas: ");
-            Serial.println(readingCounter);
-        }
 
         // Adquire o mutex para atualizar dados compartilhados
         if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, portMAX_DELAY) == pdTRUE)
@@ -78,10 +63,6 @@ void Task1code(void *pvParameters)
 
             xSemaphoreGive(sensorMutex);
         }
-        else if (sensorMutex == NULL)
-        {
-            Serial.println("ERRO: sensorMutex é NULL na Task1!");
-        }
 
         // Adiciona leituras atuais para calcular a média posteriormente
         server.addSensorReading(
@@ -96,10 +77,8 @@ void Task1code(void *pvParameters)
         unsigned long currentMillis = millis();
         if (currentMillis - lastSendTime >= SEND_INTERVAL)
         {
-            Serial.println("Enviando dados ao servidor...");
             server.sendAverageSensorData();
             lastSendTime = currentMillis;
-            Serial.println("Dados enviados com sucesso!");
         }
 
         // Calcula quanto tempo já se passou desde o início da iteração
@@ -120,13 +99,6 @@ void Task1code(void *pvParameters)
 // Tarefa que roda no núcleo 1: Atualização do display OLED
 void Task2code(void *pvParameters)
 {
-    Serial.print("Tarefa de Display iniciada no núcleo: ");
-    Serial.println(xPortGetCoreID());
-
-    // Contador para medir a taxa de atualização do display
-    uint32_t frameCounter = 0;
-    unsigned long lastFpsCheck = millis();
-
     // Controle de alternância do display (5 segundos cada)
     unsigned long lastDisplaySwitch = millis();
     bool showSystemInfo = false; // Começa mostrando dados dos sensores
@@ -138,26 +110,17 @@ void Task2code(void *pvParameters)
         {
             showSystemInfo = !showSystemInfo;
             lastDisplaySwitch = millis();
-            Serial.print("Display alternando para: ");
-            Serial.println(showSystemInfo ? "Sistema Info" : "Dados Sensores");
+
+            // Log limpo de alternância do display
+            Serial.print("\033[2J\033[H"); // Limpa tela e move cursor para início
+            Serial.println("========================================");
+            Serial.print("[DISPLAY] Mostrando: ");
+            Serial.println(showSystemInfo ? "INFO DO SISTEMA" : "DADOS DOS SENSORES");
+            Serial.println("========================================");
         }
 
         // Atualiza o display
         handleDisplayMode(showSystemInfo);
-
-        // Registra o frame
-        frameCounter++;
-
-        // A cada 5 segundos, calcula e mostra a taxa de atualização (FPS)
-        if (millis() - lastFpsCheck >= 5000)
-        {
-            float fps = frameCounter / 5.0;
-            Serial.print("Core 1: Display refresh rate: ");
-            Serial.print(fps);
-            Serial.println(" FPS");
-            frameCounter = 0;
-            lastFpsCheck = millis();
-        }
 
         // Delay para a próxima atualização do display
         vTaskDelay(100 / portTICK_PERIOD_MS);
@@ -187,148 +150,90 @@ void handleDisplayMode(bool showSystemInfo)
         // Atualiza o display
         oled.update();
     }
-    else if (sensorMutex == NULL)
-    {
-        Serial.println("ERRO: sensorMutex é NULL na Task2!");
-    }
 }
 
 void setup()
 {
-    Serial.begin(9600);
+    Serial.begin(115200); // Aumenta baud rate para logs mais rápidos
 
     // Inicializa o gerador de números aleatórios
     randomSeed(analogRead(0));
 
-    Serial.println("Inicializando componentes em sistema dual core ESP32...");
+    Serial.println("\n\n========================================");
+    Serial.println("       ESP32 GREENHOUSE SYSTEM");
+    Serial.println("========================================");
 
+    // Inicializa componentes silenciosamente
     if (!server.begin())
     {
-        Serial.println(F("Error initializing server!"));
+        Serial.println("[ERRO] WiFi");
         for (;;)
             ;
     }
-
     if (!th_sensor.begin())
     {
-        Serial.println(F("Error initializing sensor!"));
+        Serial.println("[ERRO] Sensor TH");
         for (;;)
             ;
     }
-
     if (!oled.begin())
     {
-        Serial.println(F("SSD1306 allocation failed"));
+        Serial.println("[ERRO] OLED");
         for (;;)
             ;
     }
-
     if (!soil_sensor.begin())
     {
-        Serial.println(F("Error initializing soil sensor!"));
+        Serial.println("[ERRO] Sensor Solo");
         for (;;)
             ;
     }
-
-    // Inicializa o sensor de fluxo
     if (!flow_sensor.begin())
     {
-        Serial.println(F("Error initializing flow sensor!"));
+        Serial.println("[ERRO] Sensor Fluxo");
         for (;;)
             ;
     }
-
-    // Initialize pump controller (HTTP server for pump control)
     if (!pumpController.begin())
     {
-        Serial.println(F("Error initializing pump controller!"));
+        Serial.println("[ERRO] Pump Controller");
         for (;;)
             ;
     }
-    Serial.println("PumpController inicializado - HTTP Server para controle da bomba ativo");
+
+    Serial.println("[OK] Todos componentes inicializados");
+    Serial.print("[OK] IP: ");
+    Serial.println(WiFi.localIP());
+    Serial.print("[OK] Pump HTTP Server: http://");
+    Serial.print(WiFi.localIP());
+    Serial.println(":8080");
 
     oled.clear();
-    delay(200);
-
-    // Display WiFi connection status
     oled.displayWiFiConnection("Dantas_2.4G", WiFi.localIP().toString());
     oled.update();
-    delay(3000);
-
-    Serial.print("Inicializando em modo dual core - Núcleo atual: ");
-    Serial.println(xPortGetCoreID());
-    Serial.println("Setup completed. Preparing to start tasks...");
+    delay(2000);
 
     // Criação do mutex
-    Serial.println("Criando sensorMutex...");
     sensorMutex = xSemaphoreCreateMutex();
-
     if (sensorMutex == NULL)
     {
-        Serial.println("ERRO: Falha ao criar sensorMutex!");
+        Serial.println("[ERRO] Mutex");
         for (;;)
-            ; // Para o sistema se não conseguir criar o mutex
-    }
-    else
-    {
-        Serial.println("sensorMutex criado com sucesso!");
+            ;
     }
 
     // Criação das tarefas
-    Serial.println("Criando tarefa de sensores no Núcleo 0...");
-    xTaskCreatePinnedToCore(
-        Task1code,    /* Task function */
-        "SensorTask", /* name of task */
-        10000,        /* stack size of task */
-        NULL,         /* parameter of the task */
-        1,            /* priority of the task */
-        &Task1,       /* task handle to keep track of created task */
-        0);           /* core where the task should run */
+    xTaskCreatePinnedToCore(Task1code, "SensorTask", 10000, NULL, 1, &Task1, 0);
+    delay(500);
+    xTaskCreatePinnedToCore(Task2code, "DisplayTask", 10000, NULL, 1, &Task2, 1);
 
-    delay(500); // Pequeno delay para garantir que a primeira tarefa inicie
-
-    Serial.println("Criando tarefa de display no Núcleo 1...");
-    xTaskCreatePinnedToCore(
-        Task2code,     /* Task function */
-        "DisplayTask", /* name of task */
-        10000,         /* stack size of task */
-        NULL,          /* parameter of the task */
-        1,             /* priority of the task */
-        &Task2,        /* task handle to keep track of created task */
-        1);            /* core where the task should run */
-
-    Serial.println("Sistema dual core iniciado com sucesso!");
-    Serial.println("Núcleo 0: Leitura de sensores e comunicação");
-    Serial.println("Núcleo 1: Display OLED");
+    Serial.println("========================================");
+    Serial.println("         SISTEMA INICIADO!");
+    Serial.println("========================================\n");
 }
 
 void loop()
 {
-    // O loop principal serve para monitoramento do sistema
-    // Verificações de status a cada 30 segundos
-    static unsigned long lastStatusCheck = 0;
-
-    if (millis() - lastStatusCheck >= 30000)
-    {
-        lastStatusCheck = millis();
-
-        // Exibe informações do sistema
-        Serial.println("\n----- Status do Sistema -----");
-        Serial.print("Uptime: ");
-        Serial.print(millis() / 1000);
-        Serial.println(" segundos");
-
-        Serial.print("Core atual do loop: ");
-        Serial.println(xPortGetCoreID());
-
-        // Verifica memória disponível
-        Serial.print("Heap livre: ");
-        Serial.print(ESP.getFreeHeap());
-        Serial.println(" bytes");
-
-        Serial.println("---------------------------\n");
-    }
-
-    // Yield para as tarefas de alta prioridade
+    // Loop principal vazio - tarefas FreeRTOS gerenciam tudo
     delay(1000);
 }

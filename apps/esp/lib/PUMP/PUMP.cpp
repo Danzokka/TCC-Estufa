@@ -46,6 +46,8 @@ bool PumpController::begin()
                   { handlePumpStatus(); });
     httpServer.on("/pump/emergency-stop", HTTP_POST, [this]()
                   { handleEmergencyStop(); });
+    httpServer.on("/pump/reset", HTTP_POST, [this]()
+                  { handleReset(); });
     httpServer.onNotFound([this]()
                           { handleNotFound(); });
 
@@ -118,21 +120,19 @@ void PumpController::pumpControlTask(void *parameter)
     {
         if (xSemaphoreTake(controller->pumpMutex, portMAX_DELAY) == pdTRUE)
         {
-            // Check safety conditions
-            if (!controller->checkSafetyConditions())
-            {
-                if (controller->pumpStatus == PUMP_ON)
-                {
-                    Serial.println("SAFETY: Emergency stop triggered - unsafe conditions detected");
-                    controller->emergencyStop = true;
-                }
-            }
-
-            // Handle pump operations based on current mode
+            // Only check safety and timeouts if pump is ON
             if (controller->pumpStatus == PUMP_ON)
             {
+                // Check safety conditions
+                if (!controller->checkSafetyConditions())
+                {
+                    Serial.println("SAFETY: Unsafe conditions - stopping pump");
+                    controller->deactivateRelay();
+                }
+
                 unsigned long currentTime = millis();
 
+                // Handle pump operations based on current mode
                 switch (controller->currentMode)
                 {
                 case MODE_DURATION:
@@ -158,21 +158,12 @@ void PumpController::pumpControlTask(void *parameter)
                     break;
                 }
 
-                // Check maximum runtime safety limit
+                // Check maximum runtime safety limit (only when pump is ON)
                 if (currentTime - controller->pumpStartTime >= PUMP_MAX_DURATION)
                 {
-                    Serial.println("SAFETY: Maximum pump runtime exceeded - emergency stop");
-                    controller->emergencyStop = true;
+                    Serial.println("SAFETY: Maximum pump runtime exceeded - stopping");
+                    controller->deactivateRelay();
                 }
-            }
-
-            // Handle emergency stop
-            if (controller->emergencyStop)
-            {
-                controller->deactivateRelay();
-                controller->pumpStatus = PUMP_ERROR;
-                controller->emergencyStop = false;
-                Serial.println("Emergency stop executed");
             }
 
             xSemaphoreGive(controller->pumpMutex);
@@ -208,11 +199,6 @@ void PumpController::handleActivatePump()
         return;
     }
 
-    if (pumpStatus == PUMP_ERROR)
-    {
-        httpServer.send(400, "application/json", createErrorResponse("Pump in error state - reset required"));
-        return;
-    }
     // Parse request body
     String body = httpServer.arg("plain");
     JsonDocument doc;
@@ -323,6 +309,23 @@ void PumpController::handleNotFound()
     httpServer.send(404, "application/json", createErrorResponse("Endpoint not found"));
 }
 
+// HTTP handler for reset error state
+void PumpController::handleReset()
+{
+    if (xSemaphoreTake(pumpMutex, 1000 / portTICK_PERIOD_MS) == pdTRUE)
+    {
+        if (pumpStatus == PUMP_ERROR)
+        {
+            pumpStatus = PUMP_OFF;
+            currentMode = MODE_MANUAL;
+            emergencyStop = false;
+            Serial.println("[PUMP] Estado de erro resetado");
+        }
+        xSemaphoreGive(pumpMutex);
+    }
+    httpServer.send(200, "application/json", createStatusResponse());
+}
+
 // Activate pump
 bool PumpController::activatePump(unsigned long duration)
 {
@@ -404,9 +407,8 @@ bool PumpController::deactivatePump()
 // Emergency stop
 bool PumpController::emergencyStopPump()
 {
-    emergencyStop = true;
     deactivateRelay();
-    Serial.println("EMERGENCY STOP activated");
+    Serial.println("Emergency stop activated - pump OFF");
     return true;
 }
 

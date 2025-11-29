@@ -58,6 +58,7 @@ private:
     void handleDeactivatePump();
     void handlePumpStatus();
     void handleEmergencyStop();
+    void handleReset();
     void handleNotFound();
 
     // Internal pump control methods
