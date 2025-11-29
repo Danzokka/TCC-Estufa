@@ -86,7 +86,7 @@ export class PlantService {
     // Busca todas as plantas do usuário
     const userPlants = await this.prisma.userPlant.findMany({
       where: { userId },
-      include: { 
+      include: {
         plant: true,
         greenhouse: {
           select: {

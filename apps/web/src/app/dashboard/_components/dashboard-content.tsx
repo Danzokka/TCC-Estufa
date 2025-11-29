@@ -42,10 +42,7 @@ export function DashboardContent() {
   };
 
   // Query para dados do dashboard
-  const {
-    data: dashboardData,
-    isLoading: isDashboardLoading,
-  } = useQuery({
+  const { data: dashboardData, isLoading: isDashboardLoading } = useQuery({
     queryKey: ["dashboard", plantId, period, hours],
     queryFn: () => getDashboardData(plantId!, filters),
     refetchInterval: 60000, // Atualizar a cada 1 minuto
@@ -162,7 +159,11 @@ export function DashboardContent() {
                 calculateTrend(latest.air_temperature, "air_temperature")
                   .percentage
               }
-              description={kpis?.avgTemperature != null ? `Média: ${kpis.avgTemperature.toFixed(1)}°C` : "Sem dados suficientes"}
+              description={
+                kpis?.avgTemperature != null
+                  ? `Média: ${kpis.avgTemperature.toFixed(1)}°C`
+                  : "Sem dados suficientes"
+              }
             />
             <HumidityKPI
               value={latest.air_humidity}
@@ -170,7 +171,11 @@ export function DashboardContent() {
               trendValue={
                 calculateTrend(latest.air_humidity, "air_humidity").percentage
               }
-              description={kpis?.avgHumidity != null ? `Média: ${kpis.avgHumidity.toFixed(1)}%` : "Sem dados suficientes"}
+              description={
+                kpis?.avgHumidity != null
+                  ? `Média: ${kpis.avgHumidity.toFixed(1)}%`
+                  : "Sem dados suficientes"
+              }
             />
             <SoilMoistureKPI
               value={latest.soil_moisture}
@@ -180,7 +185,11 @@ export function DashboardContent() {
               trendValue={
                 calculateTrend(latest.soil_moisture, "soil_moisture").percentage
               }
-              description={kpis?.avgSoilMoisture != null ? `Média: ${kpis.avgSoilMoisture.toFixed(1)}%` : "Sem dados suficientes"}
+              description={
+                kpis?.avgSoilMoisture != null
+                  ? `Média: ${kpis.avgSoilMoisture.toFixed(1)}%`
+                  : "Sem dados suficientes"
+              }
             />
             <WaterLevelKPI
               value={latest.water_level}
@@ -188,7 +197,11 @@ export function DashboardContent() {
               trendValue={
                 calculateTrend(latest.water_level, "water_level").percentage
               }
-              description={kpis?.avgWaterLevel != null ? `Média: ${kpis.avgWaterLevel.toFixed(1)}%` : "Sem dados suficientes"}
+              description={
+                kpis?.avgWaterLevel != null
+                  ? `Média: ${kpis.avgWaterLevel.toFixed(1)}%`
+                  : "Sem dados suficientes"
+              }
             />
             <AlertsKPI
               activeAlerts={alerts.length}
@@ -214,7 +227,9 @@ export function DashboardContent() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{kpis.totalReadings ?? 0}</div>
+              <div className="text-2xl font-bold">
+                {kpis.totalReadings ?? 0}
+              </div>
               <p className="text-xs text-muted-foreground">
                 No período selecionado
               </p>
@@ -229,7 +244,7 @@ export function DashboardContent() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {kpis.maxTemperature != null && kpis.minTemperature != null 
+                {kpis.maxTemperature != null && kpis.minTemperature != null
                   ? `${(kpis.maxTemperature - kpis.minTemperature).toFixed(1)}°C`
                   : "--"}
               </div>

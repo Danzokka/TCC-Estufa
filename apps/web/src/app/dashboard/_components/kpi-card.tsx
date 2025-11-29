@@ -106,7 +106,10 @@ interface MetricKPIProps {
 }
 
 // Helper function to format value safely
-const formatValue = (value: number | null | undefined, decimals: number = 1): string => {
+const formatValue = (
+  value: number | null | undefined,
+  decimals: number = 1
+): string => {
   if (value === null || value === undefined || isNaN(value)) {
     return "--";
   }
