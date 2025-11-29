@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter, useSearchParams } from "next/navigation";
 import {
   getDashboardData,
   getHourlyAggregatedData,
@@ -26,43 +25,15 @@ import { generateAlerts } from "@/app/dashboard/_components/alerts-widget";
 import { WeatherForecast } from "@/components/dashboard/weather-forecast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PlantSelect from "@/components/home/plant-select";
+import { usePlant } from "@/context/plant-provider";
 
-interface DashboardContentProps {
-  plantId?: string;
-}
+export function DashboardContent() {
+  const { selectedPlant, isLoading: isPlantLoading } = usePlant();
+  const plantId = selectedPlant?.id;
 
-export function DashboardContent({
-  plantId: propPlantId,
-}: DashboardContentProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  // Ler plantId da URL ou usar o prop (para compatibilidade)
-  const urlPlantId = searchParams.get("plantId");
-  const plantId = urlPlantId || propPlantId;
-
-  // Ler parâmetros da URL ou usar valores padrão
-  const period =
-    (searchParams.get("period") as "today" | "week" | "month") || "today";
-  const hours = Number(searchParams.get("hours")) || 24;
-
-  // Atualizar URL quando plantId ou hours mudarem
-  useEffect(() => {
-    if (!plantId) return;
-
-    const params = new URLSearchParams();
-    params.set("plantId", plantId);
-    params.set("hours", hours.toString());
-
-    router.replace(`?${params.toString()}`, { scroll: false });
-  }, [plantId, hours, router]);
-
-  // Função para atualizar horas
-  const setHours = (newHours: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("hours", newHours.toString());
-    router.push(`?${params.toString()}`, { scroll: false });
-  };
+  // State para controle de período e horas
+  const [period] = useState<"today" | "week" | "month">("today");
+  const [hours, setHours] = useState(24);
 
   // Criar filtros com hours incluído
   const filters: DashboardFiltersType = {
@@ -103,7 +74,7 @@ export function DashboardContent({
 
     const firstValue = Number(history[0][dataKey as keyof (typeof history)[0]]);
     const diff = currentValue - firstValue;
-    const percentChange = ((diff / firstValue) * 100).toFixed(1);
+    const percentChange = ((diff / firstValue) * 100)?.toFixed(1);
 
     if (Math.abs(diff) < 0.5) return { trend: "neutral", percentage: "0" };
 
@@ -144,6 +115,9 @@ export function DashboardContent({
     );
   }
 
+  // Obter o greenhouseId da planta selecionada
+  const greenhouseId = selectedPlant?.greenhouseId;
+
   return (
     <div className="space-y-6">
       {/* Header com filtros */}
@@ -164,8 +138,8 @@ export function DashboardContent({
         onHoursChange={setHours}
       />
 
-      {/* Previsão do Tempo */}
-      <WeatherForecast greenhouseId="8729d23b-984f-41c5-a4a6-698cd1a9fe18" />
+      {/* Previsão do Tempo - Só mostra se tiver greenhouseId */}
+      {greenhouseId && <WeatherForecast greenhouseId={greenhouseId} />}
 
       {/* KPIs - Métricas atuais */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -188,7 +162,7 @@ export function DashboardContent({
                 calculateTrend(latest.air_temperature, "air_temperature")
                   .percentage
               }
-              description={`Média: ${kpis?.avgTemperature.toFixed(1)}°C`}
+              description={kpis?.avgTemperature != null ? `Média: ${kpis.avgTemperature.toFixed(1)}°C` : "Sem dados suficientes"}
             />
             <HumidityKPI
               value={latest.air_humidity}
@@ -196,7 +170,7 @@ export function DashboardContent({
               trendValue={
                 calculateTrend(latest.air_humidity, "air_humidity").percentage
               }
-              description={`Média: ${kpis?.avgHumidity.toFixed(1)}%`}
+              description={kpis?.avgHumidity != null ? `Média: ${kpis.avgHumidity.toFixed(1)}%` : "Sem dados suficientes"}
             />
             <SoilMoistureKPI
               value={latest.soil_moisture}
@@ -206,7 +180,7 @@ export function DashboardContent({
               trendValue={
                 calculateTrend(latest.soil_moisture, "soil_moisture").percentage
               }
-              description={`Média: ${kpis?.avgSoilMoisture.toFixed(1)}%`}
+              description={kpis?.avgSoilMoisture != null ? `Média: ${kpis.avgSoilMoisture.toFixed(1)}%` : "Sem dados suficientes"}
             />
             <WaterLevelKPI
               value={latest.water_level}
@@ -214,7 +188,7 @@ export function DashboardContent({
               trendValue={
                 calculateTrend(latest.water_level, "water_level").percentage
               }
-              description={`Média: ${kpis?.avgWaterLevel.toFixed(1)}%`}
+              description={kpis?.avgWaterLevel != null ? `Média: ${kpis.avgWaterLevel.toFixed(1)}%` : "Sem dados suficientes"}
             />
             <AlertsKPI
               activeAlerts={alerts.length}
@@ -240,7 +214,7 @@ export function DashboardContent({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{kpis.totalReadings}</div>
+              <div className="text-2xl font-bold">{kpis.totalReadings ?? 0}</div>
               <p className="text-xs text-muted-foreground">
                 No período selecionado
               </p>
@@ -255,11 +229,14 @@ export function DashboardContent({
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {(kpis.maxTemperature - kpis.minTemperature).toFixed(1)}°C
+                {kpis.maxTemperature != null && kpis.minTemperature != null 
+                  ? `${(kpis.maxTemperature - kpis.minTemperature).toFixed(1)}°C`
+                  : "--"}
               </div>
               <p className="text-xs text-muted-foreground">
-                {kpis.minTemperature.toFixed(1)}°C -{" "}
-                {kpis.maxTemperature.toFixed(1)}°C
+                {kpis.minTemperature != null && kpis.maxTemperature != null
+                  ? `${kpis.minTemperature.toFixed(1)}°C - ${kpis.maxTemperature.toFixed(1)}°C`
+                  : "Sem dados suficientes"}
               </p>
             </CardContent>
           </Card>
@@ -272,10 +249,14 @@ export function DashboardContent({
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {(kpis.maxHumidity - kpis.minHumidity).toFixed(1)}%
+                {kpis.maxHumidity != null && kpis.minHumidity != null
+                  ? `${(kpis.maxHumidity - kpis.minHumidity).toFixed(1)}%`
+                  : "--"}
               </div>
               <p className="text-xs text-muted-foreground">
-                {kpis.minHumidity.toFixed(1)}% - {kpis.maxHumidity.toFixed(1)}%
+                {kpis.minHumidity != null && kpis.maxHumidity != null
+                  ? `${kpis.minHumidity.toFixed(1)}% - ${kpis.maxHumidity.toFixed(1)}%`
+                  : "Sem dados suficientes"}
               </p>
             </CardContent>
           </Card>

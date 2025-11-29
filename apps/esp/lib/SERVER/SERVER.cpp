@@ -104,9 +104,7 @@ void SERVER::sendAverageSensorData()
     float avgSoilMoisture = soilMoistureSum / readingsCount;
     float avgFlowRate = flowRateSum / readingsCount;
 
-    // Gera valores aleatórios somente para sensores que não temos
-    float lightIntensity = getRandomNumber(600, 1000); // Valor típico em lux
-    float waterLevel = getRandomNumber(70, 95);        // Percentual
+    avgSoilMoisture = avgSoilMoisture / 4095.0 * 100.0; // Converte para porcentagem
 
     // Construir JSON com todos os dados dos sensores
     String jsonData = "{";
@@ -114,8 +112,6 @@ void SERVER::sendAverageSensorData()
     jsonData += "\"air_humidity\":" + String(avgAirHumidity, 2) + ",";
     jsonData += "\"soil_temperature\":" + String(avgSoilTemp, 2) + ",";
     jsonData += "\"soil_moisture\":" + String(avgSoilMoisture) + ",";
-    jsonData += "\"light_intensity\":" + String(lightIntensity, 2) + ",";
-    jsonData += "\"water_level\":" + String(waterLevel, 2) + ",";
     jsonData += "\"greenhouseId\":\"" + String(greenhouseId) + "\"";
     jsonData += "}";
 

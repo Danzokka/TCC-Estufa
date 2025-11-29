@@ -163,10 +163,16 @@ export class GreenhouseService {
     await this.findOne(id, userId);
 
     // Validate coordinates if provided
-    if (data.latitude !== undefined && (data.latitude < -90 || data.latitude > 90)) {
+    if (
+      data.latitude !== undefined &&
+      (data.latitude < -90 || data.latitude > 90)
+    ) {
       throw new BadRequestException('Latitude inválida');
     }
-    if (data.longitude !== undefined && (data.longitude < -180 || data.longitude > 180)) {
+    if (
+      data.longitude !== undefined &&
+      (data.longitude < -180 || data.longitude > 180)
+    ) {
       throw new BadRequestException('Longitude inválida');
     }
 
@@ -307,7 +313,8 @@ export class GreenhouseService {
         airTemperature: sensorDataDto.airTemperature,
         airHumidity: sensorDataDto.airHumidity,
         soilMoisture: sensorDataDto.soilMoisture,
-        soilTemperature: sensorDataDto.soilTemperature ?? sensorDataDto.airTemperature, // Fallback to air temp if not provided
+        soilTemperature:
+          sensorDataDto.soilTemperature ?? sensorDataDto.airTemperature, // Fallback to air temp if not provided
       },
     });
 

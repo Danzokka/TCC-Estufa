@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -23,39 +22,27 @@ import { usePlant } from "@/context/plant-provider";
 
 export default function PlantSelect() {
   const [open, setOpen] = React.useState(false);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const { userPlants, isLoading } = usePlant();
+  const { userPlants, isLoading, selectedPlant, setSelectedPlant } = usePlant();
 
-  // Get selected plant with priority: URL > localStorage > first plant
-  const selectedPlantId = searchParams.get("plantId");
-  const savedPlantId =
-    typeof window !== "undefined"
-      ? localStorage.getItem("selectedPlantId")
-      : null;
-
-  const selectedPlant =
-    userPlants?.find((plant) => plant.id === selectedPlantId) ||
-    userPlants?.find((plant) => plant.id === savedPlantId) ||
-    userPlants?.[0] ||
-    null;
-
-  // Initialize URL with saved plant if no plantId in URL
+  // Initialize with saved plant from localStorage on first load
   React.useEffect(() => {
-    if (
-      !selectedPlantId &&
-      savedPlantId &&
-      userPlants &&
-      userPlants.length > 0
-    ) {
-      const plantExists = userPlants.some((plant) => plant.id === savedPlantId);
-      if (plantExists) {
-        const params = new URLSearchParams(searchParams.toString());
-        params.set("plantId", savedPlantId);
-        router.replace(`?${params.toString()}`, { scroll: false });
+    if (userPlants && userPlants.length > 0 && !selectedPlant) {
+      const savedPlantId =
+        typeof window !== "undefined"
+          ? localStorage.getItem("selectedPlantId")
+          : null;
+
+      const plantToSelect = savedPlantId
+        ? userPlants.find((plant) => plant.id === savedPlantId)
+        : userPlants[0];
+
+      if (plantToSelect) {
+        setSelectedPlant(plantToSelect);
+      } else {
+        setSelectedPlant(userPlants[0]);
       }
     }
-  }, [selectedPlantId, savedPlantId, userPlants, searchParams, router]);
+  }, [userPlants, selectedPlant, setSelectedPlant]);
 
   const handlePlantSelect = (plant: any) => {
     // Save to localStorage
@@ -63,9 +50,8 @@ export default function PlantSelect() {
       localStorage.setItem("selectedPlantId", plant.id);
     }
 
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("plantId", plant.id);
-    router.push(`?${params.toString()}`, { scroll: false });
+    // Update context
+    setSelectedPlant(plant);
     setOpen(false);
   };
 

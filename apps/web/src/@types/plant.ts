@@ -21,6 +21,7 @@ export type UserPlant = {
   plantId: string;
   nickname?: string; // Tornando o nickname opcional
   dateAdded: string;
+  greenhouseId?: string; // ID da estufa associada (opcional)
   plant: Plant;
 };
 
