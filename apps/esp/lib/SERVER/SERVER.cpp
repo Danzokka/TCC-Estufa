@@ -116,14 +116,14 @@ void SERVER::sendAverageSensorData()
     jsonData += "\"soil_moisture\":" + String(avgSoilMoisture) + ",";
     jsonData += "\"light_intensity\":" + String(lightIntensity, 2) + ",";
     jsonData += "\"water_level\":" + String(waterLevel, 2) + ",";
-    jsonData += "\"userPlant\":\"" + String(userPlant) + "\"";
+    jsonData += "\"greenhouseId\":\"" + String(greenhouseId) + "\"";
     jsonData += "}";
 
     Serial.print("Sending average data to server: ");
     Serial.println(jsonData);
 
     // Envia o JSON para o servidor
-    send(jsonData);    // Reseta os contadores após o envio
+    send(jsonData); // Reseta os contadores após o envio
     airTemperatureSum = 0;
     airHumiditySum = 0;
     soilTemperatureSum = 0;
@@ -140,7 +140,7 @@ void SERVER::sendPumpStatus(String status, unsigned long runtime, float volume)
     jsonData += "\"status\":\"" + status + "\",";
     jsonData += "\"runtime_seconds\":" + String(runtime) + ",";
     jsonData += "\"volume_liters\":" + String(volume, 2) + ",";
-    jsonData += "\"device_id\":\"" + String(userPlant) + "\"";
+    jsonData += "\"greenhouseId\":\"" + String(greenhouseId) + "\"";
     jsonData += "}";
 
     Serial.print("Sending pump status to server: ");

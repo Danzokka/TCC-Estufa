@@ -339,12 +339,6 @@ void setup()
     pinMode(CONFIG_BUTTON_PIN, INPUT_PULLUP); // Configuration buttonoled.clear();
     delay(200);
 
-    // TEMPORÁRIO: MODO DESENVOLVIMENTO - QR CONFIG COMPLETAMENTE DESABILITADO
-    Serial.println("=== MODO DESENVOLVIMENTO ===");
-    Serial.println("QR Config: DESABILITADO");
-    Serial.println("WiFi: Hardcoded via SERVER");
-    Serial.println("============================");
-
     currentMode = MODE_NORMAL_OPERATION;
 
     // Try to connect with hardcoded WiFi for development
@@ -363,60 +357,6 @@ void setup()
         delay(3000);
     }
 
-    /*
-    // CÓDIGO ORIGINAL DE QR CONFIG - COMENTADO PARA DESENVOLVIMENTO
-    // Check if device needs configuration
-    if (qrConfig.needsConfiguration() || digitalRead(CONFIG_BUTTON_PIN) == LOW)
-    {
-        Serial.println("Device needs configuration - entering QR mode");
-        currentMode = MODE_CONFIGURATION;
-
-        if (!qrConfig.enterConfigMode())
-        {
-            Serial.println("Failed to enter configuration mode");
-            oled.displayConfigurationStatus("Config Error", "QR generation failed");
-            oled.update();
-            delay(5000);
-        }
-        else
-        {
-            Serial.println("Configuration mode active - QR code ready");
-
-            // Start HTTP server for configuration
-            if (qrConfig.startConfigServer())
-            {
-                Serial.println("Configuration HTTP server started");
-            }
-            else
-            {
-                Serial.println("Failed to start configuration server");
-            }
-        }
-    }
-    else
-    {
-        Serial.println("Device configured - connecting to WiFi");
-        if (qrConfig.connectToWiFi())
-        {
-            currentMode = MODE_NORMAL_OPERATION;
-            oled.displayWiFiConnection(qrConfig.getWiFiSSID(), WiFi.localIP().toString());
-            oled.update();
-            delay(3000);
-        }
-        else
-        {
-            Serial.println("WiFi connection failed - entering configuration mode");
-            currentMode = MODE_CONFIGURATION;
-            qrConfig.enterConfigMode();
-
-            // Start HTTP server for configuration
-            if (qrConfig.startConfigServer())
-            {
-                Serial.println("Configuration HTTP server started");
-            }
-        }
-    }
-    */
     Serial.print("Inicializando em modo dual core - Núcleo atual: ");
     Serial.println(xPortGetCoreID());
     Serial.println("Setup completed. Preparing to start tasks...");

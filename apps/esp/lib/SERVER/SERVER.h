@@ -12,7 +12,7 @@ private:
     const char *password = "29281917";
     const char *server = "http://192.168.0.37:5000"; // Atualizado para IP local e porta 5000
     const char *endpoint = "/sensor";
-    const char *userPlant = "e4066535-1f68-464e-bc74-5af60c664257"; // Nome da planta configurado manualmente    // Armazena as médias de leituras
+    const char *greenhouseId = "f9f09e4e-f18a-40f0-939d-d682edf6af5e"; // GreenhouseID
     float airTemperatureSum = 0;
     float airHumiditySum = 0;
     float soilTemperatureSum = 0;

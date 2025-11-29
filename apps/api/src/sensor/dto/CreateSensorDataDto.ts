@@ -1,4 +1,11 @@
-import { IsNumber, IsString, IsNotEmpty, Min, Max } from 'class-validator';
+import {
+  IsNumber,
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  Min,
+  Max,
+} from 'class-validator';
 
 /**
  * DTO para recebimento de dados de sensores enviados pelo ESP32.
@@ -7,6 +14,8 @@ import { IsNumber, IsString, IsNotEmpty, Min, Max } from 'class-validator';
  *  - air_humidity (DHT22)
  *  - soil_temperature (sensor de solo)
  *  - soil_moisture (sensor de umidade de solo)
+ *
+ * O ESP32 envia o greenhouseId e o sistema usa a planta ativa da greenhouse.
  */
 export class CreateSensorDataDto {
   @IsNumber()
@@ -29,7 +38,18 @@ export class CreateSensorDataDto {
   @Max(100)
   soil_moisture: number;
 
+  /**
+   * ID da greenhouse que está enviando os dados.
+   * O sistema usará a planta ativa (activeUserPlantId) da greenhouse.
+   */
   @IsString()
   @IsNotEmpty()
-  userPlant: string;
+  greenhouseId: string;
+
+  /**
+   * @deprecated Use greenhouseId instead. Mantido para compatibilidade.
+   */
+  @IsString()
+  @IsOptional()
+  userPlant?: string;
 }

@@ -34,32 +34,25 @@ export class SensorService {
   ) {}
 
   /**
-   * Recebe dados simplificados (4 campos) e persiste diretamente no GreenhouseSensorReading
+   * Recebe dados simplificados (4 campos) e persiste diretamente no GreenhouseSensorReading.
+   * O ESP32 envia o greenhouseId e o sistema usa a planta ativa da greenhouse.
    */
   async sendData(data: CreateSensorDataDto) {
     try {
-      // Get the greenhouse associated with the userPlant
-      const userPlant = await this.prisma.userPlant.findUnique({
-        where: { id: data.userPlant },
-        select: {
-          greenhouseId: true,
-          userId: true,
-          greenhouse: { select: { id: true } },
+      // Busca a greenhouse diretamente pelo greenhouseId enviado pelo ESP32
+      const greenhouse = await this.prisma.greenhouse.findUnique({
+        where: { id: data.greenhouseId },
+        include: {
+          activeUserPlant: {
+            include: {
+              plant: true,
+            },
+          },
         },
       });
 
-      if (!userPlant?.greenhouseId) {
-        throw new Error(
-          `UserPlant ${data.userPlant} has no associated greenhouse`,
-        );
-      }
-
-      const greenhouse = await this.prisma.greenhouse.findUnique({
-        where: { id: userPlant.greenhouseId },
-      });
-
       if (!greenhouse) {
-        throw new Error(`Greenhouse ${userPlant.greenhouseId} not found`);
+        throw new Error(`Greenhouse ${data.greenhouseId} not found`);
       }
 
       // Create the greenhouse sensor reading directly
@@ -73,13 +66,15 @@ export class SensorService {
         },
       });
 
-      // Update greenhouse current values
+      // Update greenhouse current values and last data update
       await this.prisma.greenhouse.update({
         where: { id: greenhouse.id },
         data: {
           currentTemperature: data.air_temperature,
           currentHumidity: data.air_humidity,
           currentSoilMoisture: data.soil_moisture,
+          lastDataUpdate: new Date(),
+          isOnline: true,
         },
       });
 
@@ -87,24 +82,26 @@ export class SensorService {
       await this.checkForIrrigationDetection(sensorReading);
 
       // Call AI service to analyze plant health (async, non-blocking)
-      this.callAIServiceAsync(
-        greenhouse.id,
-        sensorReading.id,
-        data.userPlant,
-      ).catch((error) => {
-        this.logger.error(
-          'AI service call failed (non-blocking):',
-          error.message,
-        );
-      });
-
-      // Generate metric notifications for the user plant
-      try {
-        if (userPlant.userId) {
-          await this.notificationGenerator.generateMetricNotifications(
-            userPlant.userId,
+      // Usa a planta ativa da greenhouse se disponível
+      const activeUserPlantId = greenhouse.activeUserPlantId;
+      if (activeUserPlantId) {
+        this.callAIServiceAsync(
+          greenhouse.id,
+          sensorReading.id,
+          activeUserPlantId,
+        ).catch((error) => {
+          this.logger.error(
+            'AI service call failed (non-blocking):',
+            error.message,
           );
-        }
+        });
+      }
+
+      // Generate metric notifications for the greenhouse owner
+      try {
+        await this.notificationGenerator.generateMetricNotifications(
+          greenhouse.ownerId,
+        );
       } catch (error) {
         this.logger.error('Error generating metric notifications:', error);
       }
