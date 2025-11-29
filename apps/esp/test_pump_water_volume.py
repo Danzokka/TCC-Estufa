@@ -1,167 +1,239 @@
 #!/usr/bin/env python3
 """
-Test script to measure water volume dispensed by the pump in 1 second.
-Calculates water volume based on the pump's water release rate per second.
+Test script to control pump water dispensing.
+
+Modes:
+  1. By duration: Specify how many seconds to run (pump releases ~30mL/s)
+  2. By water volume: Specify how much water you want (in mL), pump calculates duration
 
 Usage:
-    python test_pump_water_volume.py <esp32_ip>
+    python test_pump_water_volume.py <esp32_ip> --duration <seconds>
+    python test_pump_water_volume.py <esp32_ip> --water <ml>
 
-Example:
-    python test_pump_water_volume.py 192.168.1.100
+Examples:
+    python test_pump_water_volume.py 192.168.1.100 --duration 1    # Run for 1 second (~30mL)
+    python test_pump_water_volume.py 192.168.1.100 --water 250     # Dispense ~250mL of water
+    python test_pump_water_volume.py 192.168.1.100 --status        # Just check status
 """
 
 import requests
 import json
 import sys
 import time
+import argparse
 
-def test_pump_water_volume(ip_address, pump_duration_seconds=1):
+# Pump water release rate (mL per second) - matches ESP32 PUMP_ML_PER_SECOND
+PUMP_ML_PER_SECOND = 30.0
+
+
+def get_pump_status(ip_address):
+    """Get current pump status."""
+    url = f"http://{ip_address}:8080/pump/status"
+    response = requests.get(url, timeout=5)
+    return response.json() if response.status_code == 200 else None
+
+
+def activate_pump_by_duration(ip_address, duration_seconds):
     """
-    Test pump water volume dispensed in a given duration.
+    Activate pump for a specific duration.
     
     Args:
         ip_address: ESP32 IP address
-        pump_duration_seconds: Duration to run pump (default: 1 second)
+        duration_seconds: How many seconds to run the pump
     
     Returns:
-        dict: Contains pump status, duration, and calculated water volume
+        dict: Response from ESP32
+    """
+    url = f"http://{ip_address}:8080/pump/activate"
+    payload = {"duration": duration_seconds}
+    
+    response = requests.post(url, json=payload, timeout=5)
+    return response.json() if response.status_code == 200 else None
+
+
+def activate_pump_by_water_ml(ip_address, water_ml):
+    """
+    Activate pump to dispense a specific amount of water.
+    ESP32 will calculate the required duration based on PUMP_ML_PER_SECOND.
+    
+    Args:
+        ip_address: ESP32 IP address  
+        water_ml: Desired water volume in milliliters
+    
+    Returns:
+        dict: Response from ESP32
+    """
+    url = f"http://{ip_address}:8080/pump/activate"
+    payload = {"water_ml": water_ml}
+    
+    response = requests.post(url, json=payload, timeout=5)
+    return response.json() if response.status_code == 200 else None
+
+
+def test_pump(ip_address, mode, value):
+    """
+    Main test function.
+    
+    Args:
+        ip_address: ESP32 IP address
+        mode: 'duration', 'water', or 'status'
+        value: Duration in seconds or water in mL (ignored for status)
     """
     
-    base_url = f"http://{ip_address}:8080"
-    
     print("\n" + "="*60)
-    print("PUMP WATER VOLUME TEST")
+    print("💧 PUMP WATER CONTROL TEST")
     print("="*60)
     print(f"Target: {ip_address}:8080")
-    print(f"Duration: {pump_duration_seconds} second(s)")
+    print(f"Mode: {mode}")
+    if mode != 'status':
+        print(f"Value: {value}")
     print("-"*60)
     
     try:
-        # Get initial pump status to check water release rate
-        print("\n[1/4] Fetching pump specifications...")
-        status_url = f"{base_url}/pump/status"
-        response = requests.get(status_url, timeout=5)
+        # Step 1: Get initial status
+        print("\n[1/4] Checking initial pump status...")
+        initial_status = get_pump_status(ip_address)
         
-        if response.status_code != 200:
-            print(f"❌ Failed to get pump status. Status code: {response.status_code}")
+        if initial_status is None:
+            print("❌ Failed to get pump status")
             return None
         
-        status_data = response.json()
-        print(f"✓ Pump status: {status_data}")
+        print(f"✓ Pump status: {json.dumps(initial_status, indent=2)}")
         
-        # Activate pump for specified duration
-        print(f"\n[2/4] Activating pump for {pump_duration_seconds} second(s)...")
-        activate_url = f"{base_url}/pump/activate"
+        # Get water rate from ESP32 if available
+        water_rate = initial_status.get('water_rate_ml_per_second', PUMP_ML_PER_SECOND)
+        print(f"✓ Water rate: {water_rate} mL/s")
         
-        payload = {
-            "duration": pump_duration_seconds
-        }
+        if mode == 'status':
+            print("\n✓ Status check complete!")
+            return initial_status
         
+        # Step 2: Calculate and display expectations
+        print("\n[2/4] Calculating water volume...")
+        
+        if mode == 'duration':
+            duration_seconds = value
+            expected_water_ml = duration_seconds * water_rate
+            print(f"  Duration requested: {duration_seconds} seconds")
+            print(f"  Expected water: ~{expected_water_ml:.1f} mL (approximate)")
+        else:  # mode == 'water'
+            expected_water_ml = value
+            calculated_duration = value / water_rate
+            print(f"  Water requested: {expected_water_ml} mL")
+            print(f"  Calculated duration: ~{calculated_duration:.2f} seconds")
+            duration_seconds = calculated_duration
+        
+        # Step 3: Activate pump
+        print(f"\n[3/4] Activating pump...")
         start_time = time.time()
-        response = requests.post(
-            activate_url,
-            json=payload,
-            timeout=5
-        )
-        end_time = time.time()
-        request_time = (end_time - start_time) * 1000  # Convert to milliseconds
         
-        if response.status_code != 200:
-            print(f"❌ Failed to activate pump. Status code: {response.status_code}")
-            print(f"Response: {response.text}")
+        if mode == 'duration':
+            activation_response = activate_pump_by_duration(ip_address, int(value))
+        else:  # mode == 'water'
+            activation_response = activate_pump_by_water_ml(ip_address, float(value))
+        
+        request_time = (time.time() - start_time) * 1000
+        
+        if activation_response is None:
+            print("❌ Failed to activate pump")
             return None
         
-        activation_data = response.json()
-        print(f"✓ Pump activated successfully (took {request_time:.2f}ms)")
-        print(f"Response: {activation_data}")
+        print(f"✓ Pump activated (request took {request_time:.1f}ms)")
+        print(f"  Response: {json.dumps(activation_response, indent=2)}")
         
-        # Wait for pump to complete and get final status
-        print(f"\n[3/4] Waiting for pump execution to complete...")
-        time.sleep(pump_duration_seconds + 1)  # Add 1 second buffer
+        # Step 4: Wait and get final status
+        wait_time = duration_seconds + 1  # Add buffer
+        print(f"\n[4/4] Waiting {wait_time:.1f}s for pump to complete...")
+        time.sleep(wait_time)
         
-        response = requests.get(status_url, timeout=5)
-        final_status = response.json()
-        print(f"✓ Final pump status: {final_status}")
+        final_status = get_pump_status(ip_address)
+        print(f"✓ Final status: {json.dumps(final_status, indent=2)}")
         
-        # Calculate water volume
-        # NOTE: This assumes the pump has a known water release rate
-        # You need to measure or configure the pump's water release rate per second (L/s or mL/s)
+        # Display results
+        print("\n" + "="*60)
+        print("📊 RESULTS")
+        print("="*60)
         
-        print(f"\n[4/4] Calculating water volume...")
+        if mode == 'duration':
+            print(f"  Mode:                  By Duration")
+            print(f"  Duration:              {value} second(s)")
+            print(f"  Approx. Water:         ~{expected_water_ml:.1f} mL")
+            print(f"  Approx. Water:         ~{expected_water_ml/1000:.4f} L")
+        else:
+            print(f"  Mode:                  By Water Volume")
+            print(f"  Requested Water:       {value} mL")
+            print(f"  Calculated Duration:   ~{calculated_duration:.2f} seconds")
+        
         print("-"*60)
-        
-        # Example: If pump releases 50 mL per second
-        # Adjust PUMP_WATER_RELEASE_RATE based on your pump specifications
-        PUMP_WATER_RELEASE_RATE_ML_PER_SECOND = 50  # mL/s - ADJUST THIS VALUE
-        
-        total_water_volume_ml = PUMP_WATER_RELEASE_RATE_ML_PER_SECOND * pump_duration_seconds
-        total_water_volume_liters = total_water_volume_ml / 1000
-        
-        print(f"\n📊 RESULTS:")
-        print(f"  Pump Duration:        {pump_duration_seconds} second(s)")
-        print(f"  Water Release Rate:   {PUMP_WATER_RELEASE_RATE_ML_PER_SECOND} mL/s")
-        print(f"  Total Water Volume:   {total_water_volume_ml:.2f} mL")
-        print(f"  Total Water Volume:   {total_water_volume_liters:.4f} L")
-        print("-"*60)
-        
-        result = {
-            "success": True,
-            "pump_ip": ip_address,
-            "duration_seconds": pump_duration_seconds,
-            "water_release_rate_ml_per_second": PUMP_WATER_RELEASE_RATE_ML_PER_SECOND,
-            "total_water_volume_ml": total_water_volume_ml,
-            "total_water_volume_liters": total_water_volume_liters,
-            "pump_status": final_status,
-            "activation_response": activation_data
-        }
-        
-        print("\n✓ Test completed successfully!")
+        print("⚠️  Note: Actual water volume may vary slightly (+/- 10%)")
         print("="*60 + "\n")
         
-        return result
+        return {
+            "success": True,
+            "mode": mode,
+            "value": value,
+            "water_rate_ml_per_second": water_rate,
+            "expected_water_ml": expected_water_ml,
+            "duration_seconds": duration_seconds,
+            "initial_status": initial_status,
+            "activation_response": activation_response,
+            "final_status": final_status
+        }
         
     except requests.exceptions.ConnectionError:
         print(f"❌ Connection error: Could not reach {ip_address}:8080")
         print("   Make sure the ESP32 is powered on and connected to the network")
         return None
     except requests.exceptions.Timeout:
-        print(f"❌ Timeout: The request took too long")
-        return None
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Request error: {e}")
-        return None
-    except json.JSONDecodeError:
-        print(f"❌ Failed to parse JSON response")
+        print("❌ Timeout: The request took too long")
         return None
     except Exception as e:
-        print(f"❌ Unexpected error: {e}")
+        print(f"❌ Error: {e}")
         return None
 
+
 def main():
-    """Main function to run the test."""
+    parser = argparse.ArgumentParser(
+        description="Control ESP32 pump water dispensing",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  %(prog)s 192.168.1.100 --duration 1     # Run for 1 second (~30mL)
+  %(prog)s 192.168.1.100 --duration 5     # Run for 5 seconds (~150mL)
+  %(prog)s 192.168.1.100 --water 100      # Dispense ~100mL
+  %(prog)s 192.168.1.100 --water 250      # Dispense ~250mL
+  %(prog)s 192.168.1.100 --status         # Just check pump status
+
+Water Rate: The pump releases approximately 30 mL per second.
+        """
+    )
     
-    if len(sys.argv) < 2:
-        print("Usage: python test_pump_water_volume.py <esp32_ip> [duration_seconds]")
-        print("\nExample:")
-        print("  python test_pump_water_volume.py 192.168.1.100")
-        print("  python test_pump_water_volume.py 192.168.1.100 2")
-        print("\nNote:")
-        print("  - Default duration is 1 second")
-        print("  - Edit PUMP_WATER_RELEASE_RATE_ML_PER_SECOND in the script to match your pump's rate")
-        sys.exit(1)
+    parser.add_argument("ip", help="ESP32 IP address")
     
-    ip_address = sys.argv[1]
-    duration = int(sys.argv[2]) if len(sys.argv) > 2 else 1
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--duration", "-d", type=int, 
+                       help="Duration in seconds to run the pump")
+    group.add_argument("--water", "-w", type=float,
+                       help="Amount of water to dispense in mL")
+    group.add_argument("--status", "-s", action="store_true",
+                       help="Just check pump status")
     
-    result = test_pump_water_volume(ip_address, duration)
+    args = parser.parse_args()
+    
+    if args.status:
+        result = test_pump(args.ip, 'status', None)
+    elif args.duration:
+        result = test_pump(args.ip, 'duration', args.duration)
+    else:
+        result = test_pump(args.ip, 'water', args.water)
     
     if result:
-        # Print JSON result for easy parsing
-        print("\n📋 JSON Result:")
+        print("\n📋 Full JSON Result:")
         print(json.dumps(result, indent=2))
         sys.exit(0)
     else:
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

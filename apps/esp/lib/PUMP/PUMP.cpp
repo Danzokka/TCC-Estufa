@@ -215,7 +215,27 @@ void PumpController::handleActivatePump()
 
     if (xSemaphoreTake(pumpMutex, 1000 / portTICK_PERIOD_MS) == pdTRUE)
     {
-        if (doc["duration"].is<unsigned long>())
+        if (doc["water_ml"].is<float>())
+        {
+            // Calculate duration from desired water volume (mL)
+            float waterMl = doc["water_ml"].as<float>();
+            float durationSeconds = waterMl / PUMP_ML_PER_SECOND;
+            unsigned long duration = (unsigned long)(durationSeconds * 1000); // Convert to ms
+
+            Serial.println("[PUMP] Requested " + String(waterMl) + " mL -> calculated " + String(durationSeconds, 2) + "s");
+
+            if (validateDuration(duration))
+            {
+                success = activatePump(duration);
+                if (!success)
+                    errorMsg = "Failed to activate pump for water volume";
+            }
+            else
+            {
+                errorMsg = "Calculated duration exceeds limits";
+            }
+        }
+        else if (doc["duration"].is<unsigned long>())
         {
             unsigned long duration = doc["duration"].as<unsigned long>() * 1000; // Convert seconds to ms
             if (validateDuration(duration))
@@ -630,15 +650,26 @@ String PumpController::createStatusResponse()
     doc["enabled"] = pumpEnabled;
     doc["mode"] = (currentMode == MODE_MANUAL) ? "manual" : (currentMode == MODE_DURATION) ? "duration"
                                                                                            : "volume";
+    doc["water_rate_ml_per_second"] = PUMP_ML_PER_SECOND;
 
     if (pumpStatus == PUMP_ON)
     {
-        doc["runtime_seconds"] = (millis() - pumpStartTime) / 1000;
+        unsigned long runtimeMs = millis() - pumpStartTime;
+        float runtimeSeconds = runtimeMs / 1000.0;
+        float approxWaterMl = runtimeSeconds * PUMP_ML_PER_SECOND;
+
+        doc["runtime_seconds"] = runtimeSeconds;
+        doc["approx_water_dispensed_ml"] = approxWaterMl;
 
         if (currentMode == MODE_DURATION)
         {
+            unsigned long remainingMs = getRemainingTime() * 1000;
+            float totalDurationSeconds = pumpDuration / 1000.0;
+            float approxTotalWaterMl = totalDurationSeconds * PUMP_ML_PER_SECOND;
+
             doc["remaining_seconds"] = getRemainingTime();
-            doc["duration_seconds"] = pumpDuration / 1000;
+            doc["duration_seconds"] = totalDurationSeconds;
+            doc["approx_total_water_ml"] = approxTotalWaterMl;
         }
         else if (currentMode == MODE_VOLUME)
         {

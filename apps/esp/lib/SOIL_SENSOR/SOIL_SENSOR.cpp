@@ -62,18 +62,6 @@ void SOIL_SENSOR::read()
         Serial.println("Erro na leitura do sensor de temperatura do solo!");
         // Mantém o valor anterior, não atualiza soilTemperature
     }
-
-    // Print readings to serial
-    Serial.print("Soil Humidity: ");
-    Serial.println(soilHumidity);
-    Serial.print("Soil Moisture Raw: ");
-    Serial.println(moistureRaw);
-    Serial.print("Soil Moisture Percentage: ");
-    Serial.print(mappedValue);
-    Serial.println("%");
-    Serial.print("Soil Temperature: ");
-    Serial.print(soilTemperature);
-    Serial.println(" °C");
 }
 
 String SOIL_SENSOR::format(int val)
