@@ -193,8 +193,14 @@ void PumpController::httpServerTask(void *parameter)
 // HTTP handler for pump activation
 void PumpController::handleActivatePump()
 {
+    unsigned long startTime = millis();
+    String clientIP = httpServer.client().remoteIP().toString();
+
+    Serial.println("[HTTP] POST /pump/activate from " + clientIP);
+
     if (!pumpEnabled)
     {
+        Serial.println("[HTTP] Response: 400 - Pump disabled (" + String(millis() - startTime) + "ms)");
         httpServer.send(400, "application/json", createErrorResponse("Pump is disabled"));
         return;
     }
@@ -253,10 +259,12 @@ void PumpController::handleActivatePump()
 
     if (success)
     {
+        Serial.println("[HTTP] Response: 200 - Pump activated (" + String(millis() - startTime) + "ms)");
         httpServer.send(200, "application/json", createStatusResponse());
     }
     else
     {
+        Serial.println("[HTTP] Response: 400 - " + errorMsg + " (" + String(millis() - startTime) + "ms)");
         httpServer.send(400, "application/json", createErrorResponse(errorMsg));
     }
 }
@@ -264,6 +272,11 @@ void PumpController::handleActivatePump()
 // HTTP handler for pump deactivation
 void PumpController::handleDeactivatePump()
 {
+    unsigned long startTime = millis();
+    String clientIP = httpServer.client().remoteIP().toString();
+
+    Serial.println("[HTTP] POST /pump/deactivate from " + clientIP);
+
     bool success = false;
 
     if (xSemaphoreTake(pumpMutex, 1000 / portTICK_PERIOD_MS) == pdTRUE)
@@ -274,10 +287,12 @@ void PumpController::handleDeactivatePump()
 
     if (success)
     {
+        Serial.println("[HTTP] Response: 200 - Pump deactivated (" + String(millis() - startTime) + "ms)");
         httpServer.send(200, "application/json", createStatusResponse());
     }
     else
     {
+        Serial.println("[HTTP] Response: 400 - Failed to deactivate (" + String(millis() - startTime) + "ms)");
         httpServer.send(400, "application/json", createErrorResponse("Failed to deactivate pump"));
     }
 }
@@ -285,20 +300,32 @@ void PumpController::handleDeactivatePump()
 // HTTP handler for pump status
 void PumpController::handlePumpStatus()
 {
+    unsigned long startTime = millis();
+    String clientIP = httpServer.client().remoteIP().toString();
+
+    Serial.println("[HTTP] GET /pump/status from " + clientIP);
     httpServer.send(200, "application/json", createStatusResponse());
+    Serial.println("[HTTP] Response: 200 (" + String(millis() - startTime) + "ms)");
 }
 
 // HTTP handler for emergency stop
 void PumpController::handleEmergencyStop()
 {
+    unsigned long startTime = millis();
+    String clientIP = httpServer.client().remoteIP().toString();
+
+    Serial.println("[HTTP] POST /pump/emergency-stop from " + clientIP);
+
     bool success = emergencyStopPump();
 
     if (success)
     {
+        Serial.println("[HTTP] Response: 200 - Emergency stop executed (" + String(millis() - startTime) + "ms)");
         httpServer.send(200, "application/json", createStatusResponse());
     }
     else
     {
+        Serial.println("[HTTP] Response: 500 - Emergency stop failed (" + String(millis() - startTime) + "ms)");
         httpServer.send(500, "application/json", createErrorResponse("Emergency stop failed"));
     }
 }
@@ -306,12 +333,19 @@ void PumpController::handleEmergencyStop()
 // HTTP handler for not found
 void PumpController::handleNotFound()
 {
+    String clientIP = httpServer.client().remoteIP().toString();
+    Serial.println("[HTTP] 404 - Unknown endpoint from " + clientIP + ": " + httpServer.uri());
     httpServer.send(404, "application/json", createErrorResponse("Endpoint not found"));
 }
 
 // HTTP handler for reset error state
 void PumpController::handleReset()
 {
+    unsigned long startTime = millis();
+    String clientIP = httpServer.client().remoteIP().toString();
+
+    Serial.println("[HTTP] POST /pump/reset from " + clientIP);
+
     if (xSemaphoreTake(pumpMutex, 1000 / portTICK_PERIOD_MS) == pdTRUE)
     {
         if (pumpStatus == PUMP_ERROR)
@@ -323,6 +357,7 @@ void PumpController::handleReset()
         }
         xSemaphoreGive(pumpMutex);
     }
+    Serial.println("[HTTP] Response: 200 (" + String(millis() - startTime) + "ms)");
     httpServer.send(200, "application/json", createStatusResponse());
 }
 

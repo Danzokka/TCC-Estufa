@@ -3,7 +3,6 @@
 #include <TH_SENSOR.h>
 #include <SERVER.h>
 #include <SOIL_SENSOR.h>
-#include <FLOW_SENSOR.h>
 #include <PUMP.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -31,8 +30,6 @@ float currentHumidity = 0;
 float currentSoilTemp = 0;
 int currentSoilMoisture = 0;
 String soilHumidityText = "";
-float currentFlowRate = 0;    // Taxa de fluxo atual em L/min
-float currentTotalVolume = 0; // Volume total acumulado em litros
 
 // Tarefa que roda no núcleo 0: Leitura dos sensores e envio de dados
 void Task1code(void *pvParameters)
@@ -45,7 +42,6 @@ void Task1code(void *pvParameters)
         // Leitura dos sensores
         th_sensor.read();
         soil_sensor.read();
-        flow_sensor.read();
 
         // Adquire o mutex para atualizar dados compartilhados
         if (sensorMutex != NULL && xSemaphoreTake(sensorMutex, portMAX_DELAY) == pdTRUE)
@@ -55,11 +51,6 @@ void Task1code(void *pvParameters)
             currentSoilTemp = soil_sensor.soilTemperature;
             currentSoilMoisture = soil_sensor.moistureRaw;
             soilHumidityText = soil_sensor.soilHumidity + " " + String(soil_sensor.soilTemperature, 1) + "C";
-            currentFlowRate = flow_sensor.flowRate;
-            currentTotalVolume = flow_sensor.totalVolume;
-
-            // Update pump controller with volume data for volume-based control
-            pumpController.updateVolume(currentTotalVolume);
 
             xSemaphoreGive(sensorMutex);
         }
@@ -69,9 +60,7 @@ void Task1code(void *pvParameters)
             currentTemp,
             currentHumidity,
             currentSoilTemp,
-            currentSoilMoisture,
-            currentFlowRate,
-            currentTotalVolume);
+            currentSoilMoisture);
 
         // Verifica se é hora de enviar dados ao servidor
         unsigned long currentMillis = millis();
@@ -140,10 +129,10 @@ void handleDisplayMode(bool showSystemInfo)
         }
         else
         {
-            // Exibe os dados dos sensores incluindo o fluxo de água e status da bomba
+            // Exibe os dados dos sensores e status da bomba
             String pumpStatus = pumpController.getPumpStatusText();
             String pumpDetails = pumpController.getPumpDetailsText();
-            oled.outputWithPump(currentTemp, currentHumidity, soilHumidityText, currentFlowRate, currentTotalVolume, pumpStatus, pumpDetails);
+            oled.outputWithPump(currentTemp, currentHumidity, soilHumidityText, pumpStatus, pumpDetails);
         }
         xSemaphoreGive(sensorMutex);
 
@@ -185,12 +174,6 @@ void setup()
     if (!soil_sensor.begin())
     {
         Serial.println("[ERRO] Sensor Solo");
-        for (;;)
-            ;
-    }
-    if (!flow_sensor.begin())
-    {
-        Serial.println("[ERRO] Sensor Fluxo");
         for (;;)
             ;
     }

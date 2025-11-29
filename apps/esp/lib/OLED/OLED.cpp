@@ -67,26 +67,7 @@ void OledDisplay::output(float temperature, float humidity, String soilHumidity)
 	display.println("Solo: " + soilHumidity);
 }
 
-void OledDisplay::outputWithFlow(float temperature, float humidity, String soilHumidity, float flowRate, float totalVolume)
-{
-	display.clearDisplay();
-	display.setTextSize(1);
-	display.setTextColor(WHITE);
-	display.setCursor(0, 0);
-	display.println("Temperatura: " + String(temperature) + " C");
-	display.println("Umidade: " + String(humidity) + " %");
-	display.println("Solo: " + soilHumidity);
-
-	// Linha separadora
-	display.drawLine(0, 33, 128, 33, WHITE);
-
-	// Dados de fluxo de água
-	display.setCursor(0, 37);
-	display.println("Fluxo: " + String(flowRate, 2) + " L/min");
-	display.println("Vol. Total: " + String(totalVolume, 1) + " L");
-}
-
-void OledDisplay::outputWithPump(float temperature, float humidity, String soilHumidity, float flowRate, float totalVolume, String pumpStatus, String pumpDetails)
+void OledDisplay::outputWithPump(float temperature, float humidity, String soilHumidity, String pumpStatus, String pumpDetails)
 {
 	display.clearDisplay();
 	display.setTextSize(1);
@@ -99,17 +80,11 @@ void OledDisplay::outputWithPump(float temperature, float humidity, String soilH
 	// Second line: Soil moisture
 	display.println("Solo: " + soilHumidity);
 
-	// Third line: Flow data
-	display.println("Fluxo: " + String(flowRate, 1) + " L/min");
-
-	// Fourth line: Volume
-	display.println("Volume: " + String(totalVolume, 1) + " L");
-
 	// Linha separadora
-	display.drawLine(0, 33, 128, 33, WHITE);
+	display.drawLine(0, 20, 128, 20, WHITE);
 
 	// Pump status (larger text for visibility)
-	display.setCursor(0, 37);
+	display.setCursor(0, 24);
 	display.setTextSize(1);
 	display.println(pumpStatus);
 	display.println(pumpDetails);
