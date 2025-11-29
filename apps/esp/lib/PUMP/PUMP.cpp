@@ -235,6 +235,23 @@ void PumpController::handleActivatePump()
                 errorMsg = "Calculated duration exceeds limits";
             }
         }
+        else if (doc["duration_ms"].is<unsigned long>())
+        {
+            // Duration in milliseconds (direct, no conversion)
+            unsigned long duration = doc["duration_ms"].as<unsigned long>();
+            Serial.println("[PUMP] Requested " + String(duration) + " ms directly");
+
+            if (validateDuration(duration))
+            {
+                success = activatePump(duration);
+                if (!success)
+                    errorMsg = "Failed to activate pump for duration_ms";
+            }
+            else
+            {
+                errorMsg = "Invalid duration_ms specified";
+            }
+        }
         else if (doc["duration"].is<unsigned long>())
         {
             unsigned long duration = doc["duration"].as<unsigned long>() * 1000; // Convert seconds to ms

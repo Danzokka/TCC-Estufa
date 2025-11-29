@@ -601,4 +601,142 @@ export class SensorService {
       throw err;
     }
   }
+
+  /**
+   * Busca a última leitura de sensor de uma greenhouse específica
+   * Usado pelo sistema de irrigação automática (AI)
+   */
+  async getLatestReading(greenhouseId: string) {
+    const greenhouse = await this.prisma.greenhouse.findUnique({
+      where: { id: greenhouseId },
+      select: {
+        id: true,
+        name: true,
+        currentTemperature: true,
+        currentHumidity: true,
+        currentSoilMoisture: true,
+        lastDataUpdate: true,
+        isOnline: true,
+      },
+    });
+
+    if (!greenhouse) {
+      throw new Error(`Greenhouse ${greenhouseId} not found`);
+    }
+
+    const latestReading = await this.prisma.greenhouseSensorReading.findFirst({
+      where: { greenhouseId },
+      orderBy: { timestamp: 'desc' },
+    });
+
+    return {
+      greenhouse: {
+        id: greenhouse.id,
+        name: greenhouse.name,
+        isOnline: greenhouse.isOnline,
+        lastDataUpdate: greenhouse.lastDataUpdate,
+      },
+      latestReading: latestReading
+        ? {
+            id: latestReading.id,
+            airTemperature: latestReading.airTemperature,
+            airHumidity: latestReading.airHumidity,
+            soilMoisture: latestReading.soilMoisture,
+            soilTemperature: latestReading.soilTemperature,
+            plantHealthScore: latestReading.plantHealthScore,
+            timestamp: latestReading.timestamp,
+          }
+        : null,
+      // Valores atuais da greenhouse (cache)
+      currentValues: {
+        temperature: greenhouse.currentTemperature,
+        humidity: greenhouse.currentHumidity,
+        soilMoisture: greenhouse.currentSoilMoisture,
+      },
+    };
+  }
+
+  /**
+   * Verifica se a irrigação é necessária baseada na umidade do solo
+   * Retorna recomendação para o sistema de irrigação automática
+   */
+  async checkIrrigationNeeded(greenhouseId: string, threshold: number = 30) {
+    const data = await this.getLatestReading(greenhouseId);
+
+    if (!data.latestReading) {
+      return {
+        needsIrrigation: false,
+        reason: 'No sensor data available',
+        soilMoisture: null,
+        threshold,
+        recommendation: 'WAIT',
+      };
+    }
+
+    const soilMoisture = data.latestReading.soilMoisture;
+    const needsIrrigation = soilMoisture < threshold;
+
+    let recommendation: 'IRRIGATE' | 'MONITOR' | 'OK' | 'WAIT';
+    let reason: string;
+
+    if (soilMoisture === 0 || soilMoisture === null) {
+      recommendation = 'WAIT';
+      reason = 'Soil moisture sensor may be disconnected or reading invalid';
+    } else if (soilMoisture < threshold) {
+      recommendation = 'IRRIGATE';
+      reason = `Soil moisture (${soilMoisture}%) is below threshold (${threshold}%)`;
+    } else if (soilMoisture < threshold + 20) {
+      recommendation = 'MONITOR';
+      reason = `Soil moisture (${soilMoisture}%) is acceptable but below ideal`;
+    } else {
+      recommendation = 'OK';
+      reason = `Soil moisture (${soilMoisture}%) is at good level`;
+    }
+
+    return {
+      needsIrrigation,
+      soilMoisture,
+      threshold,
+      recommendation,
+      reason,
+      timestamp: data.latestReading.timestamp,
+      greenhouse: data.greenhouse,
+    };
+  }
+
+  /**
+   * Get historical readings for LSTM model input
+   * Returns raw sensor readings for the specified time period
+   */
+  async getHistoricalReadings(
+    greenhouseId: string,
+    hours: number = 24,
+    limit: number = 100,
+  ): Promise<any[]> {
+    const startDate = new Date(Date.now() - hours * 60 * 60 * 1000);
+
+    const readings = await this.prisma.greenhouseSensorReading.findMany({
+      where: {
+        greenhouseId,
+        timestamp: {
+          gte: startDate,
+        },
+      },
+      orderBy: {
+        timestamp: 'desc',
+      },
+      take: limit,
+      select: {
+        id: true,
+        airTemperature: true,
+        airHumidity: true,
+        soilMoisture: true,
+        soilTemperature: true,
+        timestamp: true,
+      },
+    });
+
+    // Return in chronological order (oldest first)
+    return readings.reverse();
+  }
 }

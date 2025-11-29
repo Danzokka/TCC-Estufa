@@ -1,14 +1,26 @@
 """
-Flask API Service - Real-time Plant Health Analysis
-Usa os modelos LSTM treinados para predições em tempo real
+Flask API Service - IoT Greenhouse AI Platform
+Serviço completo de IA com análise de saúde, previsões LSTM e irrigação inteligente
 
 Run: python3 app_service.py
 Endpoints:
-  - GET  /health                - Health check
-  - GET  /models/info           - Model information  
-  - POST /analyze-sensors       - Análise completa de saúde da planta
-  - POST /predict/moisture      - Predição específica de umidade  
-  - POST /predict/health        - Predição específica de saúde
+  Health & Info:
+  - GET  /health                     - Health check
+  - GET  /models/info                - Model information  
+  
+  Analysis:
+  - POST /analyze-sensors            - Análise completa de saúde da planta
+  - POST /predict/moisture           - Predição específica de umidade  
+  - POST /predict/health             - Predição específica de saúde
+  
+  Irrigation:
+  - POST /irrigation/configure       - Configurar greenhouse para irrigação
+  - GET  /irrigation/status          - Status do sistema de irrigação
+  - POST /irrigation/analyze         - Analisar necessidade de irrigação
+  - POST /irrigation/execute         - Executar irrigação
+  - POST /irrigation/start-monitor   - Iniciar monitoramento automático
+  - POST /irrigation/stop-monitor    - Parar monitoramento
+  - GET  /irrigation/plants          - Listar tipos de plantas disponíveis
 """
 import sys
 import os
@@ -24,25 +36,38 @@ import pandas as pd
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 import numpy as np
+import logging
 
 from models.lstm_model import LSTMModel  # Use LSTMModel directly
 from data_processing.preprocessor import DataPreprocessor
 from db.database import fetch_sensor_data
 from config.settings import MODELS_DIR
+from services.irrigation_service import SmartIrrigationService, PlantKnowledgeBase
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Initialize Flask app
 app = Flask(__name__)
 
-# CORS - Allow NestJS backend and Next.js frontend
+# CORS - Allow NestJS backend, Next.js frontend and ESP32 devices
 CORS(app, origins=[
     'http://localhost:5000',  # NestJS API  
     'http://localhost:3000',  # Next.js frontend
-    'http://localhost:3001'   # Alternative port
+    'http://localhost:3001',  # Alternative port
+    'http://192.168.*.*'      # ESP32 devices on local network
 ])
 
 # Global storage for loaded models
 loaded_models: Dict[str, Dict] = {}
 preprocessor: Optional[DataPreprocessor] = None
+
+# Smart Irrigation Service (initialized after models load)
+irrigation_service: Optional[SmartIrrigationService] = None
 
 def initialize_models() -> bool:
     """
@@ -192,13 +217,20 @@ def generate_recommendations(health_score: float, moisture_predictions: List[flo
 @app.route('/health', methods=['GET'])
 def health_check():
     """Service health check"""
+    global irrigation_service
+    
+    irrigation_status = None
+    if irrigation_service:
+        irrigation_status = irrigation_service.get_status()
+    
     return jsonify({
         'status': 'healthy',
         'service': 'IoT Greenhouse AI Service',
         'timestamp': datetime.now().isoformat(),
         'models_loaded': list(loaded_models.keys()),
         'models_count': len(loaded_models),
-        'version': '1.0.0'
+        'irrigation_service': irrigation_status,
+        'version': '2.0.0'
     }), 200
 
 
@@ -539,6 +571,291 @@ def predict_health():
         return jsonify({'error': str(e)}), 500
 
 
+# ============================================================
+# IRRIGATION ENDPOINTS
+# ============================================================
+
+@app.route('/irrigation/plants', methods=['GET'])
+def get_plant_types():
+    """Lista tipos de plantas disponíveis e suas configurações de umidade"""
+    plants = PlantKnowledgeBase.get_all_plants()
+    return jsonify({
+        'plants': plants,
+        'count': len(plants),
+        'timestamp': datetime.now().isoformat()
+    }), 200
+
+
+@app.route('/irrigation/configure', methods=['POST'])
+def configure_irrigation():
+    """
+    Configura irrigação para uma greenhouse
+    
+    Body:
+    {
+        "greenhouseId": "uuid",
+        "esp32Ip": "192.168.0.87",
+        "esp32Port": 8080,
+        "plantType": "tomato",
+        "pulseDuration": 1.0,
+        "pulseWait": 30,
+        "maxPulses": 15,
+        "autoIrrigate": false
+    }
+    """
+    global irrigation_service
+    
+    try:
+        data = request.get_json()
+        
+        greenhouse_id = data.get('greenhouseId')
+        esp32_ip = data.get('esp32Ip')
+        
+        if not greenhouse_id or not esp32_ip:
+            return jsonify({'error': 'greenhouseId and esp32Ip are required'}), 400
+        
+        config = irrigation_service.configure_greenhouse(
+            greenhouse_id=greenhouse_id,
+            esp32_ip=esp32_ip,
+            esp32_port=data.get('esp32Port', 8080),
+            plant_type=data.get('plantType', 'default'),
+            pulse_duration=data.get('pulseDuration'),
+            pulse_wait=data.get('pulseWait'),
+            max_pulses=data.get('maxPulses'),
+            auto_irrigate=data.get('autoIrrigate', False),
+            check_interval=data.get('checkInterval'),
+            target_moisture=data.get('targetMoisture')
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': f'Greenhouse {greenhouse_id} configurada',
+            'config': config
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Erro ao configurar irrigação: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/irrigation/status', methods=['GET'])
+def irrigation_status():
+    """Status do sistema de irrigação"""
+    global irrigation_service
+    
+    greenhouse_id = request.args.get('greenhouseId')
+    status = irrigation_service.get_status(greenhouse_id)
+    
+    return jsonify({
+        'success': True,
+        'status': status,
+        'timestamp': datetime.now().isoformat()
+    }), 200
+
+
+@app.route('/irrigation/analyze', methods=['POST'])
+def analyze_irrigation():
+    """
+    Analisa necessidade de irrigação para uma greenhouse
+    
+    Body:
+    {
+        "greenhouseId": "uuid"
+    }
+    """
+    global irrigation_service
+    
+    try:
+        data = request.get_json()
+        greenhouse_id = data.get('greenhouseId')
+        
+        if not greenhouse_id:
+            return jsonify({'error': 'greenhouseId is required'}), 400
+        
+        # Verificar se está configurada
+        if greenhouse_id not in irrigation_service.irrigation_config:
+            return jsonify({
+                'error': 'Greenhouse not configured',
+                'message': 'Use /irrigation/configure first'
+            }), 400
+        
+        decision = irrigation_service.analyze_irrigation_need(greenhouse_id)
+        
+        # Obter status da bomba
+        pump_status = irrigation_service.get_pump_status(greenhouse_id)
+        
+        return jsonify({
+            'success': True,
+            'greenhouseId': greenhouse_id,
+            'analysis': decision.to_dict(),
+            'pumpStatus': pump_status,
+            'timestamp': datetime.now().isoformat()
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Erro na análise: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/irrigation/execute', methods=['POST'])
+def execute_irrigation():
+    """
+    Executa irrigação em uma greenhouse
+    
+    Body:
+    {
+        "greenhouseId": "uuid",
+        "force": false  // Ignorar análise e forçar irrigação
+    }
+    """
+    global irrigation_service
+    
+    try:
+        data = request.get_json()
+        greenhouse_id = data.get('greenhouseId')
+        force = data.get('force', False)
+        
+        if not greenhouse_id:
+            return jsonify({'error': 'greenhouseId is required'}), 400
+        
+        # Verificar se está configurada
+        if greenhouse_id not in irrigation_service.irrigation_config:
+            return jsonify({
+                'error': 'Greenhouse not configured',
+                'message': 'Use /irrigation/configure first'
+            }), 400
+        
+        decision = None
+        if not force:
+            decision = irrigation_service.analyze_irrigation_need(greenhouse_id)
+            if not decision.needs_irrigation:
+                return jsonify({
+                    'success': True,
+                    'message': 'Irrigation not needed',
+                    'analysis': decision.to_dict()
+                }), 200
+        
+        result = irrigation_service.execute_irrigation(greenhouse_id, decision)
+        
+        return jsonify({
+            'success': result.success,
+            'result': result.to_dict(),
+            'timestamp': datetime.now().isoformat()
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Erro na execução: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/irrigation/start-monitor', methods=['POST'])
+def start_irrigation_monitor():
+    """
+    Inicia monitoramento automático de irrigação
+    
+    Body:
+    {
+        "greenhouseId": "uuid",
+        "esp32Ip": "192.168.0.87",  // Opcional se já configurada
+        "checkInterval": 60  // segundos entre verificações
+    }
+    """
+    global irrigation_service
+    
+    try:
+        data = request.get_json()
+        greenhouse_id = data.get('greenhouseId')
+        
+        if not greenhouse_id:
+            return jsonify({'error': 'greenhouseId is required'}), 400
+        
+        # Verificar se já está configurada
+        existing_config = irrigation_service.irrigation_config.get(greenhouse_id)
+        
+        if existing_config:
+            # Usar configuração existente
+            esp32_url = existing_config.get('esp32_url', '')
+            esp32_ip = esp32_url.replace('http://', '').split(':')[0] if esp32_url else data.get('esp32Ip')
+            check_interval = data.get('checkInterval', existing_config.get('check_interval', 60))
+        else:
+            esp32_ip = data.get('esp32Ip')
+            check_interval = data.get('checkInterval', 60)
+            
+            if not esp32_ip:
+                return jsonify({'error': 'esp32Ip is required for first-time configuration'}), 400
+        
+        result = irrigation_service.start_monitoring(
+            greenhouse_id=greenhouse_id,
+            esp32_ip=esp32_ip,
+            plant_type=data.get('plantType', existing_config.get('plant_type', 'default') if existing_config else 'default'),
+            auto_irrigate=True,
+            check_interval=check_interval,
+            pulse_duration=existing_config.get('pulse_duration', 0.5) if existing_config else data.get('pulseDuration', 0.5),
+            pulse_wait=existing_config.get('pulse_wait', 60) if existing_config else data.get('pulseWait', 60),
+            max_pulses=existing_config.get('max_pulses', 20) if existing_config else data.get('maxPulses', 20),
+            target_moisture=existing_config.get('target_moisture', 20) if existing_config else data.get('targetMoisture', 20)
+        )
+        
+        return jsonify({
+            'success': True,
+            'result': result,
+            'message': f'Monitoring started for {greenhouse_id}',
+            'timestamp': datetime.now().isoformat()
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Erro ao iniciar monitor: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/irrigation/stop-monitor', methods=['POST'])
+def stop_irrigation_monitor():
+    """
+    Para monitoramento de irrigação
+    
+    Body:
+    {
+        "greenhouseId": "uuid"  // Opcional, se vazio para todos
+    }
+    """
+    global irrigation_service
+    
+    try:
+        data = request.get_json() or {}
+        greenhouse_id = data.get('greenhouseId')
+        
+        irrigation_service.stop_monitoring(greenhouse_id)
+        
+        message = f'Monitoring stopped for {greenhouse_id}' if greenhouse_id else 'All monitoring stopped'
+        
+        return jsonify({
+            'success': True,
+            'message': message,
+            'timestamp': datetime.now().isoformat()
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Erro ao parar monitor: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+def initialize_irrigation_service():
+    """Inicializa o serviço de irrigação após carregar modelos"""
+    global irrigation_service, loaded_models, preprocessor
+    
+    lstm_model = None
+    if 'soil_moisture' in loaded_models:
+        lstm_model = loaded_models['soil_moisture']['model']
+    
+    irrigation_service = SmartIrrigationService(
+        backend_url="http://localhost:5000",
+        lstm_model=lstm_model,
+        preprocessor=preprocessor
+    )
+    
+    logger.info("🚿 SmartIrrigationService inicializado")
+
+
 if __name__ == '__main__':
     print("\n" + "=" * 70)
     print("🌱 IoT GREENHOUSE AI SERVICE - Starting...")
@@ -546,6 +863,9 @@ if __name__ == '__main__':
     
     # Initialize models
     success = initialize_models()
+    
+    # Initialize irrigation service
+    initialize_irrigation_service()
     
     if not success:
         print("\n⚠️  WARNING: Some models failed to load. Service may have limited functionality.")
@@ -556,20 +876,31 @@ if __name__ == '__main__':
     print("🚀 STARTING FLASK SERVER")
     print("=" * 70)
     print("\n📍 Available Endpoints:")
-    print("   - GET  /health              Health check & status")
-    print("   - GET  /models/info         Model details & architecture")
-    print("   - POST /analyze-sensors     Complete plant analysis")
-    print("   - POST /predict/moisture    Soil moisture prediction")
-    print("   - POST /predict/health      Plant health prediction")
+    print("\n  📊 Health & Info:")
+    print("   - GET  /health                     Health check & status")
+    print("   - GET  /models/info                Model details & architecture")
+    print("\n  🧠 AI Analysis:")
+    print("   - POST /analyze-sensors            Complete plant analysis")
+    print("   - POST /predict/moisture           Soil moisture prediction (12h)")
+    print("   - POST /predict/health             Plant health prediction")
+    print("\n  💧 Smart Irrigation:")
+    print("   - GET  /irrigation/plants          List plant types & configs")
+    print("   - POST /irrigation/configure       Configure greenhouse irrigation")
+    print("   - GET  /irrigation/status          Get irrigation system status")
+    print("   - POST /irrigation/analyze         Analyze irrigation need (AI)")
+    print("   - POST /irrigation/execute         Execute smart irrigation")
+    print("   - POST /irrigation/start-monitor   Start auto-monitoring (background)")
+    print("   - POST /irrigation/stop-monitor    Stop monitoring")
     print("\n🌐 Server URL: http://localhost:5001")
     print("🔗 Allowed Origins:")
     print("   - http://localhost:5000    (NestJS API)")
     print("   - http://localhost:3000    (Next.js Frontend)")
+    print("   - http://192.168.*.*       (ESP32 Devices)")
     print("\n" + "=" * 70 + "\n")
     
     app.run(
         host='0.0.0.0',
         port=5001,
-        debug=True,
+        debug=False,  # Production-ready
         use_reloader=False  # Avoid double model loading
     )
