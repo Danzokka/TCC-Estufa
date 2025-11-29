@@ -1,6 +1,4 @@
 #include "OLED.h"
-// MODO DESENVOLVIMENTO: QR_CONFIG desabilitado
-// #include "QR_CONFIG.h"
 
 OledDisplay::OledDisplay()
 	: display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET)
@@ -137,74 +135,6 @@ void OledDisplay::outputPumpActivation(int duration, float waterAmount)
 
 	// Barra de progresso simples
 	display.fillRect(2, 52, 124, 8, WHITE);
-}
-
-void OledDisplay::displayQRCode(QRConfigManager *qrConfig)
-{
-	// MODO DESENVOLVIMENTO: QR Config desabilitado
-	/*
-	if (!qrConfig)
-	{
-		displayConfigurationStatus("QR Error", "Config manager null");
-		return;
-	}
-
-	display.clearDisplay();
-
-	// Check if QR code is available
-	int qrSize = qrConfig->getQRSize();
-	if (qrSize == 0)
-	{
-		displayConfigurationStatus("QR Generation", "Creating QR code...");
-		return;
-	}
-
-	// Calculate scaling and centering for 128x64 display
-	int scale = min(SCREEN_WIDTH / qrSize, SCREEN_HEIGHT / qrSize);
-	if (scale < 1)
-		scale = 1;
-
-	int qrPixelSize = qrSize * scale;
-	int offsetX = (SCREEN_WIDTH - qrPixelSize) / 2;
-	int offsetY = (SCREEN_HEIGHT - qrPixelSize) / 2;
-
-	// Draw QR code
-	for (int y = 0; y < qrSize; y++)
-	{
-		for (int x = 0; x < qrSize; x++)
-		{
-			if (qrConfig->getQRModule(x, y))
-			{
-				// Draw scaled pixel
-				for (int dy = 0; dy < scale; dy++)
-				{
-					for (int dx = 0; dx < scale; dx++)
-					{
-						int pixelX = offsetX + x * scale + dx;
-						int pixelY = offsetY + y * scale + dy;
-
-						if (pixelX >= 0 && pixelX < SCREEN_WIDTH &&
-							pixelY >= 0 && pixelY < SCREEN_HEIGHT)
-						{
-							display.drawPixel(pixelX, pixelY, WHITE);
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// Add small text indicator if space allows
-	if (offsetY > 8)
-	{
-		display.setTextSize(1);
-		display.setTextColor(WHITE);
-		display.setCursor(0, 0);
-		display.println("Scan QR Code");
-	}
-	*/
-	// Em modo desenvolvimento, mostra mensagem alternativa
-	displayConfigurationStatus("DESENVOLVIMENTO", "QR Code desabilitado");
 }
 
 void OledDisplay::displaySystemInfo()
