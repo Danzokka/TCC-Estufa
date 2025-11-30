@@ -190,16 +190,6 @@ export class AnalyticsService {
       this.logger.warn(`⚠️ Falha ao gerar insights via IA: ${error.message}`);
     }
 
-    // Log para debug
-    this.logger.log(
-      `📊 Insights antes de salvar no banco: ${insights ? 'PRESENTE' : 'NULL'}`,
-    );
-    if (insights) {
-      this.logger.log(
-        `📊 Estrutura insights: ${JSON.stringify({ hasInsights: !!insights.insights, hasRecommendations: !!insights.recommendations, hasAnomalies: !!insights.anomalies })}`,
-      );
-    }
-
     // 7. Gerar resumo
     const summary = this.generateSummary(metrics, userPlant.plant);
 
@@ -223,11 +213,6 @@ export class AnalyticsService {
         recommendations: recommendations as any,
       },
     });
-
-    // Log para debug
-    this.logger.log(
-      `💾 Relatório salvo - aiInsights: ${report.aiInsights ? 'PRESENTE' : 'NULL'}`,
-    );
 
     return {
       id: report.id,

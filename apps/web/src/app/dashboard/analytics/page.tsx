@@ -646,41 +646,6 @@ export default function AnalyticsPage() {
             </p>
           </CardHeader>
           <CardContent>
-            {/* Debug: Mostrar estrutura dos dados */}
-            {process.env.NODE_ENV === "development" && (
-              <div className="mb-4 p-3 bg-muted rounded-lg text-xs">
-                <details>
-                  <summary className="cursor-pointer font-semibold">
-                    🐛 Debug: Estrutura dos Dados
-                  </summary>
-                  <pre className="mt-2 overflow-auto">
-                    {JSON.stringify(
-                      {
-                        hasAiInsights: !!currentReport.aiInsights,
-                        hasInsights: !!currentReport.aiInsights?.insights,
-                        insightsKeys: currentReport.aiInsights?.insights
-                          ? Object.keys(currentReport.aiInsights.insights)
-                          : [],
-                        hasAnomalies: !!currentReport.aiInsights?.anomalies,
-                        anomaliesCount:
-                          currentReport.aiInsights?.anomalies?.length || 0,
-                        hasRecommendations: !!currentReport.recommendations,
-                        recommendationsCount:
-                          currentReport.recommendations?.length || 0,
-                        hasAiRecommendations:
-                          !!currentReport.aiInsights?.recommendations,
-                        aiRecommendationsCount:
-                          currentReport.aiInsights?.recommendations?.length ||
-                          0,
-                      },
-                      null,
-                      2
-                    )}
-                  </pre>
-                </details>
-              </div>
-            )}
-
             <div className="space-y-6">
               {/* Weather Impact - NOVO */}
               <WeatherImpact
