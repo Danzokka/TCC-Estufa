@@ -700,13 +700,23 @@ export class IrrigationService {
             estimatedWaterAmount,
           );
         } else {
-          // Failure notification - create a custom one
+          // Failure notification - create a custom one with user-friendly message
+          const userFriendlyMessage = data.errorMessage?.includes(
+            'Failed to establish',
+          )
+            ? 'Não foi possível conectar ao dispositivo ESP32. Verifique se o dispositivo está ligado e conectado à rede.'
+            : data.errorMessage?.includes('timeout')
+              ? 'O dispositivo ESP32 não respondeu a tempo. Tente novamente.'
+              : data.errorMessage?.includes('refused')
+                ? 'Conexão recusada pelo dispositivo ESP32. Verifique se o dispositivo está funcionando corretamente.'
+                : 'Ocorreu um erro ao tentar irrigar. Verifique o sistema e tente novamente.';
+
           await this.prisma.notification.create({
             data: {
               userId: greenhouse.ownerId,
               type: 'pump_error',
               title: '⚠️ Falha na Irrigação Automática',
-              message: `A irrigação automática falhou: ${data.errorMessage || 'Erro de conexão com ESP32'}`,
+              message: userFriendlyMessage,
               data: {
                 irrigationId: irrigation.id,
                 greenhouseId: data.greenhouseId,
@@ -731,6 +741,164 @@ export class IrrigationService {
     } catch (error) {
       this.logger.error('Error recording AI irrigation:', error);
       return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Send AI prediction notification based on LSTM model forecasts
+   * Creates a notification when AI predicts environmental changes that may affect the plant
+   */
+  async sendPredictionNotification(data: {
+    greenhouseId: string;
+    predictionType:
+      | 'moisture_drop'
+      | 'temperature_rise'
+      | 'humidity_drop'
+      | 'optimal_conditions';
+    currentMoisture: number;
+    predictedMoisture: number;
+    confidence: number;
+    hoursAhead: number;
+    plantType?: string;
+    currentTemperature?: number;
+    predictedTemperature?: number;
+    currentHumidity?: number;
+    predictedHumidity?: number;
+    recommendation?: string;
+  }) {
+    try {
+      // Find the greenhouse and owner
+      const greenhouse = await this.prisma.greenhouse.findUnique({
+        where: { id: data.greenhouseId },
+        select: { id: true, name: true, ownerId: true },
+      });
+
+      if (!greenhouse) {
+        this.logger.warn(
+          `Greenhouse ${data.greenhouseId} not found for prediction notification`,
+        );
+        return { success: false, error: 'Greenhouse not found' };
+      }
+
+      // Check for recent similar notifications (avoid spamming - 2 hour cooldown)
+      const recentNotification = await this.prisma.notification.findFirst({
+        where: {
+          userId: greenhouse.ownerId,
+          type: 'ai_prediction',
+          createdAt: { gte: new Date(Date.now() - 2 * 60 * 60 * 1000) }, // Last 2 hours
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (recentNotification) {
+        this.logger.debug(
+          'Skipping prediction notification - recent one exists',
+        );
+        return {
+          success: true,
+          skipped: true,
+          reason: 'Recent notification exists',
+        };
+      }
+
+      // Generate notification content based on prediction type
+      const { title, message, icon } = this.generatePredictionContent(data);
+
+      // Create the notification
+      const notification = await this.prisma.notification.create({
+        data: {
+          userId: greenhouse.ownerId,
+          type: 'ai_prediction',
+          title,
+          message,
+          data: {
+            greenhouseId: data.greenhouseId,
+            greenhouseName: greenhouse.name,
+            predictionType: data.predictionType,
+            currentMoisture: data.currentMoisture,
+            predictedMoisture: data.predictedMoisture,
+            confidence: data.confidence,
+            hoursAhead: data.hoursAhead,
+            plantType: data.plantType,
+            currentTemperature: data.currentTemperature,
+            predictedTemperature: data.predictedTemperature,
+            currentHumidity: data.currentHumidity,
+            predictedHumidity: data.predictedHumidity,
+            recommendation: data.recommendation,
+            timestamp: new Date().toISOString(),
+          },
+        },
+      });
+
+      this.logger.log(
+        `Created AI prediction notification for user ${greenhouse.ownerId}`,
+      );
+
+      return {
+        success: true,
+        notificationId: notification.id,
+        type: data.predictionType,
+      };
+    } catch (error) {
+      this.logger.error('Error sending prediction notification:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Generate user-friendly notification content based on prediction type
+   */
+  private generatePredictionContent(data: {
+    predictionType: string;
+    currentMoisture: number;
+    predictedMoisture: number;
+    confidence: number;
+    hoursAhead: number;
+    plantType?: string;
+    predictedTemperature?: number;
+    predictedHumidity?: number;
+    recommendation?: string;
+  }): { title: string; message: string; icon: string } {
+    const plantName = data.plantType || 'sua planta';
+    const moistureDrop = data.currentMoisture - data.predictedMoisture;
+    const hoursText =
+      data.hoursAhead === 1 ? '1 hora' : `${data.hoursAhead} horas`;
+
+    switch (data.predictionType) {
+      case 'moisture_drop':
+        return {
+          title: '🌡️ Previsão: Solo Vai Secar',
+          message: `A IA prevê que a umidade do solo de ${plantName} vai cair de ${data.currentMoisture.toFixed(0)}% para ${data.predictedMoisture.toFixed(0)}% nas próximas ${hoursText}. ${data.predictedTemperature ? `Temperatura prevista: ${data.predictedTemperature.toFixed(0)}°C. ` : ''}${data.predictedHumidity ? `Umidade do ar: ${data.predictedHumidity.toFixed(0)}%. ` : ''}${data.recommendation || 'Considere irrigar preventivamente.'}`,
+          icon: '🌡️',
+        };
+
+      case 'temperature_rise':
+        return {
+          title: '☀️ Previsão: Temperatura em Alta',
+          message: `A IA detectou que a temperatura vai subir para ${data.predictedTemperature?.toFixed(0) || 'níveis elevados'}°C. Isso pode acelerar a evaporação da água no solo. A umidade atual de ${data.currentMoisture.toFixed(0)}% pode cair para ${data.predictedMoisture.toFixed(0)}%. ${data.recommendation || 'Monitore sua planta com atenção.'}`,
+          icon: '☀️',
+        };
+
+      case 'humidity_drop':
+        return {
+          title: '💨 Previsão: Ar Mais Seco',
+          message: `A IA prevê que a umidade do ar vai diminuir${data.predictedHumidity ? ` para ${data.predictedHumidity.toFixed(0)}%` : ''}. Isso pode afetar a transpiração de ${plantName} e aumentar a necessidade de água. Umidade do solo atual: ${data.currentMoisture.toFixed(0)}% → prevista: ${data.predictedMoisture.toFixed(0)}%. ${data.recommendation || ''}`,
+          icon: '💨',
+        };
+
+      case 'optimal_conditions':
+        return {
+          title: '✅ Condições Favoráveis',
+          message: `A IA prevê condições ideais para ${plantName} nas próximas ${hoursText}. A umidade do solo está em ${data.currentMoisture.toFixed(0)}% e deve se manter estável. Continue monitorando!`,
+          icon: '✅',
+        };
+
+      default:
+        return {
+          title: '🤖 Previsão da IA',
+          message: `Previsão de condições para ${plantName}: umidade do solo ${data.currentMoisture.toFixed(0)}% → ${data.predictedMoisture.toFixed(0)}% em ${hoursText}. ${data.recommendation || ''}`,
+          icon: '🤖',
+        };
     }
   }
 }

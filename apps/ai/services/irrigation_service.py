@@ -619,6 +619,10 @@ class SmartIrrigationService:
         print("🔄 MONITORING LOOP STARTED!")
         logger.info("🔄 Loop de monitoramento iniciado")
         
+        # Track last prediction notification per greenhouse (avoid spam)
+        last_prediction_time = {}
+        PREDICTION_COOLDOWN = 7200  # 2 hours in seconds
+        
         while not self._stop_event.is_set():
             print(f"🔄 Checking {len(self._monitored_greenhouses)} greenhouses...")
             
@@ -635,6 +639,17 @@ class SmartIrrigationService:
                     print(f"📊 [{greenhouse_id[:8]}] Umidade={decision.current_moisture}% → Alvo={decision.target_moisture}%, Precisa={decision.needs_irrigation}")
                     logger.info(f"📊 [{greenhouse_id[:8]}] Umidade={decision.current_moisture}% → Alvo={decision.target_moisture}%, "
                               f"Precisa irrigar={decision.needs_irrigation}")
+                    
+                    # Check LSTM predictions and send notification if needed
+                    current_time = time.time()
+                    last_notif = last_prediction_time.get(greenhouse_id, 0)
+                    
+                    if current_time - last_notif > PREDICTION_COOLDOWN:
+                        prediction_sent = self._check_and_send_prediction(
+                            greenhouse_id, config, decision
+                        )
+                        if prediction_sent:
+                            last_prediction_time[greenhouse_id] = current_time
                     
                     # Irrigar automaticamente se configurado e precisar
                     if decision.needs_irrigation and config.get('auto_irrigate', False):
@@ -746,6 +761,101 @@ class SmartIrrigationService:
             
             return False
     
+    def _check_and_send_prediction(self, greenhouse_id: str, config: dict, decision) -> bool:
+        """
+        Check LSTM predictions and send notification if soil is predicted to dry
+        Returns True if a notification was sent
+        """
+        try:
+            # Get LSTM predictions
+            predictions = self.predict_moisture(greenhouse_id)
+            if not predictions or len(predictions) < 6:
+                return False
+            
+            # Get current reading
+            reading = self.get_current_reading(greenhouse_id)
+            if not reading:
+                return False
+            
+            current_moisture = reading.soil_moisture
+            target_moisture = config.get('target_moisture', 50)
+            plant_type = config.get('plant_type', 'default')
+            
+            # Analyze predictions for next 6 hours
+            predicted_6h = predictions[5] if len(predictions) > 5 else predictions[-1]
+            predicted_3h = predictions[2] if len(predictions) > 2 else predictions[-1]
+            
+            # Calculate moisture drop
+            moisture_drop_6h = current_moisture - predicted_6h
+            
+            # Determine if we should send a notification
+            prediction_type = None
+            recommendation = None
+            hours_ahead = 6
+            
+            # Check for significant moisture drop (> 15% drop predicted)
+            if moisture_drop_6h > 15 and predicted_6h < target_moisture:
+                prediction_type = 'moisture_drop'
+                recommendation = f"Irrigação preventiva recomendada. A umidade pode cair {moisture_drop_6h:.0f}% nas próximas horas."
+                hours_ahead = 6
+            
+            # Check for temperature-driven drying
+            elif reading.air_temperature > 30 and moisture_drop_6h > 10:
+                prediction_type = 'temperature_rise'
+                recommendation = f"Com a temperatura alta ({reading.air_temperature:.0f}°C), a evaporação será mais rápida. Considere irrigar."
+                hours_ahead = 6
+            
+            # Check for humidity drop impact
+            elif reading.air_humidity < 40 and moisture_drop_6h > 8:
+                prediction_type = 'humidity_drop'
+                recommendation = f"O ar seco ({reading.air_humidity:.0f}%) acelera a perda de água. Monitore a umidade do solo."
+                hours_ahead = 6
+            
+            # If conditions are good, maybe send positive notification occasionally
+            elif current_moisture >= target_moisture and moisture_drop_6h < 5 and decision.current_moisture > target_moisture * 0.9:
+                # Only send "optimal" notifications very rarely (let the normal flow handle it)
+                return False
+            
+            if prediction_type is None:
+                return False
+            
+            # Send prediction notification to backend
+            logger.info(f"🔮 Sending {prediction_type} prediction for {greenhouse_id[:8]}")
+            
+            payload = {
+                'greenhouseId': greenhouse_id,
+                'predictionType': prediction_type,
+                'currentMoisture': current_moisture,
+                'predictedMoisture': predicted_6h,
+                'confidence': 75 + min(20, len(self.reading_history.get(greenhouse_id, [])) // 5),  # 75-95%
+                'hoursAhead': hours_ahead,
+                'plantType': plant_type,
+                'currentTemperature': reading.air_temperature,
+                'predictedTemperature': reading.air_temperature + 2,  # Estimate slight increase
+                'currentHumidity': reading.air_humidity,
+                'predictedHumidity': reading.air_humidity - 5,  # Estimate slight decrease
+                'recommendation': recommendation
+            }
+            
+            prediction_url = f"{self.backend_url}/irrigation/ai/prediction"
+            response = requests.post(prediction_url, json=payload, timeout=5)
+            
+            if response.status_code == 201:
+                result = response.json()
+                if result.get('success') and not result.get('skipped'):
+                    logger.info(f"🔮 Prediction notification sent: {result.get('notificationId')}")
+                    return True
+                elif result.get('skipped'):
+                    logger.debug(f"🔮 Prediction notification skipped: {result.get('reason')}")
+            else:
+                logger.warning(f"⚠️ Prediction notification failed: {response.status_code}")
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"❌ Error checking predictions: {e}")
+            return False
+
     def _report_irrigation_to_backend(
         self,
         greenhouse_id: str,

@@ -161,3 +161,62 @@ export class AIIrrigationReportDto {
   @IsString()
   esp32Ip?: string; // IP of the ESP32 device
 }
+
+/**
+ * DTO for AI LSTM prediction notifications
+ * Used when AI predicts soil will dry based on environmental conditions
+ */
+export class AIPredictionNotificationDto {
+  @IsUUID()
+  greenhouseId: string;
+
+  @IsEnum([
+    'moisture_drop',
+    'temperature_rise',
+    'humidity_drop',
+    'optimal_conditions',
+  ])
+  predictionType:
+    | 'moisture_drop'
+    | 'temperature_rise'
+    | 'humidity_drop'
+    | 'optimal_conditions';
+
+  @IsNumber()
+  currentMoisture: number;
+
+  @IsNumber()
+  predictedMoisture: number;
+
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  confidence: number; // Confidence percentage of the prediction
+
+  @IsNumber()
+  hoursAhead: number; // Hours in the future for this prediction
+
+  @IsOptional()
+  @IsString()
+  plantType?: string;
+
+  @IsOptional()
+  @IsNumber()
+  currentTemperature?: number;
+
+  @IsOptional()
+  @IsNumber()
+  predictedTemperature?: number;
+
+  @IsOptional()
+  @IsNumber()
+  currentHumidity?: number;
+
+  @IsOptional()
+  @IsNumber()
+  predictedHumidity?: number;
+
+  @IsOptional()
+  @IsString()
+  recommendation?: string;
+}

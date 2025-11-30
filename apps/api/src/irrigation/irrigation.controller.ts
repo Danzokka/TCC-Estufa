@@ -19,6 +19,7 @@ import {
   IrrigationFiltersDto,
   IrrigationStatsQueryDto,
   AIIrrigationReportDto,
+  AIPredictionNotificationDto,
 } from './dto/irrigation.dto';
 import { AuthGuard } from '../auth/guards/auth.guard';
 
@@ -33,6 +34,16 @@ export class IrrigationController {
   @Post('ai/report')
   async reportAIIrrigation(@Body() data: AIIrrigationReportDto) {
     return this.irrigationService.recordAIIrrigation(data);
+  }
+
+  /**
+   * AI Service endpoint - Send LSTM prediction notification
+   * This endpoint is NOT protected by auth guard (internal use by AI service)
+   * Used when AI predicts soil will dry based on environmental trends
+   */
+  @Post('ai/prediction')
+  async sendAIPrediction(@Body() data: AIPredictionNotificationDto) {
+    return this.irrigationService.sendPredictionNotification(data);
   }
 
   // Criar nova irrigação
