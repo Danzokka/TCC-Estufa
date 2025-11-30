@@ -19,6 +19,8 @@ import {
   TriangleAlert,
   Wrench,
   X,
+  BrainCircuit,
+  CloudSun,
 } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useRouter } from "next/navigation";
@@ -60,6 +62,21 @@ const getNotificationIcon = (type: string) => {
       };
     case "system_alert":
       return { icon: <Siren className={cn(size, color)} />, color: "#FF3D71" };
+    case "irrigation_failed":
+      return {
+        icon: <TriangleAlert className={cn(size, color)} />,
+        color: "#FF3D71",
+      };
+    case "lstm_prediction":
+      return {
+        icon: <BrainCircuit className={cn(size, color)} />,
+        color: "#8B5CF6",
+      };
+    case "weather_alert":
+      return {
+        icon: <CloudSun className={cn(size, color)} />,
+        color: "#F59E0B",
+      };
     case "maintenance":
       return { icon: <Wrench className={cn(size, color)} />, color: "#8B5CF6" };
     default:

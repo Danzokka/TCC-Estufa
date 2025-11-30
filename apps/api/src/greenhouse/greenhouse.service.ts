@@ -26,7 +26,6 @@ export interface GreenhouseWithDetails extends Greenhouse {
   owner: User;
   _count: {
     sensorReadings: number;
-    devices: number;
   };
   latestReading?: GreenhouseSensorReading;
   sensorReadings?: GreenhouseSensorReading[];
@@ -80,30 +79,26 @@ export class GreenhouseService {
    * Find all greenhouses for a user
    */
   async findAllByUser(userId: string): Promise<GreenhouseWithDetails[]> {
-    return this.prisma.greenhouse
-      .findMany({
-        where: { ownerId: userId },
-        include: {
-          owner: true,
-          _count: {
-            select: {
-              sensorReadings: true,
-              devices: true,
-            },
-          },
-          sensorReadings: {
-            orderBy: { timestamp: 'desc' },
-            take: 1,
+    const greenhouses = await this.prisma.greenhouse.findMany({
+      where: { ownerId: userId },
+      include: {
+        owner: true,
+        _count: {
+          select: {
+            sensorReadings: true,
           },
         },
-      })
-      .then((greenhouses) =>
-        greenhouses.map((greenhouse) => ({
-          ...greenhouse,
-          latestReading: greenhouse.sensorReadings[0] || undefined,
-          sensorReadings: undefined, // Remove from response
-        })),
-      );
+        sensorReadings: {
+          orderBy: { timestamp: 'desc' },
+          take: 1,
+        },
+      },
+    });
+
+    return greenhouses.map((greenhouse) => ({
+      ...greenhouse,
+      latestReading: greenhouse.sensorReadings[0] || undefined,
+    }));
   }
 
   /**
@@ -117,11 +112,9 @@ export class GreenhouseService {
       },
       include: {
         owner: true,
-        devices: true,
         _count: {
           select: {
             sensorReadings: true,
-            devices: true,
           },
         },
         sensorReadings: {
@@ -138,7 +131,6 @@ export class GreenhouseService {
     return {
       ...greenhouse,
       latestReading: greenhouse.sensorReadings[0] || undefined,
-      sensorReadings: undefined, // Remove from response
     };
   }
 
@@ -171,10 +163,16 @@ export class GreenhouseService {
     await this.findOne(id, userId);
 
     // Validate coordinates if provided
-    if (data.latitude !== undefined && (data.latitude < -90 || data.latitude > 90)) {
+    if (
+      data.latitude !== undefined &&
+      (data.latitude < -90 || data.latitude > 90)
+    ) {
       throw new BadRequestException('Latitude inválida');
     }
-    if (data.longitude !== undefined && (data.longitude < -180 || data.longitude > 180)) {
+    if (
+      data.longitude !== undefined &&
+      (data.longitude < -180 || data.longitude > 180)
+    ) {
       throw new BadRequestException('Longitude inválida');
     }
 
@@ -276,39 +274,16 @@ export class GreenhouseService {
       );
     }
 
-    // Update greenhouse with device information
+    // Update greenhouse configuration status
     const updatedGreenhouse = await this.prisma.greenhouse.update({
       where: { id: configurationDto.greenhouseId },
       data: {
-        deviceId: configurationDto.deviceId,
         isConfigured: true,
         isOnline: true,
         lastDataUpdate: new Date(),
       },
     });
 
-    // Create or update device record
-    if (configurationDto.deviceId) {
-      await this.prisma.device.upsert({
-        where: { macAddress: configurationDto.macAddress || 'unknown' },
-        update: {
-          name: `${greenhouse.name} ESP32`,
-          isOnline: true,
-          lastSeen: new Date(),
-          ipAddress: 'auto-detected',
-        },
-        create: {
-          name: `${greenhouse.name} ESP32`,
-          greenhouseId: greenhouse.id,
-          type: 'esp32',
-          macAddress:
-            configurationDto.macAddress ||
-            crypto.randomBytes(6).toString('hex'),
-          isOnline: true,
-          lastSeen: new Date(),
-        },
-      });
-    }
     return updatedGreenhouse;
   }
 
@@ -331,20 +306,15 @@ export class GreenhouseService {
       throw new BadRequestException('Greenhouse not configured yet');
     }
 
-    // Create sensor reading
+    // Create sensor reading with only the fields that exist in the schema
     const sensorReading = await this.prisma.greenhouseSensorReading.create({
       data: {
         greenhouseId: sensorDataDto.greenhouseId,
         airTemperature: sensorDataDto.airTemperature,
         airHumidity: sensorDataDto.airHumidity,
         soilMoisture: sensorDataDto.soilMoisture,
-        soilTemperature: sensorDataDto.soilTemperature,
-        lightIntensity: sensorDataDto.lightIntensity,
-        waterLevel: sensorDataDto.waterLevel,
-        waterReserve: sensorDataDto.waterReserve,
-        deviceId: sensorDataDto.deviceId,
-        batteryLevel: sensorDataDto.batteryLevel,
-        signalStrength: sensorDataDto.signalStrength,
+        soilTemperature:
+          sensorDataDto.soilTemperature ?? sensorDataDto.airTemperature, // Fallback to air temp if not provided
       },
     });
 
@@ -355,26 +325,10 @@ export class GreenhouseService {
         currentTemperature: sensorDataDto.airTemperature,
         currentHumidity: sensorDataDto.airHumidity,
         currentSoilMoisture: sensorDataDto.soilMoisture,
-        currentLightIntensity: sensorDataDto.lightIntensity,
-        currentWaterLevel: sensorDataDto.waterLevel,
         isOnline: true,
         lastDataUpdate: new Date(),
       },
     });
-
-    // Update device last seen if deviceId provided
-    if (sensorDataDto.deviceId) {
-      await this.prisma.device.updateMany({
-        where: {
-          greenhouseId: sensorDataDto.greenhouseId,
-          id: sensorDataDto.deviceId,
-        },
-        data: {
-          isOnline: true,
-          lastSeen: new Date(),
-        },
-      });
-    }
 
     // Irrigation detection will be handled by the IrrigationService
     // when sensor data is processed through the sensor endpoint
@@ -418,16 +372,6 @@ export class GreenhouseService {
       where: { greenhouseId: id },
       orderBy: { timestamp: 'desc' },
     });
-    const deviceStatus = await this.prisma.device.findMany({
-      where: { greenhouseId: id },
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        isOnline: true,
-        lastSeen: true,
-      },
-    });
 
     return {
       greenhouse: {
@@ -442,9 +386,7 @@ export class GreenhouseService {
         temperature: greenhouse.targetTemperature,
         humidity: greenhouse.targetHumidity,
         soilMoisture: greenhouse.targetSoilMoisture,
-        waterLevel: greenhouse.minWaterLevel,
       },
-      devices: deviceStatus,
       alerts: await this.checkAlerts(greenhouse, latestReading || undefined),
     };
   }
@@ -484,11 +426,17 @@ export class GreenhouseService {
       });
     }
 
-    // Water level alerts
-    if (latestReading.waterLevel < greenhouse.minWaterLevel) {
+    // Humidity alerts
+    if (latestReading.airHumidity > greenhouse.targetHumidity + 20) {
       alerts.push({
-        type: 'critical',
-        message: `Water level low: ${latestReading.waterLevel}%`,
+        type: 'warning',
+        message: `Humidity too high: ${latestReading.airHumidity}%`,
+        timestamp: latestReading.timestamp,
+      });
+    } else if (latestReading.airHumidity < greenhouse.targetHumidity - 20) {
+      alerts.push({
+        type: 'warning',
+        message: `Humidity too low: ${latestReading.airHumidity}%`,
         timestamp: latestReading.timestamp,
       });
     }
@@ -542,5 +490,153 @@ export class GreenhouseService {
     decrypted += decipher.final('utf8');
 
     return decrypted;
+  }
+
+  /**
+   * Get irrigation configuration for AI service
+   * Returns the first greenhouse with active plant and its irrigation settings
+   */
+  async getIrrigationConfig(): Promise<{
+    greenhouseId: string;
+    plantType: string;
+    plantName: string;
+    soilMoistureMin: number;
+    soilMoistureMax: number;
+    soilMoistureIdeal: number;
+    currentMoisture: number | null;
+    isOnline: boolean;
+  } | null> {
+    // Find first greenhouse with an active plant
+    const greenhouse = await this.prisma.greenhouse.findFirst({
+      where: {
+        activeUserPlantId: { not: null },
+      },
+      include: {
+        activeUserPlant: {
+          include: {
+            plant: true,
+          },
+        },
+      },
+      orderBy: {
+        lastDataUpdate: 'desc',
+      },
+    });
+
+    if (!greenhouse || !greenhouse.activeUserPlant) {
+      return null;
+    }
+
+    const plant = greenhouse.activeUserPlant.plant;
+
+    // Calculate ideal moisture as average of min and max
+    const soilMoistureIdeal = Math.round(
+      (plant.soil_moisture_initial + plant.soil_moisture_final) / 2,
+    );
+
+    return {
+      greenhouseId: greenhouse.id,
+      plantType: plant.name.toLowerCase().replace(/\s+/g, '_'),
+      plantName: plant.name,
+      soilMoistureMin: plant.soil_moisture_initial,
+      soilMoistureMax: plant.soil_moisture_final,
+      soilMoistureIdeal: soilMoistureIdeal,
+      currentMoisture: greenhouse.currentSoilMoisture,
+      isOnline: greenhouse.isOnline,
+    };
+  }
+
+  /**
+   * Get irrigation config for a specific greenhouse
+   */
+  async getGreenhouseIrrigationConfig(greenhouseId: string): Promise<{
+    greenhouseId: string;
+    plantType: string;
+    plantName: string;
+    soilMoistureMin: number;
+    soilMoistureMax: number;
+    soilMoistureIdeal: number;
+    currentMoisture: number | null;
+    isOnline: boolean;
+  } | null> {
+    const greenhouse = await this.prisma.greenhouse.findUnique({
+      where: { id: greenhouseId },
+      include: {
+        activeUserPlant: {
+          include: {
+            plant: true,
+          },
+        },
+      },
+    });
+
+    if (!greenhouse || !greenhouse.activeUserPlant) {
+      return null;
+    }
+
+    const plant = greenhouse.activeUserPlant.plant;
+
+    const soilMoistureIdeal = Math.round(
+      (plant.soil_moisture_initial + plant.soil_moisture_final) / 2,
+    );
+
+    return {
+      greenhouseId: greenhouse.id,
+      plantType: plant.name.toLowerCase().replace(/\s+/g, '_'),
+      plantName: plant.name,
+      soilMoistureMin: plant.soil_moisture_initial,
+      soilMoistureMax: plant.soil_moisture_final,
+      soilMoistureIdeal: soilMoistureIdeal,
+      currentMoisture: greenhouse.currentSoilMoisture,
+      isOnline: greenhouse.isOnline,
+    };
+  }
+
+  /**
+   * Get the active plant for a user
+   * Returns the active UserPlant from the user's first greenhouse with an active plant
+   */
+  async getActivePlantForUser(userId: string): Promise<{
+    id: string;
+    plantId: string;
+    nickname: string | null;
+    greenhouseId: string;
+    greenhouseName: string;
+    plant: {
+      id: string;
+      name: string;
+      description: string;
+    };
+  } | null> {
+    const greenhouse = await this.prisma.greenhouse.findFirst({
+      where: {
+        ownerId: userId,
+        activeUserPlantId: { not: null },
+      },
+      include: {
+        activeUserPlant: {
+          include: {
+            plant: true,
+          },
+        },
+      },
+    });
+
+    if (!greenhouse || !greenhouse.activeUserPlant) {
+      return null;
+    }
+
+    return {
+      id: greenhouse.activeUserPlant.id,
+      plantId: greenhouse.activeUserPlant.plantId,
+      nickname: greenhouse.activeUserPlant.nickname,
+      greenhouseId: greenhouse.id,
+      greenhouseName: greenhouse.name,
+      plant: {
+        id: greenhouse.activeUserPlant.plant.id,
+        name: greenhouse.activeUserPlant.plant.name,
+        description: greenhouse.activeUserPlant.plant.description,
+      },
+    };
   }
 }

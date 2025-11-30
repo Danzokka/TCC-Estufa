@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { ReportData } from './analytics.service';
+// import { ReportData } from './analytics.service'; // TEMPORARILY DISABLED
+export type ReportData = any; // Temporary placeholder
 
 export interface AIInsights {
   summary: string;
@@ -28,7 +29,8 @@ export interface AIInsights {
 @Injectable()
 export class AiIntegrationService {
   private readonly logger = new Logger(AiIntegrationService.name);
-  private readonly aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+  private readonly aiServiceUrl =
+    process.env.AI_SERVICE_URL || 'http://localhost:8000';
 
   constructor(private readonly httpService: HttpService) {}
 
@@ -37,7 +39,9 @@ export class AiIntegrationService {
    */
   async generateInsights(reportData: ReportData): Promise<AIInsights> {
     try {
-      this.logger.log(`Enviando dados para análise de IA: ${reportData.userPlantId}`);
+      this.logger.log(
+        `Enviando dados para análise de IA: ${reportData.userPlantId}`,
+      );
 
       const payload = {
         user_plant_id: reportData.userPlantId,
@@ -52,16 +56,22 @@ export class AiIntegrationService {
       };
 
       const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/api/generate-insights`, payload, {
-          timeout: 30000, // 30 segundos
-        }),
+        this.httpService.post(
+          `${this.aiServiceUrl}/api/generate-insights`,
+          payload,
+          {
+            timeout: 30000, // 30 segundos
+          },
+        ),
       );
 
-      this.logger.log(`Insights gerados com sucesso para ${reportData.userPlantId}`);
+      this.logger.log(
+        `Insights gerados com sucesso para ${reportData.userPlantId}`,
+      );
       return response.data;
     } catch (error) {
       this.logger.error(`Erro ao gerar insights via IA: ${error.message}`);
-      
+
       // Retornar insights padrão em caso de erro
       return this.getDefaultInsights(reportData);
     }
@@ -72,48 +82,72 @@ export class AiIntegrationService {
    */
   private getDefaultInsights(reportData: ReportData): AIInsights {
     const { metrics } = reportData;
-    
+
+    // Helper function para formatar valores com segurança
+    const formatValue = (
+      value: number | undefined,
+      decimals: number = 1,
+    ): string => {
+      return value !== undefined ? value.toFixed(decimals) : 'N/A';
+    };
+
     // Análise básica de temperatura
-    let temperatureInsight = `Temperatura média de ${metrics.avgTemperature.toFixed(1)}°C`;
-    if (Math.abs(metrics.temperatureDeviation) > 5) {
+    let temperatureInsight = `Temperatura média de ${formatValue(metrics.avgTemperature)}°C`;
+    if (
+      metrics.temperatureDeviation !== undefined &&
+      Math.abs(metrics.temperatureDeviation) > 5
+    ) {
       temperatureInsight += `. ${metrics.temperatureDeviation > 0 ? 'Acima' : 'Abaixo'} do ideal.`;
-    } else {
+    } else if (metrics.temperatureDeviation !== undefined) {
       temperatureInsight += '. Dentro da faixa ideal.';
     }
 
     // Análise básica de umidade
-    let humidityInsight = `Umidade média de ${metrics.avgHumidity.toFixed(1)}%`;
-    if (Math.abs(metrics.humidityDeviation) > 10) {
+    let humidityInsight = `Umidade média de ${formatValue(metrics.avgHumidity)}%`;
+    if (
+      metrics.humidityDeviation !== undefined &&
+      Math.abs(metrics.humidityDeviation) > 10
+    ) {
       humidityInsight += `. ${metrics.humidityDeviation > 0 ? 'Acima' : 'Abaixo'} do ideal.`;
-    } else {
+    } else if (metrics.humidityDeviation !== undefined) {
       humidityInsight += '. Dentro da faixa ideal.';
     }
 
     // Análise básica de umidade do solo
-    let soilMoistureInsight = `Umidade do solo média de ${metrics.avgSoilMoisture.toFixed(1)}%`;
-    if (Math.abs(metrics.soilMoistureDeviation) > 15) {
+    let soilMoistureInsight = `Umidade do solo média de ${formatValue(metrics.avgSoilMoisture)}%`;
+    if (
+      metrics.soilMoistureDeviation !== undefined &&
+      Math.abs(metrics.soilMoistureDeviation) > 15
+    ) {
       soilMoistureInsight += `. ${metrics.soilMoistureDeviation > 0 ? 'Acima' : 'Abaixo'} do ideal.`;
-    } else {
+    } else if (metrics.soilMoistureDeviation !== undefined) {
       soilMoistureInsight += '. Dentro da faixa ideal.';
     }
 
     // Análise básica de luminosidade
-    let lightInsight = `Luminosidade média de ${metrics.avgLightIntensity.toFixed(1)} lux`;
-    if (Math.abs(metrics.lightIntensityDeviation) > 20) {
+    let lightInsight = `Luminosidade média de ${formatValue(metrics.avgLightIntensity)} lux`;
+    if (
+      metrics.lightIntensityDeviation !== undefined &&
+      Math.abs(metrics.lightIntensityDeviation) > 20
+    ) {
       lightInsight += `. ${metrics.lightIntensityDeviation > 0 ? 'Acima' : 'Abaixo'} do ideal.`;
-    } else {
+    } else if (metrics.lightIntensityDeviation !== undefined) {
       lightInsight += '. Dentro da faixa ideal.';
     }
 
     // Análise de irrigação
-    const irrigationInsight = `Total de ${metrics.totalIrrigations} irrigações no período. ${
-      metrics.totalIrrigations > 0 ? 'Atividade de irrigação registrada.' : 'Nenhuma irrigação detectada.'
+    const totalIrrigations = metrics.totalIrrigations || 0;
+    const irrigationInsight = `Total de ${totalIrrigations} irrigações no período. ${
+      totalIrrigations > 0
+        ? 'Atividade de irrigação registrada.'
+        : 'Nenhuma irrigação detectada.'
     }`;
 
     // Análise de impacto climático
-    const weatherInsight = reportData.weatherData.length > 0
-      ? `Dados climáticos disponíveis para ${reportData.weatherData.length} dias. Temperatura externa média: ${metrics.avgWeatherTemp?.toFixed(1) || 'N/A'}°C`
-      : 'Dados climáticos não disponíveis para análise.';
+    const weatherInsight =
+      reportData.weatherData.length > 0
+        ? `Dados climáticos disponíveis para ${reportData.weatherData.length} dias. Temperatura externa média: ${formatValue(metrics.avgWeatherTemp)}°C`
+        : 'Dados climáticos não disponíveis para análise.';
 
     // Gerar recomendações básicas
     const recommendations: Array<{
@@ -121,7 +155,7 @@ export class AiIntegrationService {
       priority: 'high' | 'medium' | 'low';
       description: string;
     }> = [];
-    
+
     if (Math.abs(metrics.temperatureDeviation) > 5) {
       recommendations.push({
         category: 'temperature',
@@ -150,13 +184,16 @@ export class AiIntegrationService {
       recommendations.push({
         category: 'irrigation',
         priority: 'medium' as const,
-        description: 'Considerar irrigação manual ou verificar sistema automático',
+        description:
+          'Considerar irrigação manual ou verificar sistema automático',
       });
     }
 
     return {
       summary: `Relatório ${reportData.type} gerado com ${metrics.totalReadings} medições e ${metrics.totalIrrigations} irrigações. ${
-        Math.abs(metrics.temperatureDeviation) > 5 || Math.abs(metrics.humidityDeviation) > 10 || Math.abs(metrics.soilMoistureDeviation) > 15
+        Math.abs(metrics.temperatureDeviation) > 5 ||
+        Math.abs(metrics.humidityDeviation) > 10 ||
+        Math.abs(metrics.soilMoistureDeviation) > 15
           ? 'Atenção necessária para ajustes ambientais.'
           : 'Condições ambientais dentro dos parâmetros ideais.'
       }`,

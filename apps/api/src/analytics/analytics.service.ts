@@ -1,39 +1,17 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { WeatherService } from '../weather/weather.service';
-import { AiIntegrationService } from './ai-integration.service';
-import { Report, WeatherData } from '@prisma/client';
+import { AiIntegrationService, AIInsights } from './ai-integration.service';
 
 export interface ReportMetrics {
-  totalReadings: number;
-  totalIrrigations: number;
-  avgGrowthRate?: number;
-  
-  // Métricas ambientais
   avgTemperature: number;
-  minTemperature: number;
-  maxTemperature: number;
   avgHumidity: number;
-  minHumidity: number;
-  maxHumidity: number;
   avgSoilMoisture: number;
-  minSoilMoisture: number;
-  maxSoilMoisture: number;
-  avgLightIntensity: number;
-  minLightIntensity: number;
-  maxLightIntensity: number;
-  
-  // Comparação com valores ideais
+  avgSoilTemperature: number;
   temperatureDeviation: number;
   humidityDeviation: number;
   soilMoistureDeviation: number;
-  lightIntensityDeviation: number;
-  
-  // Dados climáticos
-  weatherData?: WeatherData[];
-  avgWeatherTemp?: number;
-  totalPrecipitation?: number;
-  avgWeatherHumidity?: number;
+  totalReadings: number;
+  totalIrrigations: number;
 }
 
 export interface ReportData {
@@ -41,11 +19,32 @@ export interface ReportData {
   type: 'weekly' | 'monthly' | 'general';
   startDate: Date;
   endDate: Date;
-  metrics: ReportMetrics;
   sensorReadings: any[];
   irrigationEvents: any[];
-  weatherData: WeatherData[];
-  plantIdealValues: any;
+  plantIdealValues: {
+    minTemperature: number;
+    maxTemperature: number;
+    minHumidity: number;
+    maxHumidity: number;
+    minSoilMoisture: number;
+    maxSoilMoisture: number;
+  };
+  metrics: ReportMetrics;
+}
+
+export interface Report {
+  id: string;
+  userPlantId: string;
+  type: string;
+  startDate: Date;
+  endDate: Date;
+  totalReadings: number;
+  totalIrrigations: number;
+  summary: string | null;
+  aiInsights: AIInsights | null;
+  recommendations: any | null;
+  generatedAt: Date;
+  createdAt: Date;
 }
 
 @Injectable()
@@ -54,8 +53,7 @@ export class AnalyticsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly weatherService: WeatherService,
-    private readonly aiIntegrationService: AiIntegrationService,
+    private readonly aiIntegration: AiIntegrationService,
   ) {}
 
   /**
@@ -81,27 +79,18 @@ export class AnalyticsService {
   }
 
   /**
-   * Gera relatório geral para uma planta
+   * Gera relatório geral (últimos 30 dias) para uma planta
    */
   async generateGeneralReport(userPlantId: string): Promise<Report> {
-    // Buscar data de adição da planta
-    const userPlant = await this.prisma.userPlant.findUnique({
-      where: { id: userPlantId },
-      include: { plant: true },
-    });
-
-    if (!userPlant) {
-      throw new NotFoundException(`Planta do usuário com ID ${userPlantId} não encontrada`);
-    }
-
-    const startDate = userPlant.dateAdded;
     const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 30);
 
     return this.generateReport(userPlantId, 'general', startDate, endDate);
   }
 
   /**
-   * Gera relatório para um período específico
+   * Gera relatório com dados e insights
    */
   private async generateReport(
     userPlantId: string,
@@ -109,442 +98,399 @@ export class AnalyticsService {
     startDate: Date,
     endDate: Date,
   ): Promise<Report> {
-    try {
-      this.logger.log(`Gerando relatório ${type} para planta ${userPlantId}`);
+    this.logger.log(`Gerando relatório ${type} para planta ${userPlantId}`);
 
-      // Verificar se a planta existe
-      const userPlant = await this.prisma.userPlant.findUnique({
-        where: { id: userPlantId },
-        include: { 
-          plant: true,
-          greenhouse: true,
+    // 1. Buscar dados da planta do usuário
+    const userPlant = await this.prisma.userPlant.findUnique({
+      where: { id: userPlantId },
+      include: {
+        plant: true,
+        greenhouse: true,
+      },
+    });
+
+    if (!userPlant) {
+      throw new Error('Planta não encontrada');
+    }
+
+    if (!userPlant.greenhouseId) {
+      throw new Error('Planta não associada a uma estufa');
+    }
+
+    // 2. Buscar leituras de sensor no período
+    const sensorReadings = await this.prisma.greenhouseSensorReading.findMany({
+      where: {
+        greenhouseId: userPlant.greenhouseId,
+        timestamp: {
+          gte: startDate,
+          lte: endDate,
         },
-      });
+      },
+      orderBy: { timestamp: 'asc' },
+    });
 
-      if (!userPlant) {
-        throw new NotFoundException(`Planta do usuário com ID ${userPlantId} não encontrada`);
-      }
+    // 3. Buscar eventos de irrigação no período
+    const irrigations = await this.prisma.irrigation.findMany({
+      where: {
+        greenhouseId: userPlant.greenhouseId,
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
 
-      // Calcular métricas do período
-      const metrics = await this.calculateMetrics(userPlantId, startDate, endDate);
+    // 4. Calcular métricas
+    const metrics = this.calculateMetrics(
+      sensorReadings,
+      irrigations,
+      userPlant.plant,
+    );
 
-      // Buscar dados climáticos se a estufa tiver localização
-      let weatherData: WeatherData[] = [];
-      if (userPlant.greenhouseId) {
-        weatherData = await this.weatherService.getWeatherDataForPeriod(
-          userPlant.greenhouseId,
-          startDate,
-          endDate,
-        );
-      }
+    // 5. Montar dados do relatório para IA
+    const reportData: ReportData = {
+      userPlantId,
+      type,
+      startDate,
+      endDate,
+      sensorReadings: sensorReadings.map((r) => ({
+        id: r.id,
+        timestamp: r.timestamp,
+        air_temperature: r.airTemperature,
+        air_humidity: r.airHumidity,
+        soil_moisture: r.soilMoisture,
+        soil_temperature: r.soilTemperature,
+      })),
+      irrigationEvents: irrigations.map((i) => ({
+        id: i.id,
+        type: i.type,
+        createdAt: i.createdAt,
+        notes: i.notes,
+      })),
+      plantIdealValues: {
+        minTemperature: userPlant.plant.air_temperature_initial,
+        maxTemperature: userPlant.plant.air_temperature_final,
+        minHumidity: userPlant.plant.air_humidity_initial,
+        maxHumidity: userPlant.plant.air_humidity_final,
+        minSoilMoisture: userPlant.plant.soil_moisture_initial,
+        maxSoilMoisture: userPlant.plant.soil_moisture_final,
+      },
+      metrics,
+    };
 
-      // Preparar dados para IA
-      const reportData: ReportData = {
+    // 6. Gerar insights usando IA
+    let insights: AIInsights | null = null;
+    try {
+      insights = await this.aiIntegration.generateInsights(reportData as any);
+      this.logger.log(
+        `✅ Insights gerados com sucesso: ${JSON.stringify(Object.keys(insights || {}))}`,
+      );
+    } catch (error) {
+      this.logger.warn(`⚠️ Falha ao gerar insights via IA: ${error.message}`);
+    }
+
+    // 7. Gerar resumo
+    const summary = this.generateSummary(metrics, userPlant.plant);
+
+    // 8. Gerar recomendações
+    const recommendations = this.generateRecommendations(
+      metrics,
+      userPlant.plant,
+    );
+
+    // 9. Salvar relatório no banco
+    const report = await this.prisma.report.create({
+      data: {
         userPlantId,
         type,
         startDate,
         endDate,
-        metrics,
-        sensorReadings: await this.getSensorReadings(userPlantId, startDate, endDate),
-        irrigationEvents: await this.getIrrigationEvents(userPlantId, startDate, endDate),
-        weatherData,
-        plantIdealValues: {
-          air_temperature_initial: userPlant.plant.air_temperature_initial,
-          air_temperature_final: userPlant.plant.air_temperature_final,
-          air_humidity_initial: userPlant.plant.air_humidity_initial,
-          air_humidity_final: userPlant.plant.air_humidity_final,
-          soil_moisture_initial: userPlant.plant.soil_moisture_initial,
-          soil_moisture_final: userPlant.plant.soil_moisture_final,
-          soil_temperature_initial: userPlant.plant.soil_temperature_initial,
-          soil_temperature_final: userPlant.plant.soil_temperature_final,
-          light_intensity_initial: userPlant.plant.light_intensity_initial,
-          light_intensity_final: userPlant.plant.light_intensity_final,
-        },
-      };
-
-      // Integrar com serviço de IA para gerar insights
-      let aiInsights;
-      try {
-        aiInsights = await this.aiIntegrationService.generateInsights(reportData);
-      } catch (error) {
-        this.logger.warn(`Erro ao gerar insights via IA: ${error.message}. Usando insights padrão.`);
-        aiInsights = {
-          summary: `Relatório ${type} gerado automaticamente`,
-          insights: {
-            temperature: `Temperatura média: ${metrics.avgTemperature.toFixed(1)}°C`,
-            humidity: `Umidade média: ${metrics.avgHumidity.toFixed(1)}%`,
-            soil_moisture: `Umidade do solo média: ${metrics.avgSoilMoisture.toFixed(1)}%`,
-            light: `Luminosidade média: ${metrics.avgLightIntensity.toFixed(1)} lux`,
-            irrigation: `Total de irrigações: ${metrics.totalIrrigations}`,
-            weather_impact: weatherData.length > 0 ? 'Dados climáticos disponíveis' : 'Dados climáticos não disponíveis',
-          },
-          recommendations: [
-            {
-              category: 'temperature',
-              priority: Math.abs(metrics.temperatureDeviation) > 5 ? 'high' : 'medium',
-              description: `Temperatura ${metrics.temperatureDeviation > 0 ? 'acima' : 'abaixo'} do ideal`,
-            },
-            {
-              category: 'humidity',
-              priority: Math.abs(metrics.humidityDeviation) > 10 ? 'high' : 'medium',
-              description: `Umidade ${metrics.humidityDeviation > 0 ? 'acima' : 'abaixo'} do ideal`,
-            },
-            {
-              category: 'soil_moisture',
-              priority: Math.abs(metrics.soilMoistureDeviation) > 15 ? 'high' : 'medium',
-              description: `Umidade do solo ${metrics.soilMoistureDeviation > 0 ? 'acima' : 'abaixo'} do ideal`,
-            },
-          ],
-          anomalies: [],
-        };
-      }
-
-      // Criar relatório no banco
-      const report = await this.prisma.report.create({
-        data: {
-          userPlantId,
-          type,
-          startDate,
-          endDate,
-          totalReadings: metrics.totalReadings,
-          totalIrrigations: metrics.totalIrrigations,
-          avgGrowthRate: metrics.avgGrowthRate,
-          summary: aiInsights.summary,
-          aiInsights: aiInsights.insights,
-          recommendations: aiInsights.recommendations,
-          weatherSummary: this.formatWeatherSummary(weatherData, type, startDate, endDate),
-        },
-      });
-
-      this.logger.log(`Relatório ${type} gerado com sucesso para planta ${userPlantId}`);
-      return report;
-    } catch (error) {
-      this.logger.error(`Erro ao gerar relatório: ${error.message}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Calcula métricas para um período específico
-   */
-  async calculateMetrics(
-    userPlantId: string,
-    startDate: Date,
-    endDate: Date,
-  ): Promise<ReportMetrics> {
-    // Buscar leituras de sensores do período
-    const sensorReadings = await this.prisma.sensor.findMany({
-      where: {
-        userPlantId,
-        timecreated: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-      orderBy: {
-        timecreated: 'asc',
+        totalReadings: metrics.totalReadings,
+        totalIrrigations: metrics.totalIrrigations,
+        summary,
+        aiInsights: insights as any,
+        recommendations: recommendations as any,
       },
     });
-
-    // Buscar irrigações do período
-    const irrigations = await this.prisma.irrigation.findMany({
-      where: {
-        plantId: userPlantId,
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-    });
-
-    // Buscar planta para valores ideais
-    const userPlant = await this.prisma.userPlant.findUnique({
-      where: { id: userPlantId },
-      include: { plant: true },
-    });
-
-    if (!userPlant) {
-      throw new NotFoundException(`Planta do usuário com ID ${userPlantId} não encontrada`);
-    }
-
-    const plant = userPlant.plant;
-
-    // Calcular estatísticas básicas
-    const totalReadings = sensorReadings.length;
-    const totalIrrigations = irrigations.length;
-
-    // Calcular médias, mínimos e máximos
-    const temperatures = sensorReadings.map(r => r.air_temperature);
-    const humidities = sensorReadings.map(r => r.air_humidity);
-    const soilMoistures = sensorReadings.map(r => r.soil_moisture);
-    const lightIntensities = sensorReadings.map(r => r.light_intensity);
-
-    const avgTemperature = this.calculateAverage(temperatures);
-    const minTemperature = Math.min(...temperatures);
-    const maxTemperature = Math.max(...temperatures);
-
-    const avgHumidity = this.calculateAverage(humidities);
-    const minHumidity = Math.min(...humidities);
-    const maxHumidity = Math.max(...humidities);
-
-    const avgSoilMoisture = this.calculateAverage(soilMoistures);
-    const minSoilMoisture = Math.min(...soilMoistures);
-    const maxSoilMoisture = Math.max(...soilMoistures);
-
-    const avgLightIntensity = this.calculateAverage(lightIntensities);
-    const minLightIntensity = Math.min(...lightIntensities);
-    const maxLightIntensity = Math.max(...lightIntensities);
-
-    // Calcular desvios dos valores ideais
-    const idealTemp = (plant.air_temperature_initial + plant.air_temperature_final) / 2;
-    const idealHumidity = (plant.air_humidity_initial + plant.air_humidity_final) / 2;
-    const idealSoilMoisture = (plant.soil_moisture_initial + plant.soil_moisture_final) / 2;
-    const idealLight = (plant.light_intensity_initial + plant.light_intensity_final) / 2;
-
-    const temperatureDeviation = avgTemperature - idealTemp;
-    const humidityDeviation = avgHumidity - idealHumidity;
-    const soilMoistureDeviation = avgSoilMoisture - idealSoilMoisture;
-    const lightIntensityDeviation = avgLightIntensity - idealLight;
 
     return {
-      totalReadings,
-      totalIrrigations,
-      avgGrowthRate: undefined, // TODO: Implementar cálculo de taxa de crescimento
-      
-      avgTemperature,
-      minTemperature,
-      maxTemperature,
-      avgHumidity,
-      minHumidity,
-      maxHumidity,
-      avgSoilMoisture,
-      minSoilMoisture,
-      maxSoilMoisture,
-      avgLightIntensity,
-      minLightIntensity,
-      maxLightIntensity,
-      
-      temperatureDeviation,
-      humidityDeviation,
-      soilMoistureDeviation,
-      lightIntensityDeviation,
+      id: report.id,
+      userPlantId: report.userPlantId,
+      type: report.type,
+      startDate: report.startDate,
+      endDate: report.endDate,
+      totalReadings: report.totalReadings,
+      totalIrrigations: report.totalIrrigations,
+      summary: report.summary,
+      aiInsights: report.aiInsights as AIInsights | null,
+      recommendations: report.recommendations,
+      generatedAt: report.generatedAt,
+      createdAt: report.createdAt,
     };
   }
 
   /**
-   * Busca leituras de sensores de um período
+   * Gera resumo do relatório
    */
-  private async getSensorReadings(userPlantId: string, startDate: Date, endDate: Date) {
-    return this.prisma.sensor.findMany({
-      where: {
-        userPlantId,
-        timecreated: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-      orderBy: {
-        timecreated: 'asc',
-      },
-    });
-  }
+  private generateSummary(metrics: ReportMetrics, plant: any): string {
+    const parts: string[] = [];
 
-  /**
-   * Busca eventos de irrigação de um período
-   */
-  private async getIrrigationEvents(userPlantId: string, startDate: Date, endDate: Date) {
-    return this.prisma.irrigation.findMany({
-      where: {
-        plantId: userPlantId,
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
-  }
-
-  /**
-   * Lista relatórios de uma planta
-   */
-  async getReports(userPlantId: string, type?: string): Promise<Report[]> {
-    const where: any = { userPlantId };
-    
-    if (type) {
-      where.type = type;
+    if (metrics.totalReadings === 0) {
+      return 'Nenhuma leitura de sensor registrada no período.';
     }
 
-    return this.prisma.report.findMany({
-      where,
-      orderBy: {
-        generatedAt: 'desc',
+    parts.push(
+      `Durante o período analisado, foram registradas ${metrics.totalReadings} leituras de sensor.`,
+    );
+
+    if (Math.abs(metrics.temperatureDeviation) > 3) {
+      const direction = metrics.temperatureDeviation > 0 ? 'acima' : 'abaixo';
+      parts.push(
+        `A temperatura média esteve ${Math.abs(metrics.temperatureDeviation).toFixed(1)}°C ${direction} do ideal.`,
+      );
+    } else {
+      parts.push('A temperatura se manteve dentro da faixa ideal.');
+    }
+
+    if (Math.abs(metrics.humidityDeviation) > 10) {
+      parts.push(
+        `A umidade do ar teve desvio de ${Math.abs(metrics.humidityDeviation).toFixed(1)}% em relação ao ideal.`,
+      );
+    }
+
+    if (metrics.totalIrrigations > 0) {
+      parts.push(
+        `Foram registradas ${metrics.totalIrrigations} irrigações no período.`,
+      );
+    }
+
+    return parts.join(' ');
+  }
+
+  /**
+   * Gera recomendações baseadas nas métricas
+   */
+  private generateRecommendations(
+    metrics: ReportMetrics,
+    plant: any,
+  ): Array<{ category: string; priority: string; description: string }> {
+    const recommendations: Array<{
+      category: string;
+      priority: string;
+      description: string;
+    }> = [];
+
+    // Recomendações de temperatura
+    if (metrics.temperatureDeviation > 5) {
+      recommendations.push({
+        category: 'temperature',
+        priority: 'high',
+        description: `A temperatura está muito alta. Considere melhorar a ventilação ou adicionar sombreamento.`,
+      });
+    } else if (metrics.temperatureDeviation < -5) {
+      recommendations.push({
+        category: 'temperature',
+        priority: 'high',
+        description: `A temperatura está muito baixa. Considere usar aquecimento ou melhorar o isolamento.`,
+      });
+    }
+
+    // Recomendações de umidade do ar
+    if (metrics.humidityDeviation > 15) {
+      recommendations.push({
+        category: 'humidity',
+        priority: 'medium',
+        description: `A umidade do ar está alta. Melhore a ventilação para evitar doenças fúngicas.`,
+      });
+    } else if (metrics.humidityDeviation < -15) {
+      recommendations.push({
+        category: 'humidity',
+        priority: 'medium',
+        description: `A umidade do ar está baixa. Considere aumentar a irrigação ou usar umidificadores.`,
+      });
+    }
+
+    // Recomendações de umidade do solo
+    if (metrics.soilMoistureDeviation > 20) {
+      recommendations.push({
+        category: 'soil_moisture',
+        priority: 'high',
+        description: `Solo muito úmido. Reduza a frequência de irrigação para evitar podridão de raízes.`,
+      });
+    } else if (metrics.soilMoistureDeviation < -20) {
+      recommendations.push({
+        category: 'soil_moisture',
+        priority: 'high',
+        description: `Solo seco. Aumente a frequência ou duração das irrigações.`,
+      });
+    }
+
+    // Recomendação de irrigação
+    if (metrics.totalIrrigations === 0 && metrics.totalReadings > 10) {
+      recommendations.push({
+        category: 'irrigation',
+        priority: 'medium',
+        description: `Nenhuma irrigação registrada no período. Verifique se o sistema está funcionando.`,
+      });
+    }
+
+    return recommendations;
+  }
+
+  /**
+   * Calcula métricas do relatório
+   */
+  private calculateMetrics(
+    readings: any[],
+    irrigations: any[],
+    plant: any,
+  ): ReportMetrics {
+    if (readings.length === 0) {
+      return {
+        avgTemperature: 0,
+        avgHumidity: 0,
+        avgSoilMoisture: 0,
+        avgSoilTemperature: 0,
+        temperatureDeviation: 0,
+        humidityDeviation: 0,
+        soilMoistureDeviation: 0,
+        totalReadings: 0,
+        totalIrrigations: irrigations.length,
+      };
+    }
+
+    // Calcular médias
+    const avgTemperature =
+      readings.reduce((sum, r) => sum + (r.airTemperature || 0), 0) /
+      readings.length;
+    const avgHumidity =
+      readings.reduce((sum, r) => sum + (r.airHumidity || 0), 0) /
+      readings.length;
+    const avgSoilMoisture =
+      readings.reduce((sum, r) => sum + (r.soilMoisture || 0), 0) /
+      readings.length;
+    const avgSoilTemperature =
+      readings.reduce((sum, r) => sum + (r.soilTemperature || 0), 0) /
+      readings.length;
+
+    // Calcular valores ideais (média entre initial e final)
+    const idealTemperature =
+      (plant.air_temperature_initial + plant.air_temperature_final) / 2;
+    const idealHumidity =
+      (plant.air_humidity_initial + plant.air_humidity_final) / 2;
+    const idealSoilMoisture =
+      (plant.soil_moisture_initial + plant.soil_moisture_final) / 2;
+
+    // Calcular desvios
+    const temperatureDeviation = avgTemperature - idealTemperature;
+    const humidityDeviation = avgHumidity - idealHumidity;
+    const soilMoistureDeviation = avgSoilMoisture - idealSoilMoisture;
+
+    return {
+      avgTemperature: Number(avgTemperature.toFixed(2)),
+      avgHumidity: Number(avgHumidity.toFixed(2)),
+      avgSoilMoisture: Number(avgSoilMoisture.toFixed(2)),
+      avgSoilTemperature: Number(avgSoilTemperature.toFixed(2)),
+      temperatureDeviation: Number(temperatureDeviation.toFixed(2)),
+      humidityDeviation: Number(humidityDeviation.toFixed(2)),
+      soilMoistureDeviation: Number(soilMoistureDeviation.toFixed(2)),
+      totalReadings: readings.length,
+      totalIrrigations: irrigations.length,
+    };
+  }
+
+  /**
+   * Busca relatórios de uma planta
+   */
+  async getReports(userPlantId: string, type?: string): Promise<Report[]> {
+    const reports = await this.prisma.report.findMany({
+      where: {
+        userPlantId,
+        ...(type && { type }),
       },
+      orderBy: { createdAt: 'desc' },
     });
+
+    return reports.map((r) => ({
+      id: r.id,
+      userPlantId: r.userPlantId,
+      type: r.type,
+      startDate: r.startDate,
+      endDate: r.endDate,
+      totalReadings: r.totalReadings,
+      totalIrrigations: r.totalIrrigations,
+      summary: r.summary,
+      aiInsights: r.aiInsights as AIInsights | null,
+      recommendations: r.recommendations,
+      generatedAt: r.generatedAt,
+      createdAt: r.createdAt,
+    }));
   }
 
   /**
    * Busca relatório por ID
    */
   async getReportById(reportId: string): Promise<Report | null> {
-    return this.prisma.report.findUnique({
+    const report = await this.prisma.report.findUnique({
       where: { id: reportId },
     });
+
+    if (!report) return null;
+
+    return {
+      id: report.id,
+      userPlantId: report.userPlantId,
+      type: report.type,
+      startDate: report.startDate,
+      endDate: report.endDate,
+      totalReadings: report.totalReadings,
+      totalIrrigations: report.totalIrrigations,
+      summary: report.summary,
+      aiInsights: report.aiInsights as AIInsights | null,
+      recommendations: report.recommendations,
+      createdAt: report.createdAt,
+      generatedAt: report.generatedAt,
+    };
   }
 
   /**
-   * Busca último relatório de um tipo
+   * Busca último relatório de um tipo específico
    */
-  async getLatestReport(userPlantId: string, type: string): Promise<Report | null> {
-    return this.prisma.report.findFirst({
+  async getLatestReport(
+    userPlantId: string,
+    type: string,
+  ): Promise<Report | null> {
+    const report = await this.prisma.report.findFirst({
       where: {
         userPlantId,
         type,
       },
-      orderBy: {
-        generatedAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
     });
+
+    if (!report) return null;
+
+    return {
+      id: report.id,
+      userPlantId: report.userPlantId,
+      type: report.type,
+      startDate: report.startDate,
+      endDate: report.endDate,
+      totalReadings: report.totalReadings,
+      totalIrrigations: report.totalIrrigations,
+      summary: report.summary,
+      aiInsights: report.aiInsights as AIInsights | null,
+      recommendations: report.recommendations,
+      createdAt: report.createdAt,
+      generatedAt: report.generatedAt,
+    };
   }
 
   /**
-   * Calcula média de um array de números
+   * Verifica saúde do serviço de IA
    */
-  private calculateAverage(numbers: number[]): number {
-    if (numbers.length === 0) return 0;
-    return numbers.reduce((sum, num) => sum + num, 0) / numbers.length;
-  }
-
-  /**
-   * Formata dados climáticos para exibição nos relatórios
-   */
-  private formatWeatherSummary(
-    weatherData: WeatherData[],
-    type: 'weekly' | 'monthly' | 'general',
-    startDate: Date,
-    endDate: Date,
-  ): any {
-    if (type === 'general' || weatherData.length === 0) {
-      return undefined;
-    }
-
-    if (type === 'weekly') {
-      // Agrupar por dia e retornar array de objetos diários
-      return {
-        daily: weatherData.map(day => ({
-          date: day.date.toISOString(),
-          maxTemp: day.maxTemp,
-          minTemp: day.minTemp,
-          avgTemp: day.avgTemp,
-          avgHumidity: day.avgHumidity,
-          totalPrecip: day.totalPrecip,
-          condition: day.condition || 'unknown',
-        }))
-      };
-    }
-
-    if (type === 'monthly') {
-      // Agrupar por semanas e calcular médias
-      const weeks = this.groupWeatherDataByWeeks(weatherData, startDate, endDate);
-      return {
-        weekly: weeks.map((week, index) => ({
-          weekNumber: index + 1,
-          startDate: week.startDate.toISOString(),
-          endDate: week.endDate.toISOString(),
-          avgTemp: week.avgTemp,
-          avgHumidity: week.avgHumidity,
-          totalPrecip: week.totalPrecip,
-          dominantCondition: week.dominantCondition,
-        }))
-      };
-    }
-
-    return undefined;
-  }
-
-  /**
-   * Agrupa dados climáticos por semanas para relatórios mensais
-   */
-  private groupWeatherDataByWeeks(
-    weatherData: WeatherData[],
-    startDate: Date,
-    endDate: Date,
-  ): Array<{
-    startDate: Date;
-    endDate: Date;
-    avgTemp: number;
-    avgHumidity: number;
-    totalPrecip: number;
-    dominantCondition: string;
-  }> {
-    const weeks: Array<{
-      startDate: Date;
-      endDate: Date;
-      avgTemp: number;
-      avgHumidity: number;
-      totalPrecip: number;
-      dominantCondition: string;
-    }> = [];
-
-    // Dividir o período em 4 semanas
-    const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    const daysPerWeek = Math.ceil(totalDays / 4);
-
-    for (let i = 0; i < 4; i++) {
-      const weekStart = new Date(startDate);
-      weekStart.setDate(startDate.getDate() + (i * daysPerWeek));
-      
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + daysPerWeek - 1);
-      
-      // Se for a última semana, usar a data final
-      if (i === 3) {
-        weekEnd.setTime(endDate.getTime());
-      }
-
-      // Filtrar dados da semana
-      const weekData = weatherData.filter(day => 
-        day.date >= weekStart && day.date <= weekEnd
-      );
-
-      if (weekData.length > 0) {
-        // Calcular médias da semana
-        const avgTemp = weekData.reduce((sum, day) => sum + day.avgTemp, 0) / weekData.length;
-        const avgHumidity = weekData.reduce((sum, day) => sum + day.avgHumidity, 0) / weekData.length;
-        const totalPrecip = weekData.reduce((sum, day) => sum + day.totalPrecip, 0);
-        
-        // Determinar condição predominante
-        const conditions = weekData.map(day => day.condition).filter(Boolean) as string[];
-        const dominantCondition = this.getDominantCondition(conditions);
-
-        weeks.push({
-          startDate: weekStart,
-          endDate: weekEnd,
-          avgTemp,
-          avgHumidity,
-          totalPrecip,
-          dominantCondition,
-        });
-      }
-    }
-
-    return weeks;
-  }
-
-  /**
-   * Determina a condição climática predominante
-   */
-  private getDominantCondition(conditions: string[]): string {
-    if (conditions.length === 0) return 'unknown';
-    
-    const conditionCounts = conditions.reduce((acc, condition) => {
-      acc[condition] = (acc[condition] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(conditionCounts)
-      .sort(([, a], [, b]) => b - a)[0][0];
+  async checkAiHealth(): Promise<boolean> {
+    return this.aiIntegration.checkAiServiceHealth();
   }
 }

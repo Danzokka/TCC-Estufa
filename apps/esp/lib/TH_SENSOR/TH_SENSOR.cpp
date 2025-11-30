@@ -62,9 +62,6 @@ void TH_SENSOR::read()
   }
   else
   {
-    Serial.print(F("Temperature: "));
-    Serial.print(event.temperature);
-    Serial.println(F("°C"));
     temperature = event.temperature;
   }
 
@@ -75,9 +72,6 @@ void TH_SENSOR::read()
   }
   else
   {
-    Serial.print(F("Humidity: "));
-    Serial.print(event.relative_humidity);
-    Serial.println(F("%"));
     humidity = event.relative_humidity;
   }
 }

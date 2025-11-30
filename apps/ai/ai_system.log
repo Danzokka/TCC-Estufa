@@ -1,0 +1,227 @@
+2025-11-30 15:44:17,165 - analysis.insights_generator - INFO - Gerador de insights inicializado
+2025-11-30 15:44:17,167 - __main__ - INFO - Iniciando sistema de IA para análise de dados da estufa...
+2025-11-30 15:44:17,168 - api.api_service - INFO - Buscando dados recentes de sensores...
+2025-11-30 15:44:17,168 - api.api_service - INFO - Iniciando servidor API em localhost:5000
+2025-11-30 15:44:17,168 - api.api_service - ERROR - Erro ao atualizar dados de sensores: fetch_sensor_data() got an unexpected keyword argument 'days'
+2025-11-30 15:44:17,168 - api.api_service - INFO - Buscando dados recentes de sensores...
+2025-11-30 15:44:17,169 - api.api_service - ERROR - Erro ao atualizar dados de sensores: fetch_sensor_data() got an unexpected keyword argument 'days'
+2025-11-30 15:44:17,169 - analysis.insights_generator - INFO - Analisando condições atuais...
+2025-11-30 15:44:17,169 - api.api_service - ERROR - Erro ao gerar insights: object of type 'NoneType' has no len()
+2025-11-30 15:44:17,169 - api.api_service - INFO - Atualização periódica concluída
+2025-11-30 15:44:17,180 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://localhost:5000
+2025-11-30 15:44:17,181 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-11-30 15:44:18,114 - werkzeug - INFO - 127.0.0.1 - - [30/Nov/2025 15:44:18] "[33mGET /sensor/greenhouse/f28ed112-f59c-47ac-a43b-4138f656f93e/latest HTTP/1.1[0m" 404 -
+2025-11-30 15:44:26,941 - werkzeug - INFO - 127.0.0.1 - - [30/Nov/2025 15:44:26] "[33mPOST /sensor HTTP/1.1[0m" 404 -
+2025-11-30 15:44:29,682 - werkzeug - INFO - 127.0.0.1 - - [30/Nov/2025 15:44:29] "[33mGET /sensor/greenhouse/f28ed112-f59c-47ac-a43b-4138f656f93e/latest HTTP/1.1[0m" 404 -
+2025-11-30 15:44:38,992 - werkzeug - INFO - 127.0.0.1 - - [30/Nov/2025 15:44:38] "[33mPOST /sensor HTTP/1.1[0m" 404 -
+2025-11-30 15:44:47,341 - werkzeug - INFO - 127.0.0.1 - - [30/Nov/2025 15:44:47] "[33mGET /socket.io/?EIO=4&transport=websocket HTTP/1.1[0m" 404 -
+2025-11-30 15:44:51,046 - werkzeug - INFO - 127.0.0.1 - - [30/Nov/2025 15:44:51] "[33mPOST /sensor HTTP/1.1[0m" 404 -
+2025-11-30 15:45:45,976 - analysis.insights_generator - INFO - Gerador de insights inicializado
+2025-11-30 15:45:45,981 - __main__ - INFO - Iniciando sistema de IA para análise de dados da estufa...
+2025-11-30 15:45:45,983 - api.api_service - INFO - Buscando dados recentes de sensores...
+2025-11-30 15:45:45,983 - api.api_service - INFO - Iniciando servidor API em localhost:8000
+2025-11-30 15:45:45,983 - api.api_service - ERROR - Erro ao atualizar dados de sensores: fetch_sensor_data() got an unexpected keyword argument 'days'
+2025-11-30 15:45:45,983 - api.api_service - INFO - Buscando dados recentes de sensores...
+2025-11-30 15:45:45,983 - api.api_service - ERROR - Erro ao atualizar dados de sensores: fetch_sensor_data() got an unexpected keyword argument 'days'
+2025-11-30 15:45:45,983 - analysis.insights_generator - INFO - Analisando condições atuais...
+2025-11-30 15:45:45,983 - api.api_service - ERROR - Erro ao gerar insights: object of type 'NoneType' has no len()
+2025-11-30 15:45:45,984 - api.api_service - INFO - Atualização periódica concluída
+2025-11-30 15:45:45,997 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://localhost:8000
+2025-11-30 15:45:45,997 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-11-30 15:51:09,928 - analysis.insights_generator - INFO - Gerador de insights inicializado
+2025-11-30 15:51:09,930 - __main__ - INFO - Iniciando sistema de IA para análise de dados da estufa...
+2025-11-30 15:51:09,931 - api.api_service - INFO - Buscando dados recentes de sensores...
+2025-11-30 15:51:09,931 - api.api_service - INFO - Iniciando servidor API em localhost:8000
+2025-11-30 15:51:09,964 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://localhost:8000
+2025-11-30 15:51:09,964 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-11-30 15:51:10,006 - api.api_service - ERROR - Erro ao atualizar dados de sensores: (psycopg2.ProgrammingError) invalid dsn: invalid connection option "schema"
+
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2025-11-30 15:51:10,006 - api.api_service - INFO - Buscando dados recentes de sensores...
+2025-11-30 15:51:10,018 - api.api_service - ERROR - Erro ao atualizar dados de sensores: (psycopg2.ProgrammingError) invalid dsn: invalid connection option "schema"
+
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2025-11-30 15:51:10,021 - api.api_service - INFO - Atualização periódica concluída
+2025-11-30 15:52:01,795 - analysis.insights_generator - INFO - Gerador de insights inicializado
+2025-11-30 15:52:01,798 - __main__ - INFO - Iniciando sistema de IA para análise de dados da estufa...
+2025-11-30 15:52:01,799 - api.api_service - INFO - Buscando dados recentes de sensores...
+2025-11-30 15:52:01,799 - api.api_service - INFO - Iniciando servidor API em localhost:8000
+2025-11-30 15:52:01,845 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://localhost:8000
+2025-11-30 15:52:01,845 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-11-30 15:52:01,952 - api.api_service - ERROR - Erro ao atualizar dados de sensores: (psycopg2.OperationalError) connection to server at "localhost" (::1), port 5432 failed: FATAL:  database "estufa" does not exist
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-11-30 15:52:01,952 - api.api_service - INFO - Buscando dados recentes de sensores...
+2025-11-30 15:52:02,002 - api.api_service - ERROR - Erro ao atualizar dados de sensores: (psycopg2.OperationalError) connection to server at "localhost" (::1), port 5432 failed: FATAL:  database "estufa" does not exist
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-11-30 15:52:02,006 - api.api_service - INFO - Atualização periódica concluída
+2025-11-30 15:55:25,421 - analysis.insights_generator - INFO - Gerador de insights inicializado
+2025-11-30 15:55:25,424 - __main__ - INFO - Iniciando sistema de IA para análise de dados da estufa...
+2025-11-30 15:55:25,425 - api.api_service - INFO - Buscando dados recentes de sensores...
+2025-11-30 15:55:25,425 - api.api_service - INFO - Iniciando servidor API em localhost:8000
+2025-11-30 15:55:25,474 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://localhost:8000
+2025-11-30 15:55:25,475 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-11-30 15:55:25,766 - data_processing.preprocessor - INFO - Iniciando limpeza de dados...
+2025-11-30 15:55:25,783 - data_processing.preprocessor - INFO - Tratando 147 outliers na coluna airTemperature
+2025-11-30 15:55:25,786 - data_processing.preprocessor - INFO - Tratando 170 outliers na coluna airHumidity
+2025-11-30 15:55:25,788 - data_processing.preprocessor - INFO - Tratando 252 outliers na coluna soilMoisture
+2025-11-30 15:55:25,790 - data_processing.preprocessor - INFO - Tratando 170 outliers na coluna soilTemperature
+2025-11-30 15:55:25,791 - data_processing.preprocessor - INFO - Limpeza de dados concluída
+2025-11-30 15:55:25,791 - api.api_service - INFO - Cache atualizado com 1116 registros de sensores
+2025-11-30 15:55:25,791 - api.api_service - ERROR - Erro na atualização periódica: 'userPlantId'
+2025-11-30 15:56:32,208 - analysis.insights_generator - INFO - Gerador de insights inicializado
+2025-11-30 15:56:32,212 - __main__ - INFO - Iniciando sistema de IA para análise de dados da estufa...
+2025-11-30 15:56:32,212 - api.api_service - INFO - Buscando dados recentes de sensores...
+2025-11-30 15:56:32,212 - api.api_service - INFO - Iniciando servidor API em localhost:8000
+2025-11-30 15:56:32,252 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://localhost:8000
+2025-11-30 15:56:32,258 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-11-30 15:56:32,361 - data_processing.preprocessor - INFO - Iniciando limpeza de dados...
+2025-11-30 15:56:32,367 - data_processing.preprocessor - INFO - Tratando 147 outliers na coluna airTemperature
+2025-11-30 15:56:32,370 - data_processing.preprocessor - INFO - Tratando 170 outliers na coluna airHumidity
+2025-11-30 15:56:32,372 - data_processing.preprocessor - INFO - Tratando 252 outliers na coluna soilMoisture
+2025-11-30 15:56:32,375 - data_processing.preprocessor - INFO - Tratando 170 outliers na coluna soilTemperature
+2025-11-30 15:56:32,376 - data_processing.preprocessor - INFO - Limpeza de dados concluída
+2025-11-30 15:56:32,376 - api.api_service - INFO - Cache atualizado com 1122 registros de sensores
+2025-11-30 15:56:32,377 - api.api_service - ERROR - Erro ao gerar previsões para planta f28ed112-f59c-47ac-a43b-4138f656f93e: 'userPlantId'
+2025-11-30 15:56:32,377 - analysis.insights_generator - INFO - Analisando condições atuais...
+2025-11-30 15:56:32,378 - api.api_service - ERROR - Erro ao gerar insights: 'timecreated'
+2025-11-30 15:56:32,378 - api.api_service - INFO - Atualização periódica concluída
+2025-11-30 15:57:44,578 - analysis.insights_generator - INFO - Gerador de insights inicializado
+2025-11-30 15:57:44,582 - __main__ - INFO - Iniciando sistema de IA para análise de dados da estufa...
+2025-11-30 15:57:44,583 - api.api_service - INFO - Buscando dados recentes de sensores...
+2025-11-30 15:57:44,583 - api.api_service - INFO - Iniciando servidor API em localhost:8000
+2025-11-30 15:57:44,635 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://localhost:8000
+2025-11-30 15:57:44,637 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-11-30 15:57:44,750 - data_processing.preprocessor - INFO - Iniciando limpeza de dados...
+2025-11-30 15:57:44,754 - data_processing.preprocessor - INFO - Tratando 147 outliers na coluna airTemperature
+2025-11-30 15:57:44,757 - data_processing.preprocessor - INFO - Tratando 170 outliers na coluna airHumidity
+2025-11-30 15:57:44,759 - data_processing.preprocessor - INFO - Tratando 252 outliers na coluna soilMoisture
+2025-11-30 15:57:44,762 - data_processing.preprocessor - INFO - Tratando 170 outliers na coluna soilTemperature
+2025-11-30 15:57:44,763 - data_processing.preprocessor - INFO - Limpeza de dados concluída
+2025-11-30 15:57:44,763 - api.api_service - INFO - Cache atualizado com 1130 registros de sensores
+2025-11-30 15:57:44,764 - data_processing.preprocessor - INFO - Normalizando dados...
+2025-11-30 15:57:44,777 - data_processing.preprocessor - INFO - Normalização concluída
+2025-11-30 15:57:44,783 - data_processing.preprocessor - INFO - Características de tempo adicionadas ao DataFrame
+2025-11-30 15:57:44,783 - data_processing.preprocessor - INFO - Criando sequências com janela de 24 e horizonte de 12
+2025-11-30 15:57:44,783 - data_processing.preprocessor - ERROR - Coluna alvo soil_moisture não encontrada no DataFrame
+2025-11-30 15:57:44,783 - api.api_service - WARNING - Não foi possível criar sequências para previsão da greenhouse f28ed112-f59c-47ac-a43b-4138f656f93e
+2025-11-30 15:57:44,784 - analysis.insights_generator - INFO - Analisando condições atuais...
+2025-11-30 15:57:44,784 - api.api_service - ERROR - Erro ao gerar insights: 'userPlantId'
+2025-11-30 15:57:44,784 - api.api_service - INFO - Atualização periódica concluída
+2025-11-30 15:58:54,163 - analysis.insights_generator - INFO - Gerador de insights inicializado
+2025-11-30 15:58:54,167 - __main__ - INFO - Iniciando sistema de IA para análise de dados da estufa...
+2025-11-30 15:58:54,168 - api.api_service - INFO - Buscando dados recentes de sensores...
+2025-11-30 15:58:54,168 - api.api_service - INFO - Iniciando servidor API em localhost:8000
+2025-11-30 15:58:54,215 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://localhost:8000
+2025-11-30 15:58:54,216 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-11-30 15:58:54,321 - data_processing.preprocessor - INFO - Iniciando limpeza de dados...
+2025-11-30 15:58:54,328 - data_processing.preprocessor - INFO - Tratando 147 outliers na coluna airTemperature
+2025-11-30 15:58:54,330 - data_processing.preprocessor - INFO - Tratando 170 outliers na coluna airHumidity
+2025-11-30 15:58:54,332 - data_processing.preprocessor - INFO - Tratando 252 outliers na coluna soilMoisture
+2025-11-30 15:58:54,335 - data_processing.preprocessor - INFO - Tratando 170 outliers na coluna soilTemperature
+2025-11-30 15:58:54,335 - data_processing.preprocessor - INFO - Limpeza de dados concluída
+2025-11-30 15:58:54,336 - api.api_service - INFO - Cache atualizado com 1137 registros de sensores
+2025-11-30 15:58:54,336 - data_processing.preprocessor - INFO - Normalizando dados...
+2025-11-30 15:58:54,350 - data_processing.preprocessor - INFO - Normalização concluída
+2025-11-30 15:58:54,354 - data_processing.preprocessor - INFO - Características de tempo adicionadas ao DataFrame
+2025-11-30 15:58:54,354 - data_processing.preprocessor - INFO - Criando sequências com janela de 24 e horizonte de 12
+2025-11-30 15:58:54,356 - data_processing.preprocessor - INFO - Criadas 1101 sequências de treinamento
+2025-11-30 15:58:54,357 - models.lstm_model - ERROR - Arquivo do modelo ./models/saved\greenhouse_f28ed112-f59c-47ac-a43b-4138f656f93e_soilMoisture\greenhouse_f28ed112-f59c-47ac-a43b-4138f656f93e_soilMoisture_latest.pt não encontrado
+2025-11-30 15:58:54,357 - models.lstm_model - ERROR - Modelo greenhouse_f28ed112-f59c-47ac-a43b-4138f656f93e_soilMoisture não encontrado
+2025-11-30 15:58:54,357 - api.api_service - WARNING - Nenhum modelo treinado encontrado para greenhouse_f28ed112-f59c-47ac-a43b-4138f656f93e_soilMoisture, tentando modelo default
+2025-11-30 15:58:54,357 - models.lstm_model - ERROR - Arquivo do modelo ./models/saved\default_soilMoisture\default_soilMoisture_latest.pt não encontrado
+2025-11-30 15:58:54,358 - models.lstm_model - ERROR - Modelo default_soilMoisture não encontrado
+2025-11-30 15:58:54,358 - api.api_service - ERROR - Erro na atualização periódica: name 'user_plant_id' is not defined
+2025-11-30 18:51:21,635 - analysis.insights_generator - INFO - Gerador de insights inicializado
+2025-11-30 18:51:21,638 - __main__ - INFO - Iniciando sistema de IA para análise de dados da estufa...
+2025-11-30 18:51:21,638 - api.api_service - INFO - Buscando dados recentes de sensores...
+2025-11-30 18:51:21,638 - api.api_service - INFO - Iniciando servidor API em localhost:8000
+2025-11-30 18:51:21,666 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://localhost:8000
+2025-11-30 18:51:21,666 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-11-30 18:51:21,843 - api.api_service - ERROR - Erro ao atualizar dados de sensores: No module named 'psycopg2'
+2025-11-30 18:51:21,844 - api.api_service - INFO - Buscando dados recentes de sensores...
+2025-11-30 18:51:21,848 - api.api_service - ERROR - Erro ao atualizar dados de sensores: No module named 'psycopg2'
+2025-11-30 18:51:21,850 - api.api_service - INFO - Atualização periódica concluída
+2025-11-30 18:52:33,958 - analysis.insights_generator - INFO - Gerador de insights inicializado
+2025-11-30 18:52:33,960 - __main__ - INFO - Iniciando sistema de IA para análise de dados da estufa...
+2025-11-30 18:52:33,960 - api.api_service - INFO - Buscando dados recentes de sensores...
+2025-11-30 18:52:33,960 - api.api_service - INFO - Iniciando servidor API em localhost:8000
+2025-11-30 18:52:33,993 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://localhost:8000
+2025-11-30 18:52:33,993 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-11-30 18:52:34,126 - data_processing.preprocessor - INFO - Iniciando limpeza de dados...
+2025-11-30 18:52:34,130 - data_processing.preprocessor - INFO - Tratando 147 outliers na coluna airTemperature
+2025-11-30 18:52:34,132 - data_processing.preprocessor - INFO - Tratando 170 outliers na coluna airHumidity
+2025-11-30 18:52:34,135 - data_processing.preprocessor - INFO - Tratando 252 outliers na coluna soilMoisture
+2025-11-30 18:52:34,136 - data_processing.preprocessor - INFO - Tratando 170 outliers na coluna soilTemperature
+2025-11-30 18:52:34,137 - data_processing.preprocessor - INFO - Limpeza de dados concluída
+2025-11-30 18:52:34,137 - api.api_service - INFO - Cache atualizado com 1138 registros de sensores
+2025-11-30 18:52:34,138 - data_processing.preprocessor - INFO - Normalizando dados...
+2025-11-30 18:52:34,146 - data_processing.preprocessor - INFO - Normalização concluída
+2025-11-30 18:52:34,149 - data_processing.preprocessor - INFO - Características de tempo adicionadas ao DataFrame
+2025-11-30 18:52:34,150 - data_processing.preprocessor - INFO - Criando sequências com janela de 24 e horizonte de 12
+2025-11-30 18:52:34,151 - data_processing.preprocessor - INFO - Criadas 1102 sequências de treinamento
+2025-11-30 18:52:34,152 - models.lstm_model - ERROR - Arquivo do modelo ./models/saved\greenhouse_f28ed112-f59c-47ac-a43b-4138f656f93e_soilMoisture\greenhouse_f28ed112-f59c-47ac-a43b-4138f656f93e_soilMoisture_latest.pt não encontrado
+2025-11-30 18:52:34,152 - models.lstm_model - ERROR - Modelo greenhouse_f28ed112-f59c-47ac-a43b-4138f656f93e_soilMoisture não encontrado
+2025-11-30 18:52:34,153 - api.api_service - WARNING - Nenhum modelo treinado encontrado para greenhouse_f28ed112-f59c-47ac-a43b-4138f656f93e_soilMoisture, tentando modelo default
+2025-11-30 18:52:34,153 - models.lstm_model - ERROR - Arquivo do modelo ./models/saved\default_soilMoisture\default_soilMoisture_latest.pt não encontrado
+2025-11-30 18:52:34,153 - models.lstm_model - ERROR - Modelo default_soilMoisture não encontrado
+2025-11-30 18:52:34,153 - api.api_service - WARNING - Não foi possível gerar previsões para greenhouse f28ed112-f59c-47ac-a43b-4138f656f93e
+2025-11-30 18:52:34,153 - analysis.insights_generator - INFO - Analisando condições atuais...
+2025-11-30 18:52:34,159 - analysis.insights_generator - INFO - Nenhum alerta gerado, condições normais
+2025-11-30 18:52:34,161 - analysis.insights_generator - INFO - Analisando previsões para alertas preventivos...
+2025-11-30 18:52:34,161 - analysis.insights_generator - WARNING - Nenhuma previsão para análise
+2025-11-30 18:52:34,161 - analysis.insights_generator - INFO - Gerando insights de crescimento...
+2025-11-30 18:52:34,169 - api.api_service - ERROR - Erro ao gerar insights: "Column(s) ['air_humidity', 'air_temperature', 'soil_moisture', 'soil_temperature'] do not exist"
+2025-11-30 18:52:34,169 - api.api_service - INFO - Atualização periódica concluída
+2025-11-30 18:54:21,165 - analysis.insights_generator - INFO - Gerador de insights inicializado
+2025-11-30 18:54:21,167 - __main__ - INFO - Iniciando sistema de IA para análise de dados da estufa...
+2025-11-30 18:54:21,168 - api.api_service - INFO - Buscando dados recentes de sensores...
+2025-11-30 18:54:21,168 - api.api_service - INFO - Iniciando servidor API em localhost:8000
+2025-11-30 18:54:21,197 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://localhost:8000
+2025-11-30 18:54:21,198 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-11-30 18:54:21,271 - data_processing.preprocessor - INFO - Iniciando limpeza de dados...
+2025-11-30 18:54:21,275 - data_processing.preprocessor - INFO - Tratando 147 outliers na coluna airTemperature
+2025-11-30 18:54:21,277 - data_processing.preprocessor - INFO - Tratando 170 outliers na coluna airHumidity
+2025-11-30 18:54:21,278 - data_processing.preprocessor - INFO - Tratando 252 outliers na coluna soilMoisture
+2025-11-30 18:54:21,280 - data_processing.preprocessor - INFO - Tratando 170 outliers na coluna soilTemperature
+2025-11-30 18:54:21,281 - data_processing.preprocessor - INFO - Limpeza de dados concluída
+2025-11-30 18:54:21,281 - api.api_service - INFO - Cache atualizado com 1138 registros de sensores
+2025-11-30 18:54:21,283 - data_processing.preprocessor - INFO - Normalizando dados...
+2025-11-30 18:54:21,291 - data_processing.preprocessor - INFO - Normalização concluída
+2025-11-30 18:54:21,294 - data_processing.preprocessor - INFO - Características de tempo adicionadas ao DataFrame
+2025-11-30 18:54:21,294 - data_processing.preprocessor - INFO - Criando sequências com janela de 24 e horizonte de 12
+2025-11-30 18:54:21,295 - data_processing.preprocessor - INFO - Criadas 1102 sequências de treinamento
+2025-11-30 18:54:21,297 - models.lstm_model - ERROR - Arquivo do modelo ./models/saved\greenhouse_f28ed112-f59c-47ac-a43b-4138f656f93e_soilMoisture\greenhouse_f28ed112-f59c-47ac-a43b-4138f656f93e_soilMoisture_latest.pt não encontrado
+2025-11-30 18:54:21,297 - models.lstm_model - ERROR - Modelo greenhouse_f28ed112-f59c-47ac-a43b-4138f656f93e_soilMoisture não encontrado
+2025-11-30 18:54:21,297 - api.api_service - WARNING - Nenhum modelo treinado encontrado para greenhouse_f28ed112-f59c-47ac-a43b-4138f656f93e_soilMoisture, tentando modelo default
+2025-11-30 18:54:21,297 - models.lstm_model - ERROR - Arquivo do modelo ./models/saved\default_soilMoisture\default_soilMoisture_latest.pt não encontrado
+2025-11-30 18:54:21,297 - models.lstm_model - ERROR - Modelo default_soilMoisture não encontrado
+2025-11-30 18:54:21,297 - api.api_service - WARNING - Não foi possível gerar previsões para greenhouse f28ed112-f59c-47ac-a43b-4138f656f93e
+2025-11-30 18:54:21,298 - analysis.insights_generator - INFO - Analisando condições atuais...
+2025-11-30 18:54:21,299 - analysis.insights_generator - INFO - Nenhum alerta gerado, condições normais
+2025-11-30 18:54:21,300 - analysis.insights_generator - INFO - Analisando previsões para alertas preventivos...
+2025-11-30 18:54:21,300 - analysis.insights_generator - WARNING - Nenhuma previsão para análise
+2025-11-30 18:54:21,301 - analysis.insights_generator - INFO - Gerando insights de crescimento...
+2025-11-30 18:54:21,306 - analysis.insights_generator - INFO - Nenhum insight de crescimento gerado
+2025-11-30 18:54:21,317 - api.api_service - INFO - Gerados 0 alertas e 0 insights
+2025-11-30 18:54:21,317 - api.api_service - INFO - Atualização periódica concluída
+2025-11-30 18:55:08,586 - werkzeug - INFO - 127.0.0.1 - - [30/Nov/2025 18:55:08] "GET /health HTTP/1.1" 200 -
+2025-11-30 18:55:42,874 - werkzeug - INFO - 127.0.0.1 - - [30/Nov/2025 18:55:42] "[31m[1mPOST /insights HTTP/1.1[0m" 405 -
+2025-11-30 18:57:31,877 - api.api_service - INFO - Gerando insights para planta f28ed112-f59c-47ac-a43b-4138f656f93e
+2025-11-30 18:57:31,877 - analysis.report_generator - INFO - Gerando insights para planta f28ed112-f59c-47ac-a43b-4138f656f93e
+2025-11-30 18:57:31,879 - werkzeug - INFO - 127.0.0.1 - - [30/Nov/2025 18:57:31] "POST /api/generate-insights HTTP/1.1" 200 -
+2025-11-30 19:06:37,627 - api.api_service - INFO - Gerando insights para planta be3971e5-9d23-443d-8a69-f198482b551d
+2025-11-30 19:06:37,627 - analysis.report_generator - INFO - Gerando insights para planta be3971e5-9d23-443d-8a69-f198482b551d
+2025-11-30 19:06:37,653 - werkzeug - INFO - 127.0.0.1 - - [30/Nov/2025 19:06:37] "POST /api/generate-insights HTTP/1.1" 200 -

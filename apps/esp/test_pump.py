@@ -76,6 +76,16 @@ class ESP32PumpTester:
         response.raise_for_status()
         return response.json()
     
+    def reset_pump(self):
+        """Reseta estado de erro da bomba"""
+        response = self.session.post(
+            f"{self.base_url}/pump/reset",
+            headers={"Content-Type": "application/json"},
+            data=json.dumps({})
+        )
+        response.raise_for_status()
+        return response.json()
+    
     def print_status(self, status_data):
         """Imprime status formatado"""
         print("\n📊 STATUS DA BOMBA:")

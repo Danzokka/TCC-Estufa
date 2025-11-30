@@ -8,10 +8,8 @@ export interface SensorReading {
   air_humidity: number;
   soil_temperature: number;
   soil_moisture: number;
-  light_intensity: number;
-  water_level: number;
-  water_reserve: number;
   timecreated: string;
+  timestamp?: string; // Alternative field name for aggregated data
   reading_count?: number; // Quantidade de leituras agregadas neste ponto
 }
 
@@ -27,7 +25,6 @@ export interface DashboardKPIs {
   avgTemperature: number;
   avgHumidity: number;
   avgSoilMoisture: number;
-  avgWaterLevel: number;
   maxTemperature: number;
   minTemperature: number;
   maxHumidity: number;

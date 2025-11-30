@@ -46,6 +46,8 @@ bool PumpController::begin()
                   { handlePumpStatus(); });
     httpServer.on("/pump/emergency-stop", HTTP_POST, [this]()
                   { handleEmergencyStop(); });
+    httpServer.on("/pump/reset", HTTP_POST, [this]()
+                  { handleReset(); });
     httpServer.onNotFound([this]()
                           { handleNotFound(); });
 
@@ -118,21 +120,19 @@ void PumpController::pumpControlTask(void *parameter)
     {
         if (xSemaphoreTake(controller->pumpMutex, portMAX_DELAY) == pdTRUE)
         {
-            // Check safety conditions
-            if (!controller->checkSafetyConditions())
-            {
-                if (controller->pumpStatus == PUMP_ON)
-                {
-                    Serial.println("SAFETY: Emergency stop triggered - unsafe conditions detected");
-                    controller->emergencyStop = true;
-                }
-            }
-
-            // Handle pump operations based on current mode
+            // Only check safety and timeouts if pump is ON
             if (controller->pumpStatus == PUMP_ON)
             {
+                // Check safety conditions
+                if (!controller->checkSafetyConditions())
+                {
+                    Serial.println("SAFETY: Unsafe conditions - stopping pump");
+                    controller->deactivateRelay();
+                }
+
                 unsigned long currentTime = millis();
 
+                // Handle pump operations based on current mode
                 switch (controller->currentMode)
                 {
                 case MODE_DURATION:
@@ -158,21 +158,12 @@ void PumpController::pumpControlTask(void *parameter)
                     break;
                 }
 
-                // Check maximum runtime safety limit
+                // Check maximum runtime safety limit (only when pump is ON)
                 if (currentTime - controller->pumpStartTime >= PUMP_MAX_DURATION)
                 {
-                    Serial.println("SAFETY: Maximum pump runtime exceeded - emergency stop");
-                    controller->emergencyStop = true;
+                    Serial.println("SAFETY: Maximum pump runtime exceeded - stopping");
+                    controller->deactivateRelay();
                 }
-            }
-
-            // Handle emergency stop
-            if (controller->emergencyStop)
-            {
-                controller->deactivateRelay();
-                controller->pumpStatus = PUMP_ERROR;
-                controller->emergencyStop = false;
-                Serial.println("Emergency stop executed");
             }
 
             xSemaphoreGive(controller->pumpMutex);
@@ -202,17 +193,18 @@ void PumpController::httpServerTask(void *parameter)
 // HTTP handler for pump activation
 void PumpController::handleActivatePump()
 {
+    unsigned long startTime = millis();
+    String clientIP = httpServer.client().remoteIP().toString();
+
+    Serial.println("[HTTP] POST /pump/activate from " + clientIP);
+
     if (!pumpEnabled)
     {
+        Serial.println("[HTTP] Response: 400 - Pump disabled (" + String(millis() - startTime) + "ms)");
         httpServer.send(400, "application/json", createErrorResponse("Pump is disabled"));
         return;
     }
 
-    if (pumpStatus == PUMP_ERROR)
-    {
-        httpServer.send(400, "application/json", createErrorResponse("Pump in error state - reset required"));
-        return;
-    }
     // Parse request body
     String body = httpServer.arg("plain");
     JsonDocument doc;
@@ -223,7 +215,44 @@ void PumpController::handleActivatePump()
 
     if (xSemaphoreTake(pumpMutex, 1000 / portTICK_PERIOD_MS) == pdTRUE)
     {
-        if (doc["duration"].is<unsigned long>())
+        if (doc["water_ml"].is<float>())
+        {
+            // Calculate duration from desired water volume (mL)
+            float waterMl = doc["water_ml"].as<float>();
+            float durationSeconds = waterMl / PUMP_ML_PER_SECOND;
+            unsigned long duration = (unsigned long)(durationSeconds * 1000); // Convert to ms
+
+            Serial.println("[PUMP] Requested " + String(waterMl) + " mL -> calculated " + String(durationSeconds, 2) + "s");
+
+            if (validateDuration(duration))
+            {
+                success = activatePump(duration);
+                if (!success)
+                    errorMsg = "Failed to activate pump for water volume";
+            }
+            else
+            {
+                errorMsg = "Calculated duration exceeds limits";
+            }
+        }
+        else if (doc["duration_ms"].is<unsigned long>())
+        {
+            // Duration in milliseconds (direct, no conversion)
+            unsigned long duration = doc["duration_ms"].as<unsigned long>();
+            Serial.println("[PUMP] Requested " + String(duration) + " ms directly");
+
+            if (validateDuration(duration))
+            {
+                success = activatePump(duration);
+                if (!success)
+                    errorMsg = "Failed to activate pump for duration_ms";
+            }
+            else
+            {
+                errorMsg = "Invalid duration_ms specified";
+            }
+        }
+        else if (doc["duration"].is<unsigned long>())
         {
             unsigned long duration = doc["duration"].as<unsigned long>() * 1000; // Convert seconds to ms
             if (validateDuration(duration))
@@ -267,10 +296,12 @@ void PumpController::handleActivatePump()
 
     if (success)
     {
+        Serial.println("[HTTP] Response: 200 - Pump activated (" + String(millis() - startTime) + "ms)");
         httpServer.send(200, "application/json", createStatusResponse());
     }
     else
     {
+        Serial.println("[HTTP] Response: 400 - " + errorMsg + " (" + String(millis() - startTime) + "ms)");
         httpServer.send(400, "application/json", createErrorResponse(errorMsg));
     }
 }
@@ -278,6 +309,11 @@ void PumpController::handleActivatePump()
 // HTTP handler for pump deactivation
 void PumpController::handleDeactivatePump()
 {
+    unsigned long startTime = millis();
+    String clientIP = httpServer.client().remoteIP().toString();
+
+    Serial.println("[HTTP] POST /pump/deactivate from " + clientIP);
+
     bool success = false;
 
     if (xSemaphoreTake(pumpMutex, 1000 / portTICK_PERIOD_MS) == pdTRUE)
@@ -288,10 +324,12 @@ void PumpController::handleDeactivatePump()
 
     if (success)
     {
+        Serial.println("[HTTP] Response: 200 - Pump deactivated (" + String(millis() - startTime) + "ms)");
         httpServer.send(200, "application/json", createStatusResponse());
     }
     else
     {
+        Serial.println("[HTTP] Response: 400 - Failed to deactivate (" + String(millis() - startTime) + "ms)");
         httpServer.send(400, "application/json", createErrorResponse("Failed to deactivate pump"));
     }
 }
@@ -299,20 +337,32 @@ void PumpController::handleDeactivatePump()
 // HTTP handler for pump status
 void PumpController::handlePumpStatus()
 {
+    unsigned long startTime = millis();
+    String clientIP = httpServer.client().remoteIP().toString();
+
+    Serial.println("[HTTP] GET /pump/status from " + clientIP);
     httpServer.send(200, "application/json", createStatusResponse());
+    Serial.println("[HTTP] Response: 200 (" + String(millis() - startTime) + "ms)");
 }
 
 // HTTP handler for emergency stop
 void PumpController::handleEmergencyStop()
 {
+    unsigned long startTime = millis();
+    String clientIP = httpServer.client().remoteIP().toString();
+
+    Serial.println("[HTTP] POST /pump/emergency-stop from " + clientIP);
+
     bool success = emergencyStopPump();
 
     if (success)
     {
+        Serial.println("[HTTP] Response: 200 - Emergency stop executed (" + String(millis() - startTime) + "ms)");
         httpServer.send(200, "application/json", createStatusResponse());
     }
     else
     {
+        Serial.println("[HTTP] Response: 500 - Emergency stop failed (" + String(millis() - startTime) + "ms)");
         httpServer.send(500, "application/json", createErrorResponse("Emergency stop failed"));
     }
 }
@@ -320,7 +370,32 @@ void PumpController::handleEmergencyStop()
 // HTTP handler for not found
 void PumpController::handleNotFound()
 {
+    String clientIP = httpServer.client().remoteIP().toString();
+    Serial.println("[HTTP] 404 - Unknown endpoint from " + clientIP + ": " + httpServer.uri());
     httpServer.send(404, "application/json", createErrorResponse("Endpoint not found"));
+}
+
+// HTTP handler for reset error state
+void PumpController::handleReset()
+{
+    unsigned long startTime = millis();
+    String clientIP = httpServer.client().remoteIP().toString();
+
+    Serial.println("[HTTP] POST /pump/reset from " + clientIP);
+
+    if (xSemaphoreTake(pumpMutex, 1000 / portTICK_PERIOD_MS) == pdTRUE)
+    {
+        if (pumpStatus == PUMP_ERROR)
+        {
+            pumpStatus = PUMP_OFF;
+            currentMode = MODE_MANUAL;
+            emergencyStop = false;
+            Serial.println("[PUMP] Estado de erro resetado");
+        }
+        xSemaphoreGive(pumpMutex);
+    }
+    Serial.println("[HTTP] Response: 200 (" + String(millis() - startTime) + "ms)");
+    httpServer.send(200, "application/json", createStatusResponse());
 }
 
 // Activate pump
@@ -404,9 +479,8 @@ bool PumpController::deactivatePump()
 // Emergency stop
 bool PumpController::emergencyStopPump()
 {
-    emergencyStop = true;
     deactivateRelay();
-    Serial.println("EMERGENCY STOP activated");
+    Serial.println("Emergency stop activated - pump OFF");
     return true;
 }
 
@@ -593,15 +667,26 @@ String PumpController::createStatusResponse()
     doc["enabled"] = pumpEnabled;
     doc["mode"] = (currentMode == MODE_MANUAL) ? "manual" : (currentMode == MODE_DURATION) ? "duration"
                                                                                            : "volume";
+    doc["water_rate_ml_per_second"] = PUMP_ML_PER_SECOND;
 
     if (pumpStatus == PUMP_ON)
     {
-        doc["runtime_seconds"] = (millis() - pumpStartTime) / 1000;
+        unsigned long runtimeMs = millis() - pumpStartTime;
+        float runtimeSeconds = runtimeMs / 1000.0;
+        float approxWaterMl = runtimeSeconds * PUMP_ML_PER_SECOND;
+
+        doc["runtime_seconds"] = runtimeSeconds;
+        doc["approx_water_dispensed_ml"] = approxWaterMl;
 
         if (currentMode == MODE_DURATION)
         {
+            unsigned long remainingMs = getRemainingTime() * 1000;
+            float totalDurationSeconds = pumpDuration / 1000.0;
+            float approxTotalWaterMl = totalDurationSeconds * PUMP_ML_PER_SECOND;
+
             doc["remaining_seconds"] = getRemainingTime();
-            doc["duration_seconds"] = pumpDuration / 1000;
+            doc["duration_seconds"] = totalDurationSeconds;
+            doc["approx_total_water_ml"] = approxTotalWaterMl;
         }
         else if (currentMode == MODE_VOLUME)
         {

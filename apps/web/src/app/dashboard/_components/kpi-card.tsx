@@ -99,11 +99,22 @@ export function KPICardSkeleton() {
 // Predefined KPI Cards for common metrics
 
 interface MetricKPIProps {
-  value: number;
+  value: number | null | undefined;
   trend?: "up" | "down" | "neutral";
   trendValue?: string;
   description?: string;
 }
+
+// Helper function to format value safely
+const formatValue = (
+  value: number | null | undefined,
+  decimals: number = 1
+): string => {
+  if (value === null || value === undefined || isNaN(value)) {
+    return "--";
+  }
+  return value.toFixed(decimals);
+};
 
 export function TemperatureKPI({
   value,
@@ -114,7 +125,7 @@ export function TemperatureKPI({
   return (
     <KPICard
       title="Temperatura do Ar"
-      value={value.toFixed(1)}
+      value={formatValue(value)}
       unit="°C"
       icon={<Thermometer className="h-4 w-4" />}
       colorClass="text-orange-600 dark:text-orange-400"
@@ -134,7 +145,7 @@ export function HumidityKPI({
   return (
     <KPICard
       title="Umidade do Ar"
-      value={value.toFixed(1)}
+      value={formatValue(value)}
       unit="%"
       icon={<Droplet className="h-4 w-4" />}
       colorClass="text-blue-600 dark:text-blue-400"
@@ -154,7 +165,7 @@ export function SoilMoistureKPI({
   return (
     <KPICard
       title="Umidade do Solo"
-      value={value.toFixed(1)}
+      value={formatValue(value)}
       unit="%"
       icon={<Droplets className="h-4 w-4" />}
       colorClass="text-teal-600 dark:text-teal-400"
@@ -174,10 +185,30 @@ export function WaterLevelKPI({
   return (
     <KPICard
       title="Nível de Água"
-      value={value.toFixed(1)}
+      value={formatValue(value)}
       unit="%"
       icon={<Droplets className="h-4 w-4" />}
       colorClass="text-cyan-600 dark:text-cyan-400"
+      trend={trend}
+      trendValue={trendValue}
+      description={description}
+    />
+  );
+}
+
+export function SoilTemperatureKPI({
+  value,
+  trend,
+  trendValue,
+  description,
+}: MetricKPIProps) {
+  return (
+    <KPICard
+      title="Temperatura do Solo"
+      value={formatValue(value)}
+      unit="°C"
+      icon={<Thermometer className="h-4 w-4" />}
+      colorClass="text-amber-600 dark:text-amber-400"
       trend={trend}
       trendValue={trendValue}
       description={description}
@@ -194,7 +225,7 @@ export function LightIntensityKPI({
   return (
     <KPICard
       title="Intensidade Luminosa"
-      value={value.toFixed(0)}
+      value={formatValue(value, 0)}
       unit="lux"
       icon={<Sun className="h-4 w-4" />}
       colorClass="text-yellow-600 dark:text-yellow-400"

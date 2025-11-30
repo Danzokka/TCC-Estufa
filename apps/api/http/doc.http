@@ -47,12 +47,10 @@ Content-Type: application/json
   "air_humidity_initial": 60.0,
   "soil_moisture_initial": 40,
   "soil_temperature_initial": 21.0,
-  "light_intensity_initial": 300.0,
   "air_temperature_final": 24.0,
   "air_humidity_final": 65.0,
   "soil_moisture_final": 45,
-  "soil_temperature_final": 22.0,
-  "light_intensity_final": 320.0
+  "soil_temperature_final": 22.0
 }
 
 ### UserPlant: criar relação usuário-planta
@@ -77,7 +75,6 @@ Content-Type: application/json
   "air_humidity": 62.0,
   "soil_temperature": 21.5,
   "soil_moisture": 42,
-  "light_intensity": 310.0,
   "water_level": 80.0,
   "water_reserve": 50.0
 }

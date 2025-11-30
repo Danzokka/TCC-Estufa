@@ -54,7 +54,6 @@ async sendData(data: CreateSensorDataDto) {
       air_humidity: data.air_humidity,
       soil_temperature: data.soil_temperature,
       soil_moisture: data.soil_moisture,
-      light_intensity: data.light_intensity,
       water_level: data.water_level,
       water_reserve: data.water_reserve,
       userPlantId: data.userPlant, // Links sensor data to user's plant

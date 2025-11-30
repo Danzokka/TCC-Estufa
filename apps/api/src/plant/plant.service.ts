@@ -65,17 +65,20 @@ export class PlantService {
 
     if (!userPlant) return null;
 
-    const sensor = await this.prisma.sensor.findFirst({
-      where: { userPlantId: userPlant.id },
-      orderBy: { timecreated: 'desc' },
+    // Buscar última leitura do greenhouse ao invés da tabela sensor antiga
+    if (!userPlant.greenhouseId) return null;
+
+    const lastReading = await this.prisma.greenhouseSensorReading.findFirst({
+      where: { greenhouseId: userPlant.greenhouseId },
+      orderBy: { timestamp: 'desc' },
     });
 
-    if (!sensor) return null;
+    if (!lastReading) return null;
     return {
-      water_level: sensor.water_level,
-      air_humidity: sensor.air_humidity,
-      air_temperature: sensor.air_temperature,
-      soil_moisture: sensor.soil_moisture,
+      water_level: 0, // Não temos mais esse campo na nova tabela
+      air_humidity: lastReading.airHumidity,
+      air_temperature: lastReading.airTemperature,
+      soil_moisture: lastReading.soilMoisture,
     };
   }
 
@@ -83,7 +86,15 @@ export class PlantService {
     // Busca todas as plantas do usuário
     const userPlants = await this.prisma.userPlant.findMany({
       where: { userId },
-      include: { plant: true },
+      include: {
+        plant: true,
+        greenhouse: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
     return userPlants;
   }
@@ -105,6 +116,11 @@ export class PlantService {
   async getUserPlantsWithStats(
     userId: string,
   ): Promise<UserPlantWithStatsDto[]> {
+    console.log(
+      '🌱 [PlantService] getUserPlantsWithStats called for userId:',
+      userId,
+    );
+
     const userPlants = await this.prisma.userPlant.findMany({
       where: { userId },
       include: {
@@ -118,12 +134,20 @@ export class PlantService {
       },
     });
 
+    console.log('🌱 [PlantService] Found userPlants:', userPlants.length);
+    console.log(
+      '🌱 [PlantService] UserPlants data:',
+      JSON.stringify(userPlants, null, 2),
+    );
+
     return Promise.all(
       userPlants.map(async (userPlant) => {
-        // Conta total de leituras
-        const totalReadings = await this.prisma.sensor.count({
-          where: { userPlantId: userPlant.id },
-        });
+        // Conta total de leituras no greenhouse da planta
+        const totalReadings = userPlant.greenhouseId
+          ? await this.prisma.greenhouseSensorReading.count({
+              where: { greenhouseId: userPlant.greenhouseId },
+            })
+          : 0;
 
         // Calcula dias com a planta
         const daysWithPlant = Math.floor(
@@ -131,17 +155,19 @@ export class PlantService {
             (1000 * 60 * 60 * 24),
         );
 
-        // Busca última leitura
-        const lastSensorReading = await this.prisma.sensor.findFirst({
-          where: { userPlantId: userPlant.id },
-          orderBy: { timecreated: 'desc' },
-          select: {
-            timecreated: true,
-            air_temperature: true,
-            air_humidity: true,
-            soil_moisture: true,
-          },
-        });
+        // Busca última leitura do greenhouse
+        const lastSensorReading = userPlant.greenhouseId
+          ? await this.prisma.greenhouseSensorReading.findFirst({
+              where: { greenhouseId: userPlant.greenhouseId },
+              orderBy: { timestamp: 'desc' },
+              select: {
+                timestamp: true,
+                airTemperature: true,
+                airHumidity: true,
+                soilMoisture: true,
+              },
+            })
+          : null;
 
         // Calcula status baseado na última leitura
         const status = this.calculatePlantStatus(lastSensorReading);
@@ -152,16 +178,17 @@ export class PlantService {
           plantId: userPlant.plantId,
           nickname: userPlant.nickname,
           dateAdded: userPlant.dateAdded,
+          greenhouseId: userPlant.greenhouseId,
           plant: userPlant.plant,
           stats: {
             totalReadings,
             daysWithPlant,
             lastReading: {
-              date: lastSensorReading?.timecreated || null,
+              date: lastSensorReading?.timestamp || null,
               status,
-              air_temperature: lastSensorReading?.air_temperature || null,
-              air_humidity: lastSensorReading?.air_humidity || null,
-              soil_moisture: lastSensorReading?.soil_moisture || null,
+              air_temperature: lastSensorReading?.airTemperature || null,
+              air_humidity: lastSensorReading?.airHumidity || null,
+              soil_moisture: lastSensorReading?.soilMoisture || null,
             },
           },
         };
@@ -171,14 +198,14 @@ export class PlantService {
 
   private calculatePlantStatus(
     reading: {
-      timecreated: Date;
+      timestamp: Date;
     } | null,
   ): 'ativo' | 'inativo' {
     if (!reading) return 'inativo';
 
     // Calcular diferença em dias entre agora e última medição
     const now = new Date();
-    const lastReading = new Date(reading.timecreated);
+    const lastReading = new Date(reading.timestamp);
     const daysDifference = Math.floor(
       (now.getTime() - lastReading.getTime()) / (1000 * 60 * 60 * 24),
     );
@@ -259,7 +286,9 @@ export class PlantService {
     });
 
     if (!greenhouse) {
-      throw new NotFoundException('Estufa não encontrada ou não pertence ao usuário');
+      throw new NotFoundException(
+        'Estufa não encontrada ou não pertence ao usuário',
+      );
     }
 
     // Verificar se já existe uma vinculação desta planta para este usuário
@@ -308,8 +337,6 @@ export class PlantService {
         soil_moisture_final: true,
         soil_temperature_initial: true,
         soil_temperature_final: true,
-        light_intensity_initial: true,
-        light_intensity_final: true,
       },
       orderBy: {
         name: 'asc',

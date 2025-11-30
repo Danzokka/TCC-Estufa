@@ -32,8 +32,6 @@ model Plant {
   air_humidity_initial     Float
   air_temperature_final    Float
   air_temperature_initial  Float
-  light_intensity_final    Float
-  light_intensity_initial  Float
   soil_moisture_final      Int
   soil_moisture_initial    Int
   soil_temperature_final   Float
@@ -51,6 +49,7 @@ model UserPlant {
   greenhouseId           String?
   reports                Report[]
   greenhouse             Greenhouse?  @relation(fields: [greenhouseId], references: [id])
+  activeGreenhouse      Greenhouse?  @relation("ActivePlant")
   plant                  Plant        @relation(fields: [plantId], references: [id])
   user                   User         @relation(fields: [userId], references: [id])
 
@@ -87,8 +86,6 @@ model Greenhouse {
   currentTemperature    Float?
   currentHumidity       Float?
   currentSoilMoisture   Int?
-  currentLightIntensity Float?
-  currentWaterLevel     Float?
   targetTemperature     Float                     @default(25.0)
   targetHumidity        Float                     @default(60.0)
   targetSoilMoisture    Int                       @default(50)
@@ -119,25 +116,22 @@ model Greenhouse {
 }
 
 model GreenhouseSensorReading {
-  id              String       @id @default(uuid())
-  greenhouseId    String
-  airTemperature  Float
-  airHumidity     Float
-  soilMoisture    Int
-  soilTemperature Float?
-  lightIntensity  Float
-  waterLevel      Float
-  waterReserve    Float?
-  batteryLevel    Float?
-  signalStrength  Int?
-  timestamp       DateTime     @default(now())
-  isValid         Boolean      @default(true)
-  errorMessage    String?
-  greenhouse      Greenhouse   @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
-  irrigations     Irrigation[]
+  id               String       @id @default(uuid())
+  greenhouseId     String
+  airTemperature   Float        // DHT22 sensor
+  airHumidity      Float        // DHT22 sensor
+  soilMoisture     Int          // Soil moisture sensor
+  soilTemperature  Float        // Soil temperature sensor
+  plantHealthScore Float?       // AI-calculated health score (0-100)
+  timestamp        DateTime     @default(now())
+  isValid          Boolean      @default(true)
+  errorMessage     String?
+  greenhouse       Greenhouse   @relation(fields: [greenhouseId], references: [id], onDelete: Cascade)
+  irrigations      Irrigation[]
 
   @@index([greenhouseId])
   @@index([timestamp])
+  @@index([plantHealthScore])
 }
 
 model RefreshToken {

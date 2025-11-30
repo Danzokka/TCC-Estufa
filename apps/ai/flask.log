@@ -1,0 +1,167 @@
+nohup: ignoring input
+INFO:models.lstm_model:Modelo LSTM criado com 4 entradas, 64 neurônios ocultos, 2 camadas e 12 saídas
+INFO:models.lstm_model:Modelo LSTM criado com 4 entradas, 64 neurônios ocultos, 2 camadas e 1 saídas
+
+======================================================================
+🌱 IoT GREENHOUSE AI SERVICE - Starting...
+======================================================================
+
+======================================================================
+🔄 INICIALIZANDO MODELOS AI/ML
+======================================================================
+✅ Preprocessor inicializado
+
+📦 Carregando: Soil Moisture Predictor
+   Path: /home/danzokka/VSCode/TCC-Estufa/apps/ai/models/saved/soil_moisture_predictor/soil_moisture_predictor_latest.pt
+   ✅ Loaded successfully
+   📊 Horizon: 12h
+   📏 Window: 24h
+
+📦 Carregando: Plant Health Predictor
+   Path: /home/danzokka/VSCode/TCC-Estufa/apps/ai/models/saved/plant_health_predictor/plant_health_predictor_latest.pt
+   ✅ Loaded successfully
+   📊 Output: Health Score (0-100)
+   📏 Window: 24h
+
+======================================================================
+✅ SUCCESS: 2 modelos carregados
+   Models: ['soil_moisture', 'plant_health']
+
+======================================================================
+🚀 STARTING FLASK SERVER
+======================================================================
+
+📍 Available Endpoints:
+   - GET  /health              Health check & status
+   - GET  /models/info         Model details & architecture
+   - POST /analyze-sensors     Complete plant analysis
+   - POST /predict/moisture    Soil moisture prediction
+   - POST /predict/health      Plant health prediction
+
+🌐 Server URL: http://localhost:5001
+🔗 Allowed Origins:
+   - http://localhost:5000    (NestJS API)
+   - http://localhost:3000    (Next.js Frontend)
+
+======================================================================
+
+ * Serving Flask app 'app_service'
+ * Debug mode: on
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://172.17.121.211:5001
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:httpx:HTTP Request: GET http://localhost:51115/status "HTTP/1.1 200 OK"
+INFO:db.database:✅ Prisma Client Python conectado ao banco de dados
+INFO:httpx:HTTP Request: POST http://localhost:51115/ "HTTP/1.1 200 OK"
+INFO:db.database:✅ Dados carregados: 27 registros (últimas 24h)
+INFO:data_processing.preprocessor:Iniciando limpeza de dados...
+INFO:data_processing.preprocessor:Limpeza de dados concluída
+INFO:data_processing.preprocessor:Características de tempo adicionadas ao DataFrame
+INFO:data_processing.preprocessor:Normalizando dados...
+INFO:data_processing.preprocessor:Normalização concluída
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 14:18:27] "POST /predict/moisture HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 14:18:38] "GET /health HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 14:18:38] "GET /models/info HTTP/1.1" 200 -
+INFO:httpx:HTTP Request: GET http://localhost:36695/status "HTTP/1.1 200 OK"
+INFO:db{"timestamp":"2025-11-10T06:09:13.629829Z","level":"ERROR","fields":{"message":"Error in PostgreSQL connection: Error { kind: Closed, cause: None }"},"target":"quaint::connector::postgres::native"}
+4h)
+INFO:data_processing.preprocessor:Iniciando limpeza de dados...
+INFO:data_processing.preprocessor:Limpeza de dados concluída
+INFO:data_processing.preprocessor:Características de tempo adicionadas ao DataFrame
+INFO:data_processing.preprocessor:Normalizando dados...
+INFO:data_processing.preprocessor:Normalização concluída
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 14:18:38] "POST /analyze-sensors HTTP/1.1" 200 -
+INFO:httpx:HTTP Request: GET http://localhost:56013/status "HTTP/1.1 200 O{"timestamp":"2025-11-10T06:09:13.629828Z","level":"ERROR","fields":{"message":"Error in PostgreSQL connection: Error { kind: Closed, cause: None }"},"target":"quaint::connector::postgres::native"}
+últimas 24h)
+INFO:data_processing.preprocessor:Iniciando limpeza de dados...
+INFO:data_processing.preprocessor:Limpeza de dados concluída
+INFO:data_processing.preprocessor:Características de tempo adicionadas ao DataFrame
+INFO:data_processing.preprocessor:Normalizando dados...
+INFO:data_processing.preprocessor:Normalização concluída
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 14:18:39] "POST /predict/moisture HTTP/1.1" 200 -
+INFO:httpx:HTTP Request: GET http://localhost:54063/status "HTTP/1.1 200 OK"
+INFO:db.database:✅ Prisma Client Python conectado ao banco de dados
+INFO:httpx:HTTP Request: POST http://localhost:54063/ "HTTP/1.1 200 OK"
+INFO:db.database:✅ Dados carregados: 27 registros (últimas 24h)
+INFO:data_processing.preprocessor:Iniciando limpeza de dados...
+INFO:data_processing.preprocessor:Limpeza de dados concluída
+INFO:data_processing.preprocessor:Características de tempo adicionadas ao DataFrame
+INFO:data_processing.preprocessor:Normalizando dados...
+INFO:data_processing.preprocessor:Normalização concluída
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 14:18:39] "POST /predict/health HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 15:42:24] "GET /health HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 15:48:02] "GET /health HTTP/1.1" 200 -
+INFO:httpx:HTTP Request: GET http://localhost:59945/status "HTTP/1.1 200 OK"
+INFO:db.database:✅ Prisma Client Python conectado ao banco de dados
+INFO:httpx:HTTP Request: POST http://localhost:59945/ "HTTP/1.1 200 OK"
+INFO:db.database:✅ Dados carregados: 1 registros (últimas 24h)
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 16:06:34] "[31m[1mPOST /analyze-sensors HTTP/1.1[0m" 422 -
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 16:06:52] "GET /health HTTP/1.1" 200 -
+INFO:httpx:HTTP Request: GET http://localhost:52617/status "HTTP/1.1 200 OK"
+INFO:db.database:✅ Prisma Client Python conectado ao banco de dados
+INFO:httpx:HTTP Request: POST http://localhost:52617/ "HTTP/1.1 200 OK"
+INFO:db.database:✅ Dados carregados: 1 registros (últimas 24h)
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 16:06:58] "[31m[1mPOST /analyze-sensors HTTP/1.1[0m" 422 -
+INFO:httpx:HTTP Request: GET http://localhost:41813/status "HTTP/1.1 200 OK"
+INFO:db.database:✅ Prisma Client Python conectado ao banco de dados
+INFO:httpx:HTTP Request: POST http://localhost:41813/ "HTTP/1.1 200 OK"
+INFO:db.database:✅ Dados carregados: 28 registros (últimas 24h)
+INFO:data_processing.preprocessor:Iniciando limpeza de dados...
+INFO:data_processing.preprocessor:Limpeza de dados concluída
+INFO:data_processing.preprocessor:Características de tempo adicionadas ao DataFrame
+INFO:data_processing.preprocessor:Normalizando dados...
+INFO:data_processing.preprocessor:Normalização concluída
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 16:07:22] "POST /analyze-sensors HTTP/1.1" 200 -
+INFO:httpx:HTTP Request: GET http://localhost:49879/status "HTTP/1.1 200 OK"
+INFO:db.database:✅ Prisma Client Python conectado ao banco de dados
+INFO:httpx:HTTP Request: POST http://localhost:49879/ "HTTP/1.1 200 OK"
+INFO:db.database:✅ Dados carregados: 29 registros (últimas 24h)
+INFO:data_processing.preprocessor:Iniciando limpeza de dados...
+INFO:data_processing.preprocessor:Limpeza de dados concluída
+INFO:data_processing.preprocessor:Características de tempo adicionadas ao DataFrame
+INFO:data_processing.preprocessor:Normalizando dados...
+INFO:data_processing.preprocessor:Normalização concluída
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 16:08:37] "POST /analyze-sensors HTTP/1.1" 200 -
+INFO:httpx:HTTP Request: GET http://localhost:50037/status "HTTP/1.1 200 OK"
+INFO:db.database:✅ Prisma Client Python conectado ao banco de dados
+INFO:httpx:HTTP Request: POST http://localhost:50037/ "HTTP/1.1 200 OK"
+INFO:db.database:✅ Dados carregados: 30 registros (últimas 24h)
+INFO:data_processing.preprocessor:Iniciando limpeza de dados...
+INFO:data_processing.preprocessor:Limpeza de dados concluída
+INFO:data_processing.preprocessor:Características de tempo adicionadas ao DataFrame
+INFO:data_processing.preprocessor:Normalizando dados...
+INFO:data_processing.preprocessor:Normalização concluída
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 16:08:39] "POST /analyze-sensors HTTP/1.1" 200 -
+INFO:httpx:HTTP Request: GET http://localhost:41183/status "HTTP/1.1 200 OK"
+INFO:db.database:✅ Prisma Client Python conectado ao banco de dados
+INFO:httpx:HTTP Request: POST http://localhost:41183/ "HTTP/1.1 200 OK"
+INFO:db.database:✅ Dados carregados: 31 registros (últimas 24h)
+INFO:data_processing.preprocessor:Iniciando limpeza de dados...
+INFO:data_processing.preprocessor:Limpeza de dados concluída
+INFO:data_processing.preprocessor:Características de tempo adicionadas ao DataFrame
+INFO:data_processing.preprocessor:Normalizando dados...
+INFO:data_processing.preprocessor:Normalização concluída
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 16:08:41] "POST /analyze-sensors HTTP/1.1" 200 -
+INFO:httpx:HTTP Request: GET http://localhost:59163/status "HTTP/1.1 200 OK"
+INFO:db.database:✅ Prisma Client Python conectado ao banco de dados
+INFO:httpx:HTTP Request: POST http://localhost:59163/ "HTTP/1.1 200 OK"
+INFO:db.database:✅ Dados carregados: 31 registros (últimas 24h)
+INFO:data_processing.preprocessor:Iniciando limpeza de dados...
+INFO:data_processing.preprocessor:Limpeza de dados concluída
+INFO:data_processing.preprocessor:Características de tempo adicionadas ao DataFrame
+INFO:data_processing.preprocessor:Normalizando dados...
+INFO:data_processing.preprocessor:Normalização concluída
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 16:27:27] "POST /analyze-sensors HTTP/1.1" 200 -
+INFO:httpx:HTTP Request: GET http://localhost:33521/status "HTTP/1.1 200 OK"
+INFO:db.database:✅ Prisma Client Python conectado ao banco de dados
+INFO:httpx:HTTP Request: POST http://localhost:33521/ "HTTP/1.1 200 OK"
+INFO:db.database:✅ Dados carregados: 32 registros (últimas 24h)
+INFO:data_processing.preprocessor:Iniciando limpeza de dados...
+INFO:data_processing.preprocessor:Limpeza de dados concluída
+INFO:data_processing.preprocessor:Características de tempo adicionadas ao DataFrame
+INFO:data_processing.preprocessor:Normalizando dados...
+INFO:data_processing.preprocessor:Normalização concluída
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 16:27:51] "POST /analyze-sensors HTTP/1.1" 200 -
+{"timestamp":"2025-11-10T06:09:13.631426Z","level":"ERROR","fields":{"message":"Error in PostgreSQL connection: Error { kind: Closed, cause: None }"},"target":"quaint::connector::postgres::native"}

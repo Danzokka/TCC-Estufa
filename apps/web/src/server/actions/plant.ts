@@ -17,6 +17,32 @@ export async function getUserPlants(): Promise<UserPlant[]> {
   }
 }
 
+export interface ActivePlantResponse {
+  id: string;
+  plantId: string;
+  nickname: string | null;
+  greenhouseId: string;
+  greenhouseName: string;
+  plant: {
+    id: string;
+    name: string;
+    description: string | null;
+  };
+}
+
+export async function getActivePlant(): Promise<ActivePlantResponse | null> {
+  try {
+    const response = await api.get("/greenhouses/user/active-plant");
+    if (response.data.success) {
+      return response.data.data;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching active plant:", error);
+    return null;
+  }
+}
+
 export async function getPlantData(plantId: string): Promise<PlantDays> {
   try {
     const response = await api.get(`/plant/data/${plantId}`);
@@ -147,8 +173,6 @@ export interface AvailablePlant {
   soil_moisture_final: number;
   soil_temperature_initial: number;
   soil_temperature_final: number;
-  light_intensity_initial: number;
-  light_intensity_final: number;
 }
 
 export interface UserGreenhouse {

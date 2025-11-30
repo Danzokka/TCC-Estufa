@@ -39,6 +39,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "compression": "^1.8.1",
+    "csv-parser": "^3.2.0",
     "helmet": "^8.1.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.501.0",

@@ -1,0 +1,89 @@
+nohup: ignoring input
+INFO:models.lstm_model:Modelo LSTM criado com 4 entradas, 64 neurônios ocultos, 2 camadas e 12 saídas
+INFO:models.lstm_model:Modelo LSTM criado com 4 entradas, 64 neurônios ocultos, 2 camadas e 1 saídas
+
+======================================================================
+🌱 IoT GREENHOUSE AI SERVICE - Starting...
+======================================================================
+
+======================================================================
+🔄 INICIALIZANDO MODELOS AI/ML
+======================================================================
+✅ Preprocessor inicializado
+
+📦 Carregando: Soil Moisture Predictor
+   Path: /home/danzokka/VSCode/TCC-Estufa/apps/ai/models/saved/soil_moisture_predictor/soil_moisture_predictor_latest.pt
+   ✅ Loaded successfully
+   📊 Horizon: 12h
+   📏 Window: 24h
+
+📦 Carregando: Plant Health Predictor
+   Path: /home/danzokka/VSCode/TCC-Estufa/apps/ai/models/saved/plant_health_predictor/plant_health_predictor_latest.pt
+   ✅ Loaded successfully
+   📊 Output: Health Score (0-100)
+   📏 Window: 24h
+
+======================================================================
+✅ SUCCESS: 2 modelos carregados
+   Models: ['soil_moisture', 'plant_health']
+
+======================================================================
+🚀 STARTING FLASK SERVER
+======================================================================
+
+📍 Available Endpoints:
+   - GET  /health              Health check & status
+   - GET  /models/info         Model details & architecture
+   - POST /analyze-sensors     Complete plant analysis
+   - POST /predict/moisture    Soil moisture prediction
+   - POST /predict/health      Plant health prediction
+
+🌐 Server URL: http://localhost:5001
+🔗 Allowed Origins:
+   - http://localhost:5000    (NestJS API)
+   - http://localhost:3000    (Next.js Frontend)
+
+======================================================================
+
+ * Serving Flask app 'app_service'
+ * Debug mode: on
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://172.17.121.211:5001
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 14:05:53] "GET /health HTTP/1.1" 200 -
+INFO:httpx:HTTP Request: GET http://localhost:44759/status "HTTP/1.1 200 OK"
+INFO:db.database:✅ Prisma Client Python conectado ao banco de dados
+INFO:httpx:HTTP Request: POST http://localhost:44759/ "HTTP/1.1 200 OK"
+INFO:db.database:✅ Dados carregados: 27 registros (últimas 24h)
+INFO:data_processing.preprocessor:Iniciando limpeza de dados...
+INFO:data_processing.preprocessor:Limpeza de dados concluída
+INFO:data_processing.preprocessor:Características de tempo adicionadas ao DataFrame
+INFO:data_processing.preprocessor:Normalizando dados...
+INFO:data_processing.preprocessor:Normalização concluída
+Traceback (most recent call last):
+  File "/home/danzokka/VSCode/TCC-Estufa/apps/ai/app_service.py", line 356, in analyze_sensors
+    prediction = model(input_tensor)
+                 ^^^^^^^^^^^^^^^^^^^
+  File "/home/danzokka/VSCode/TCC-Estufa/apps/ai/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/danzokka/VSCode/TCC-Estufa/apps/ai/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/danzokka/VSCode/TCC-Estufa/apps/ai/models/lstm_model.py", line 77, in forward
+    lstm_out, _ = self.lstm(x)
+                  ^^^^^^^^^^^^
+  File "/home/danzokka/VSCode/TCC-Estufa/apps/ai/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/danzokka/VSCode/TCC-Estufa/apps/ai/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/danzokka/VSCode/TCC-Estufa/apps/ai/venv/lib/python3.12/site-packages/torch/nn/modules/rnn.py", line 1127, in forward
+    result = _VF.lstm(
+             ^^^^^^^^^
+RuntimeError: Input and parameter tensors are not at the same device, found input tensor at cpu and parameter tensor at cuda:0
+INFO:werkzeug:127.0.0.1 - - [09/Nov/2025 14:13:33] "[35m[1mPOST /analyze-sensors HTTP/1.1[0m" 500 -
+{"timestamp":"2025-11-10T06:09:13.637455Z","level":"ERROR","fields":{"message":"Error in PostgreSQL connection: Error { kind: Closed, cause: None }"},"target":"quaint::connector::postgres::native"}

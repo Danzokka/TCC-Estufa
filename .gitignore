@@ -4,6 +4,7 @@
 node_modules
 .pnp
 .pnp.js
+venv
 
 # Package managers
 package-lock.json

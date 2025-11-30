@@ -7,7 +7,7 @@ import { UserModule } from './user/user.module';
 import { BlogModule } from './blog/blog.module';
 import { PlantModule } from './plant/plant.module';
 import { AuthModule } from './auth/auth.module';
-import { PumpModule } from './pump/pump.module';
+// import { PumpModule } from './pump/pump.module'; // TEMPORARILY DISABLED - Schema migration needed
 import { GreenhouseModule } from './greenhouse/greenhouse.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
@@ -27,7 +27,7 @@ import { GeocodingModule } from './geocoding/geocoding.module';
     BlogModule,
     PlantModule,
     AuthModule,
-    PumpModule,
+    // PumpModule, // TEMPORARILY DISABLED
     GreenhouseModule,
     ConfigModule.forRoot({
       isGlobal: true, // Makes the configuration available globally

@@ -6,13 +6,18 @@ import threading
 import time
 import requests
 from datetime import datetime
+import sys
+import os
 
-from ..config.settings import API_HOST, API_PORT
-from ..db.database import fetch_sensor_data, fetch_plant_metadata, fetch_user_plants
-from ..data_processing.preprocessor import DataPreprocessor
-from ..models.lstm_model import PlantLSTMTrainer
-from ..analysis.insights_generator import InsightsGenerator
-from ..analysis.report_generator import ReportGenerator
+# Adicionar o diretório pai ao path para imports absolutos
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from config.settings import API_HOST, API_PORT
+from db.database import fetch_sensor_data
+from data_processing.preprocessor import DataPreprocessor
+from models.lstm_model import PlantLSTMTrainer
+from analysis.insights_generator import InsightsGenerator
+from analysis.report_generator import ReportGenerator
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO)
@@ -25,7 +30,7 @@ data_processor = DataPreprocessor()
 feature_columns = [
     'air_temperature', 'air_humidity', 
     'soil_moisture', 'soil_temperature', 
-    'light_intensity', 'water_level', 'water_reserve'
+    'water_level', 'water_reserve'
 ]
 model_trainer = PlantLSTMTrainer(feature_columns)
 insights_generator = InsightsGenerator()
@@ -168,8 +173,8 @@ def update_sensor_data():
     try:
         logger.info("Buscando dados recentes de sensores...")
         
-        # Buscar dados do banco de dados
-        sensor_data = fetch_sensor_data(days=30)
+        # Buscar dados do banco de dados (30 dias = 720 horas)
+        sensor_data = fetch_sensor_data(hours=30*24)
         
         if len(sensor_data) > 0:
             # Processar e limpar dados
@@ -187,21 +192,21 @@ def update_sensor_data():
         logger.error(f"Erro ao atualizar dados de sensores: {e}")
 
 
-def generate_predictions(user_plant_id, target_variable='soil_moisture'):
-    """Gera previsões para uma planta específica"""
+def generate_predictions(greenhouse_id, target_variable='soilMoisture'):
+    """Gera previsões para uma greenhouse específica"""
     try:
         if cache['sensor_data'] is None:
             update_sensor_data()
         
-        # Filtrar dados para a planta específica
-        plant_data = cache['sensor_data'][cache['sensor_data']['userPlantId'] == user_plant_id].copy()
+        # Filtrar dados para a greenhouse específica
+        greenhouse_data = cache['sensor_data'][cache['sensor_data']['greenhouse_id'] == greenhouse_id].copy()
         
-        if len(plant_data) < 24:  # Precisa de pelo menos 24 registros
-            logger.warning(f"Dados insuficientes para gerar previsões para planta {user_plant_id}")
+        if len(greenhouse_data) < 24:  # Precisa de pelo menos 24 registros
+            logger.warning(f"Dados insuficientes para gerar previsões para greenhouse {greenhouse_id}")
             return
         
         # Normalizar dados
-        normalized_data = data_processor.normalize_data(plant_data)
+        normalized_data = data_processor.normalize_data(greenhouse_data)
         
         # Adicionar características de tempo
         enhanced_data = data_processor.add_time_features(normalized_data)
@@ -215,12 +220,11 @@ def generate_predictions(user_plant_id, target_variable='soil_moisture'):
         )
         
         if X is None or len(X) == 0:
-            logger.warning(f"Não foi possível criar sequências para previsão da planta {user_plant_id}")
+            logger.warning(f"Não foi possível criar sequências para previsão da greenhouse {greenhouse_id}")
             return
         
-        # Gerar nome do modelo
-        plant_name = plant_data['plant_name'].iloc[0] if 'plant_name' in plant_data.columns else 'default'
-        model_name = f"{plant_name}_{target_variable}"
+        # Gerar nome do modelo baseado no greenhouse_id
+        model_name = f"greenhouse_{greenhouse_id}_{target_variable}"
         
         # Fazer previsão
         predictions = model_trainer.predict(X[-1:], model_name)
@@ -232,12 +236,10 @@ def generate_predictions(user_plant_id, target_variable='soil_moisture'):
         
         if predictions is not None:
             # Criar DataFrame com previsões
-            last_timestamp = pd.to_datetime(plant_data['timecreated'].max())
+            last_timestamp = pd.to_datetime(greenhouse_data['timestamp'].max())
             
             pred_df = pd.DataFrame({
-                'userPlantId': user_plant_id,
-                'plant_name': plant_name,
-                'plant_nickname': plant_data['plant_nickname'].iloc[0] if 'plant_nickname' in plant_data.columns else 'Planta',
+                'greenhouse_id': greenhouse_id,
                 'variable': target_variable,
                 'timestamp': [last_timestamp + pd.Timedelta(hours=i+1) for i in range(len(predictions[0]))],
                 target_variable: predictions[0]
@@ -251,13 +253,13 @@ def generate_predictions(user_plant_id, target_variable='soil_moisture'):
                     )
             
             # Armazenar no cache
-            cache['predictions'][user_plant_id] = pred_df
-            logger.info(f"Geradas {len(pred_df)} previsões para planta {user_plant_id}")
+            cache['predictions'][greenhouse_id] = pred_df
+            logger.info(f"Geradas {len(pred_df)} previsões para greenhouse {greenhouse_id}")
         else:
-            logger.warning(f"Não foi possível gerar previsões para planta {user_plant_id}")
+            logger.warning(f"Não foi possível gerar previsões para greenhouse {greenhouse_id}")
     
     except Exception as e:
-        logger.error(f"Erro ao gerar previsões para planta {user_plant_id}: {e}")
+        logger.error(f"Erro ao gerar previsões para greenhouse {greenhouse_id}: {e}")
 
 
 def generate_all_insights():
@@ -266,8 +268,13 @@ def generate_all_insights():
         if cache['sensor_data'] is None:
             update_sensor_data()
         
-        # Buscar metadados das plantas
-        plant_metadata = fetch_plant_metadata()
+        # Verificar se há dados disponíveis após atualização
+        if cache['sensor_data'] is None or len(cache['sensor_data']) == 0:
+            logger.warning("⚠️ Não há dados de sensores disponíveis para gerar insights")
+            return
+        
+        # Buscar metadados das plantas (função não implementada ainda)
+        plant_metadata = {}  # fetch_plant_metadata()
         
         # Analisar condições atuais
         alerts_df = insights_generator.analyze_current_conditions(cache['sensor_data'], plant_metadata)
@@ -294,8 +301,8 @@ def train_plant_model(user_plant_id, target_variable='soil_moisture', days=30):
     try:
         logger.info(f"Iniciando treinamento de modelo para planta {user_plant_id}, variável {target_variable}")
         
-        # Buscar dados históricos para treinamento
-        plant_data = fetch_sensor_data(user_plant_id=user_plant_id, days=days)
+        # Buscar dados históricos para treinamento (converter days para hours)
+        plant_data = fetch_sensor_data(user_plant_id=user_plant_id, hours=days*24)
         
         if len(plant_data) < 48:  # Mínimo de 48 registros para treinar
             logger.warning(f"Dados insuficientes para treinar modelo para planta {user_plant_id}")
@@ -350,11 +357,12 @@ def update_loop():
         try:
             update_sensor_data()
             
-            # Atualizar previsões para todas as plantas
-            if cache['sensor_data'] is not None:
-                user_plants = cache['sensor_data']['userPlantId'].unique()
-                for user_plant_id in user_plants:
-                    generate_predictions(user_plant_id)
+            # Atualizar previsões para todas as greenhouses
+            if cache['sensor_data'] is not None and len(cache['sensor_data']) > 0:
+                if 'greenhouse_id' in cache['sensor_data'].columns:
+                    greenhouses = cache['sensor_data']['greenhouse_id'].unique()
+                    for greenhouse_id in greenhouses:
+                        generate_predictions(greenhouse_id)
             
             # Gerar insights com dados atualizados
             generate_all_insights()

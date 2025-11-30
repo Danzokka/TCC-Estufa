@@ -51,6 +51,48 @@ export class GreenhouseController {
   }
 
   /**
+   * Get irrigation configuration for AI service (no auth - internal use)
+   * Returns the first greenhouse with an active plant
+   * IMPORTANT: This route must be defined BEFORE :id routes
+   */
+  @Get('ai/irrigation-config')
+  async getIrrigationConfig() {
+    const config = await this.greenhouseService.getIrrigationConfig();
+    if (!config) {
+      return {
+        success: false,
+        error: 'No greenhouse with active plant found',
+      };
+    }
+    return {
+      success: true,
+      data: config,
+    };
+  }
+
+  /**
+   * Get the active plant for the current user
+   * Returns the active plant from the user's first greenhouse with an active plant
+   */
+  @Get('user/active-plant')
+  @UseGuards(AuthGuard)
+  async getActivePlant(@Request() req: RequestAuthGuard) {
+    const result = await this.greenhouseService.getActivePlantForUser(
+      req.user.id,
+    );
+    if (!result) {
+      return {
+        success: false,
+        error: 'No active plant found',
+      };
+    }
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  /**
    * Get specific greenhouse by ID
    */
   @Get(':id')
@@ -107,15 +149,11 @@ export class GreenhouseController {
       body.longitude,
     );
 
-    return this.greenhouseService.updateLocation(
-      id,
-      req.user.id,
-      {
-        latitude: body.latitude,
-        longitude: body.longitude,
-        location: stateName,
-      },
-    );
+    return this.greenhouseService.updateLocation(id, req.user.id, {
+      latitude: body.latitude,
+      longitude: body.longitude,
+      location: stateName,
+    });
   }
 
   /**
@@ -193,5 +231,24 @@ export class GreenhouseController {
     @Request() req: RequestAuthGuard,
   ): Promise<any> {
     return this.greenhouseService.getRealtimeStatus(id, req.user.id);
+  }
+
+  /**
+   * Get irrigation configuration for a specific greenhouse
+   */
+  @Get(':id/irrigation-config')
+  async getGreenhouseIrrigationConfig(@Param('id', ParseUUIDPipe) id: string) {
+    const config =
+      await this.greenhouseService.getGreenhouseIrrigationConfig(id);
+    if (!config) {
+      return {
+        success: false,
+        error: 'Greenhouse not found or no active plant',
+      };
+    }
+    return {
+      success: true,
+      data: config,
+    };
   }
 }
