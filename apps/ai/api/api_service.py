@@ -25,7 +25,7 @@ data_processor = DataPreprocessor()
 feature_columns = [
     'air_temperature', 'air_humidity', 
     'soil_moisture', 'soil_temperature', 
-    'light_intensity', 'water_level', 'water_reserve'
+    'water_level', 'water_reserve'
 ]
 model_trainer = PlantLSTMTrainer(feature_columns)
 insights_generator = InsightsGenerator()

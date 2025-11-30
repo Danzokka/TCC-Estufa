@@ -139,11 +139,6 @@ class ReportGenerator:
             soil_analysis = self._analyze_soil_moisture(sensor_df, ideal_values)
             insights['soil_moisture'] = soil_analysis
         
-        # Análise de luminosidade
-        if not sensor_df.empty and 'light_intensity' in sensor_df.columns:
-            light_analysis = self._analyze_light_intensity(sensor_df, ideal_values)
-            insights['light'] = light_analysis
-        
         # Análise de irrigação
         irrigation_analysis = self._analyze_irrigation_pattern(sensor_df)
         insights['irrigation'] = irrigation_analysis
@@ -253,39 +248,6 @@ class ReportGenerator:
         
         return analysis
     
-    def _analyze_light_intensity(self, df: pd.DataFrame, ideal_values: Dict) -> str:
-        """Analisa padrões de luminosidade"""
-        light_col = 'light_intensity'
-        if light_col not in df.columns:
-            return "Dados de luminosidade não disponíveis."
-        
-        lights = df[light_col].dropna()
-        if lights.empty:
-            return "Dados de luminosidade insuficientes."
-        
-        avg_light = lights.mean()
-        light_std = lights.std()
-        ideal_light = (ideal_values.get('light_intensity_initial', 0) + 
-                      ideal_values.get('light_intensity_final', 0)) / 2
-        
-        deviation = avg_light - ideal_light
-        
-        analysis = f"Luminosidade média: {avg_light:.1f} lux"
-        
-        if abs(deviation) < 20:
-            analysis += ". Dentro da faixa ideal."
-        elif deviation > 0:
-            analysis += f". {deviation:.1f} lux acima do ideal."
-        else:
-            analysis += f". {abs(deviation):.1f} lux abaixo do ideal."
-        
-        if light_std > 50:
-            analysis += " Alta variabilidade observada."
-        elif light_std < 10:
-            analysis += " Luminosidade muito estável."
-        
-        return analysis
-    
     def _analyze_irrigation_pattern(self, df: pd.DataFrame) -> str:
         """Analisa padrões de irrigação"""
         if df.empty:
@@ -356,12 +318,6 @@ class ReportGenerator:
         if irrigation_rec:
             recommendations.append(irrigation_rec)
         
-        # Recomendações de luminosidade
-        if 'light_intensity' in sensor_df.columns:
-            light_rec = self._get_light_recommendations(sensor_df, ideal_values)
-            if light_rec:
-                recommendations.append(light_rec)
-        
         return recommendations
     
     def _get_temperature_recommendations(self, df: pd.DataFrame, ideal_values: Dict) -> Optional[Dict]:
@@ -417,28 +373,6 @@ class ReportGenerator:
                 'category': 'irrigation',
                 'priority': 'medium',
                 'description': 'Considerar irrigação manual ou verificar sistema automático'
-            }
-        
-        return None
-    
-    def _get_light_recommendations(self, df: pd.DataFrame, ideal_values: Dict) -> Optional[Dict]:
-        """Gera recomendações de luminosidade"""
-        lights = df['light_intensity'].dropna()
-        if lights.empty:
-            return None
-        
-        avg_light = lights.mean()
-        ideal_light = (ideal_values.get('light_intensity_initial', 0) + 
-                      ideal_values.get('light_intensity_final', 0)) / 2
-        deviation = avg_light - ideal_light
-        
-        if abs(deviation) > 30:
-            priority = 'high' if abs(deviation) > 50 else 'medium'
-            action = 'reduzir' if deviation > 0 else 'aumentar'
-            return {
-                'category': 'light',
-                'priority': priority,
-                'description': f'Ajustar luminosidade para {action} em {abs(deviation):.1f} lux'
             }
         
         return None

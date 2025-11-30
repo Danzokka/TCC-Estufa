@@ -83,9 +83,14 @@ export function AddPlantDialog({ onSuccess }: AddPlantDialogProps) {
         getAvailablePlants(),
         getUserGreenhouses(),
       ]);
-      
+
       setAvailablePlants(plants);
       setUserGreenhouses(greenhouses);
+
+      // Auto-selecionar a estufa se o usuário tiver apenas uma
+      if (greenhouses.length === 1) {
+        form.setValue("greenhouseId", greenhouses[0].id);
+      }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
       toast.error("Erro ao carregar dados");
@@ -131,7 +136,8 @@ export function AddPlantDialog({ onSuccess }: AddPlantDialogProps) {
         <DialogHeader>
           <DialogTitle>Adicionar Nova Planta</DialogTitle>
           <DialogDescription>
-            Vincule uma planta existente à sua estufa para começar o monitoramento.
+            Vincule uma planta existente à sua estufa para começar o
+            monitoramento.
           </DialogDescription>
         </DialogHeader>
 
@@ -173,46 +179,61 @@ export function AddPlantDialog({ onSuccess }: AddPlantDialogProps) {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="greenhouseId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Estufa</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    disabled={loadingData}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione uma estufa" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {userGreenhouses.map((greenhouse) => (
-                        <SelectItem key={greenhouse.id} value={greenhouse.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{greenhouse.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {greenhouse.isOnline ? "🟢" : "🔴"}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    {userGreenhouses.length === 0 && (
-                      <span className="text-amber-600">
-                        Você precisa ter pelo menos uma estufa cadastrada.
-                      </span>
-                    )}
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Campo de estufa - esconder se só tiver uma */}
+            {userGreenhouses.length > 1 ? (
+              <FormField
+                control={form.control}
+                name="greenhouseId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Estufa</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      disabled={loadingData}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma estufa" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {userGreenhouses.map((greenhouse) => (
+                          <SelectItem key={greenhouse.id} value={greenhouse.id}>
+                            <div className="flex items-center gap-2">
+                              <span>{greenhouse.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {greenhouse.isOnline ? "🟢" : "🔴"}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : userGreenhouses.length === 1 ? (
+              <div className="p-3 bg-muted/50 rounded-lg border">
+                <p className="text-sm text-muted-foreground">
+                  Estufa:{" "}
+                  <span className="font-medium text-foreground">
+                    {userGreenhouses[0].name}
+                  </span>
+                  <span className="ml-2 text-xs">
+                    {userGreenhouses[0].isOnline ? "🟢 Online" : "🔴 Offline"}
+                  </span>
+                </p>
+              </div>
+            ) : (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/50 rounded-lg border border-amber-200 dark:border-amber-800">
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  Você precisa ter pelo menos uma estufa cadastrada para
+                  adicionar plantas.
+                </p>
+              </div>
+            )}
 
             <FormField
               control={form.control}
@@ -250,14 +271,14 @@ export function AddPlantDialog({ onSuccess }: AddPlantDialogProps) {
                     {selectedPlant.air_humidity_final}%
                   </div>
                   <div>
-                    <span className="font-medium">Solo:</span>{" "}
+                    <span className="font-medium">Umidade do Solo:</span>{" "}
                     {selectedPlant.soil_moisture_initial}% -{" "}
                     {selectedPlant.soil_moisture_final}%
                   </div>
                   <div>
-                    <span className="font-medium">Luz:</span>{" "}
-                    {selectedPlant.light_intensity_initial} -{" "}
-                    {selectedPlant.light_intensity_final} lux
+                    <span className="font-medium">Temp. do Solo:</span>{" "}
+                    {selectedPlant.soil_temperature_initial}°C -{" "}
+                    {selectedPlant.soil_temperature_final}°C
                   </div>
                 </div>
               </div>

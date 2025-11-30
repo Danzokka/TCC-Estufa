@@ -748,6 +748,102 @@ def execute_irrigation():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/irrigation/reload-config', methods=['POST'])
+def reload_irrigation_config():
+    """
+    Reload irrigation configuration from backend
+    Call this when the active plant changes
+    
+    Body:
+    {
+        "greenhouseId": "uuid"  // Optional, if not provided reloads first active
+    }
+    """
+    global irrigation_service
+    
+    try:
+        data = request.get_json() or {}
+        greenhouse_id = data.get('greenhouseId')
+        
+        # Fetch new config from backend
+        backend_config = fetch_irrigation_config_from_backend()
+        
+        if not backend_config:
+            return jsonify({
+                'success': False,
+                'error': 'Could not fetch configuration from backend'
+            }), 400
+        
+        # If specific greenhouse requested, verify it matches
+        if greenhouse_id and backend_config.get('greenhouseId') != greenhouse_id:
+            return jsonify({
+                'success': False,
+                'error': f'Requested greenhouse {greenhouse_id} not found or has no active plant'
+            }), 404
+        
+        greenhouse_id = backend_config.get('greenhouseId')
+        plant_type = backend_config.get('plantType', 'default')
+        
+        # Calculate target moisture from plant settings
+        target_moisture = backend_config.get('soilMoistureIdeal')
+        if target_moisture is None:
+            moisture_min = backend_config.get('soilMoistureMin', 30)
+            moisture_max = backend_config.get('soilMoistureMax', 70)
+            target_moisture = (moisture_min + moisture_max) / 2
+        
+        # Check if greenhouse is already being monitored
+        existing_config = irrigation_service.irrigation_config.get(greenhouse_id, {})
+        esp32_ip = existing_config.get('esp32_url', '').replace('http://', '').split(':')[0]
+        esp32_port = 8080
+        
+        if not esp32_ip:
+            esp32_ip = os.getenv('ESP32_IP', '')
+            esp32_port = int(os.getenv('ESP32_PORT', '8080'))
+        
+        if not esp32_ip:
+            return jsonify({
+                'success': False,
+                'error': 'ESP32 IP not configured. Set ESP32_IP environment variable.'
+            }), 400
+        
+        # Update configuration with new target moisture
+        irrigation_service.configure_greenhouse(
+            greenhouse_id=greenhouse_id,
+            esp32_ip=esp32_ip,
+            esp32_port=esp32_port,
+            plant_type=plant_type,
+            target_moisture=target_moisture,
+            pulse_duration=existing_config.get('pulse_duration', float(os.getenv('PULSE_DURATION', '0.5'))),
+            pulse_wait=existing_config.get('pulse_wait', int(os.getenv('PULSE_WAIT', '60'))),
+            max_pulses=existing_config.get('max_pulses', int(os.getenv('MAX_PULSES', '20'))),
+            auto_irrigate=True
+        )
+        
+        logger.info(f"🔄 Configuration reloaded for {greenhouse_id}")
+        logger.info(f"   Plant: {backend_config.get('plantName')} ({plant_type})")
+        logger.info(f"   New Target Moisture: {target_moisture}%")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Configuration reloaded for greenhouse {greenhouse_id}',
+            'config': {
+                'greenhouseId': greenhouse_id,
+                'plantType': plant_type,
+                'plantName': backend_config.get('plantName'),
+                'targetMoisture': target_moisture,
+                'moistureRange': {
+                    'min': backend_config.get('soilMoistureMin'),
+                    'max': backend_config.get('soilMoistureMax')
+                }
+            },
+            'timestamp': datetime.now().isoformat()
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Erro ao recarregar config: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/irrigation/start-monitor', methods=['POST'])
 def start_irrigation_monitor():
     """
@@ -843,17 +939,164 @@ def initialize_irrigation_service():
     """Inicializa o serviço de irrigação após carregar modelos"""
     global irrigation_service, loaded_models, preprocessor
     
+    # Read backend URL from environment
+    backend_url = os.getenv('BACKEND_URL', 'http://localhost:5000')
+    
     lstm_model = None
     if 'soil_moisture' in loaded_models:
         lstm_model = loaded_models['soil_moisture']['model']
     
     irrigation_service = SmartIrrigationService(
-        backend_url="http://localhost:5000",
+        backend_url=backend_url,
         lstm_model=lstm_model,
         preprocessor=preprocessor
     )
     
-    logger.info("🚿 SmartIrrigationService inicializado")
+    logger.info(f"🚿 SmartIrrigationService inicializado (backend: {backend_url})")
+
+
+def fetch_irrigation_config_from_backend() -> Optional[Dict[str, Any]]:
+    """
+    Fetch irrigation configuration from backend API
+    Gets the first greenhouse with an active plant and its moisture settings
+    
+    Returns:
+        Configuration dict or None if not found
+    """
+    import requests
+    
+    backend_url = os.getenv('BACKEND_URL', 'http://localhost:5000')
+    config_url = f"{backend_url}/greenhouses/ai/irrigation-config"
+    
+    try:
+        logger.info(f"🔍 Fetching irrigation config from {config_url}")
+        
+        response = requests.get(config_url, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            if data.get('success') and data.get('data'):
+                config = data['data']
+                logger.info(f"✅ Config received:")
+                logger.info(f"   Greenhouse: {config.get('greenhouseId')}")
+                logger.info(f"   Plant: {config.get('plantName')} ({config.get('plantType')})")
+                logger.info(f"   Moisture Range: {config.get('soilMoistureMin')}% - {config.get('soilMoistureMax')}%")
+                logger.info(f"   Ideal Moisture: {config.get('soilMoistureIdeal')}%")
+                return config
+            else:
+                logger.warning(f"⚠️ No active greenhouse found: {data.get('error')}")
+                return None
+        else:
+            logger.error(f"❌ Backend error: {response.status_code}")
+            return None
+            
+    except requests.exceptions.ConnectionError:
+        logger.warning(f"⚠️ Could not connect to backend at {backend_url}")
+        return None
+    except Exception as e:
+        logger.error(f"❌ Error fetching config: {e}")
+        return None
+
+
+def auto_start_monitoring():
+    """
+    Auto-start monitoring from environment variables or backend API
+    
+    Priority:
+    1. If FETCH_CONFIG_FROM_BACKEND=true, get config from backend
+    2. Otherwise use environment variables
+    """
+    global irrigation_service
+    
+    auto_start = os.getenv('AUTO_START_MONITOR', 'false').lower() == 'true'
+    fetch_from_backend = os.getenv('FETCH_CONFIG_FROM_BACKEND', 'true').lower() == 'true'
+    
+    if not auto_start:
+        logger.info("📋 Auto-start monitoring: DISABLED (set AUTO_START_MONITOR=true to enable)")
+        return
+    
+    # ESP32 IP is always required
+    esp32_ip = os.getenv('ESP32_IP', '')
+    esp32_port = int(os.getenv('ESP32_PORT', '8080'))
+    
+    if not esp32_ip:
+        logger.warning("⚠️ AUTO_START_MONITOR=true but ESP32_IP not set")
+        return
+    
+    greenhouse_id = None
+    target_moisture = None
+    plant_type = 'default'
+    
+    # Try to fetch config from backend
+    if fetch_from_backend:
+        logger.info("\n🔄 FETCHING CONFIGURATION FROM BACKEND...")
+        backend_config = fetch_irrigation_config_from_backend()
+        
+        if backend_config:
+            greenhouse_id = backend_config.get('greenhouseId')
+            plant_type = backend_config.get('plantType', 'default')
+            
+            # Use the ideal moisture from plant configuration
+            target_moisture = backend_config.get('soilMoistureIdeal')
+            
+            # If no ideal, calculate from min/max
+            if target_moisture is None:
+                moisture_min = backend_config.get('soilMoistureMin', 30)
+                moisture_max = backend_config.get('soilMoistureMax', 70)
+                target_moisture = (moisture_min + moisture_max) / 2
+            
+            logger.info(f"\n📊 USING BACKEND CONFIGURATION:")
+            logger.info(f"   Greenhouse: {greenhouse_id}")
+            logger.info(f"   Plant Type: {plant_type}")
+            logger.info(f"   Target Moisture: {target_moisture}%")
+    
+    # Fallback to environment variables if backend config not available
+    if not greenhouse_id:
+        greenhouse_id = os.getenv('GREENHOUSE_ID', '')
+        
+        if not greenhouse_id:
+            logger.warning("⚠️ No greenhouse configured (backend unavailable and GREENHOUSE_ID not set)")
+            return
+            
+        logger.info(f"\n📋 USING ENVIRONMENT CONFIGURATION:")
+        plant_type = os.getenv('PLANT_TYPE', 'default')
+        target_moisture = float(os.getenv('TARGET_MOISTURE', '60'))
+    
+    # Read pulse configuration from environment (these are hardware-specific)
+    pulse_duration = float(os.getenv('PULSE_DURATION', '0.5'))
+    pulse_wait = int(os.getenv('PULSE_WAIT', '60'))
+    max_pulses = int(os.getenv('MAX_PULSES', '20'))
+    
+    logger.info(f"\n🤖 AUTO-START MONITORING")
+    logger.info(f"   Greenhouse: {greenhouse_id}")
+    logger.info(f"   ESP32: {esp32_ip}:{esp32_port}")
+    logger.info(f"   Plant: {plant_type}")
+    logger.info(f"   Target Moisture: {target_moisture}%")
+    logger.info(f"   Pulse: {pulse_duration}s every {pulse_wait}s")
+    
+    # Configure greenhouse
+    irrigation_service.configure_greenhouse(
+        greenhouse_id=greenhouse_id,
+        esp32_ip=esp32_ip,
+        esp32_port=esp32_port,
+        plant_type=plant_type,
+        target_moisture=target_moisture,
+        pulse_duration=pulse_duration,
+        pulse_wait=pulse_wait,
+        max_pulses=max_pulses,
+        auto_irrigate=True
+    )
+    
+    # Start monitoring
+    irrigation_service.start_monitoring(
+        greenhouse_id=greenhouse_id,
+        esp32_ip=esp32_ip,
+        auto_irrigate=True,
+        check_interval=pulse_wait
+    )
+    
+    logger.info(f"✅ Auto-monitoring started for {greenhouse_id}")
 
 
 if __name__ == '__main__':
@@ -866,6 +1109,9 @@ if __name__ == '__main__':
     
     # Initialize irrigation service
     initialize_irrigation_service()
+    
+    # Auto-start monitoring if configured via environment
+    auto_start_monitoring()
     
     if not success:
         print("\n⚠️  WARNING: Some models failed to load. Service may have limited functionality.")

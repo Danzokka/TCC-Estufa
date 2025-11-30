@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   api:
@@ -6,23 +6,59 @@ services:
       context: ./apps/api
     ports:
       - "5000:5000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
     depends_on:
       - db
+    networks:
+      - greenhouse-network
 
-  python-ia:
+  ai:
     build:
       context: ./apps/ai
-    command: python test.py
+    ports:
+      - "5001:5001"
+    environment:
+      # Backend connection
+      - BACKEND_URL=http://api:5000
+
+      # ESP32 Configuration (override these!)
+      - ESP32_IP=${ESP32_IP:-192.168.0.87}
+      - ESP32_PORT=${ESP32_PORT:-8080}
+
+      # Greenhouse Configuration
+      - GREENHOUSE_ID=${GREENHOUSE_ID:-}
+      - PLANT_TYPE=${PLANT_TYPE:-default}
+      - TARGET_MOISTURE=${TARGET_MOISTURE:-60}
+
+      # Irrigation Parameters
+      - PULSE_DURATION=${PULSE_DURATION:-0.5}
+      - PULSE_WAIT=${PULSE_WAIT:-60}
+      - MAX_PULSES=${MAX_PULSES:-20}
+
+      # Auto-start monitoring (set to true to enable)
+      - AUTO_START_MONITOR=${AUTO_START_MONITOR:-false}
     depends_on:
-      - db
+      - api
+    networks:
+      - greenhouse-network
+    # Use host network to reach ESP32 on local network
+    # Uncomment if ESP32 is on the same network as Docker host:
+    # network_mode: host
 
   web:
     build:
       context: ./apps/web
     ports:
       - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:5000
+      - NEXT_PUBLIC_AI_URL=http://ai:5001
     depends_on:
-      - db
+      - api
+      - ai
+    networks:
+      - greenhouse-network
 
   db:
     image: bitnami/postgresql:latest
@@ -34,6 +70,12 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - greenhouse-network
+
+networks:
+  greenhouse-network:
+    driver: bridge
 
 volumes:
   postgres_data:

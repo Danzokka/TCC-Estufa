@@ -491,4 +491,152 @@ export class GreenhouseService {
 
     return decrypted;
   }
+
+  /**
+   * Get irrigation configuration for AI service
+   * Returns the first greenhouse with active plant and its irrigation settings
+   */
+  async getIrrigationConfig(): Promise<{
+    greenhouseId: string;
+    plantType: string;
+    plantName: string;
+    soilMoistureMin: number;
+    soilMoistureMax: number;
+    soilMoistureIdeal: number;
+    currentMoisture: number | null;
+    isOnline: boolean;
+  } | null> {
+    // Find first greenhouse with an active plant
+    const greenhouse = await this.prisma.greenhouse.findFirst({
+      where: {
+        activeUserPlantId: { not: null },
+      },
+      include: {
+        activeUserPlant: {
+          include: {
+            plant: true,
+          },
+        },
+      },
+      orderBy: {
+        lastDataUpdate: 'desc',
+      },
+    });
+
+    if (!greenhouse || !greenhouse.activeUserPlant) {
+      return null;
+    }
+
+    const plant = greenhouse.activeUserPlant.plant;
+
+    // Calculate ideal moisture as average of min and max
+    const soilMoistureIdeal = Math.round(
+      (plant.soil_moisture_initial + plant.soil_moisture_final) / 2,
+    );
+
+    return {
+      greenhouseId: greenhouse.id,
+      plantType: plant.name.toLowerCase().replace(/\s+/g, '_'),
+      plantName: plant.name,
+      soilMoistureMin: plant.soil_moisture_initial,
+      soilMoistureMax: plant.soil_moisture_final,
+      soilMoistureIdeal: soilMoistureIdeal,
+      currentMoisture: greenhouse.currentSoilMoisture,
+      isOnline: greenhouse.isOnline,
+    };
+  }
+
+  /**
+   * Get irrigation config for a specific greenhouse
+   */
+  async getGreenhouseIrrigationConfig(greenhouseId: string): Promise<{
+    greenhouseId: string;
+    plantType: string;
+    plantName: string;
+    soilMoistureMin: number;
+    soilMoistureMax: number;
+    soilMoistureIdeal: number;
+    currentMoisture: number | null;
+    isOnline: boolean;
+  } | null> {
+    const greenhouse = await this.prisma.greenhouse.findUnique({
+      where: { id: greenhouseId },
+      include: {
+        activeUserPlant: {
+          include: {
+            plant: true,
+          },
+        },
+      },
+    });
+
+    if (!greenhouse || !greenhouse.activeUserPlant) {
+      return null;
+    }
+
+    const plant = greenhouse.activeUserPlant.plant;
+
+    const soilMoistureIdeal = Math.round(
+      (plant.soil_moisture_initial + plant.soil_moisture_final) / 2,
+    );
+
+    return {
+      greenhouseId: greenhouse.id,
+      plantType: plant.name.toLowerCase().replace(/\s+/g, '_'),
+      plantName: plant.name,
+      soilMoistureMin: plant.soil_moisture_initial,
+      soilMoistureMax: plant.soil_moisture_final,
+      soilMoistureIdeal: soilMoistureIdeal,
+      currentMoisture: greenhouse.currentSoilMoisture,
+      isOnline: greenhouse.isOnline,
+    };
+  }
+
+  /**
+   * Get the active plant for a user
+   * Returns the active UserPlant from the user's first greenhouse with an active plant
+   */
+  async getActivePlantForUser(userId: string): Promise<{
+    id: string;
+    plantId: string;
+    nickname: string | null;
+    greenhouseId: string;
+    greenhouseName: string;
+    plant: {
+      id: string;
+      name: string;
+      description: string;
+    };
+  } | null> {
+    const greenhouse = await this.prisma.greenhouse.findFirst({
+      where: {
+        ownerId: userId,
+        activeUserPlantId: { not: null },
+      },
+      include: {
+        activeUserPlant: {
+          include: {
+            plant: true,
+          },
+        },
+      },
+    });
+
+    if (!greenhouse || !greenhouse.activeUserPlant) {
+      return null;
+    }
+
+    return {
+      id: greenhouse.activeUserPlant.id,
+      plantId: greenhouse.activeUserPlant.plantId,
+      nickname: greenhouse.activeUserPlant.nickname,
+      greenhouseId: greenhouse.id,
+      greenhouseName: greenhouse.name,
+      plant: {
+        id: greenhouse.activeUserPlant.plant.id,
+        name: greenhouse.activeUserPlant.plant.name,
+        description: greenhouse.activeUserPlant.plant.description,
+      },
+    };
+  }
 }

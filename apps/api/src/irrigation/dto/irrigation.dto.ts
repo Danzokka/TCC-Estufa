@@ -103,3 +103,61 @@ export class IrrigationFiltersDto {
   @Min(0)
   offset?: number;
 }
+
+export class IrrigationStatsQueryDto {
+  @IsOptional()
+  @IsUUID()
+  greenhouseId?: string;
+
+  @IsOptional()
+  @IsEnum(['day', 'week', 'month', 'year', 'all'])
+  period?: 'day' | 'week' | 'month' | 'year' | 'all';
+}
+
+/**
+ * DTO for AI service to report automatic irrigation events
+ * Used by the AI irrigation monitoring system
+ */
+export class AIIrrigationReportDto {
+  @IsUUID()
+  greenhouseId: string;
+
+  @IsEnum(['success', 'failed'])
+  status: 'success' | 'failed';
+
+  @IsNumber()
+  @Min(0)
+  durationMs: number; // Duration in milliseconds
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  pulseCount?: number; // Number of pulses executed
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  moistureBefore?: number; // Soil moisture before irrigation
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  moistureAfter?: number; // Soil moisture after irrigation (if available)
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  targetMoisture?: number; // Target moisture level
+
+  @IsOptional()
+  @IsString()
+  errorMessage?: string; // Error message if status is 'failed'
+
+  @IsOptional()
+  @IsString()
+  plantType?: string; // Type of plant being irrigated
+
+  @IsOptional()
+  @IsString()
+  esp32Ip?: string; // IP of the ESP32 device
+}

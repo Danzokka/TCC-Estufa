@@ -8,7 +8,7 @@ import { BlogModule } from './blog/blog.module';
 import { PlantModule } from './plant/plant.module';
 import { AuthModule } from './auth/auth.module';
 // import { PumpModule } from './pump/pump.module'; // TEMPORARILY DISABLED - Schema migration needed
-// import { GreenhouseModule } from './greenhouse/greenhouse.module'; // TEMPORARILY DISABLED - Schema migration needed
+import { GreenhouseModule } from './greenhouse/greenhouse.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -17,7 +17,7 @@ import { IrrigationModule } from './irrigation/irrigation.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { WeatherModule } from './weather/weather.module';
-// import { AnalyticsModule } from './analytics/analytics.module'; // TEMPORARILY DISABLED - Schema migration needed
+import { AnalyticsModule } from './analytics/analytics.module';
 import { IbgeModule } from './ibge/ibge.module';
 import { GeocodingModule } from './geocoding/geocoding.module';
 @Module({
@@ -28,7 +28,7 @@ import { GeocodingModule } from './geocoding/geocoding.module';
     PlantModule,
     AuthModule,
     // PumpModule, // TEMPORARILY DISABLED
-    // GreenhouseModule, // TEMPORARILY DISABLED
+    GreenhouseModule,
     ConfigModule.forRoot({
       isGlobal: true, // Makes the configuration available globally
       envFilePath: '.env', // Path to your .env file
@@ -54,7 +54,7 @@ import { GeocodingModule } from './geocoding/geocoding.module';
     WebsocketModule,
     NotificationsModule,
     WeatherModule,
-    // AnalyticsModule, // TEMPORARILY DISABLED
+    AnalyticsModule,
     IbgeModule,
     GeocodingModule,
   ],

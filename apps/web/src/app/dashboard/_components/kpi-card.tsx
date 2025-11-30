@@ -196,6 +196,26 @@ export function WaterLevelKPI({
   );
 }
 
+export function SoilTemperatureKPI({
+  value,
+  trend,
+  trendValue,
+  description,
+}: MetricKPIProps) {
+  return (
+    <KPICard
+      title="Temperatura do Solo"
+      value={formatValue(value)}
+      unit="°C"
+      icon={<Thermometer className="h-4 w-4" />}
+      colorClass="text-amber-600 dark:text-amber-400"
+      trend={trend}
+      trendValue={trendValue}
+      description={description}
+    />
+  );
+}
+
 export function LightIntensityKPI({
   value,
   trend,

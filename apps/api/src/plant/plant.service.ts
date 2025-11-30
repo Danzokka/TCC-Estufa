@@ -337,8 +337,6 @@ export class PlantService {
         soil_moisture_final: true,
         soil_temperature_initial: true,
         soil_temperature_final: true,
-        light_intensity_initial: true,
-        light_intensity_final: true,
       },
       orderBy: {
         name: 'asc',

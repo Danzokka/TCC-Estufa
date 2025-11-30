@@ -251,7 +251,7 @@ class SensorData(BaseModel):
     temperature: float
     humidity: float
     soil_moisture: float
-    light_intensity: float
+    soil_temperature: float
     plant_id: str
 
 class PredictionRequest(BaseModel):
@@ -400,7 +400,7 @@ class IoTTimeSeriesDataset(Dataset):
     def __getitem__(self, idx):
         # Get sequence of features
         features = self.data.iloc[idx:idx + self.sequence_length][
-            ['temperature', 'humidity', 'soil_moisture', 'light_intensity']
+            ['temperature', 'humidity', 'soil_moisture', 'soil_temperature']
         ].values
 
         # Get target (next value)
@@ -610,7 +610,7 @@ class TestDataProcessor(unittest.TestCase):
             'temperature': np.random.normal(25, 5, 100),
             'humidity': np.random.normal(60, 10, 100),
             'soil_moisture': np.random.normal(40, 8, 100),
-            'light_intensity': np.random.normal(300, 50, 100)
+            'soil_temperature': np.random.normal(22, 3, 100)
         })
 
     def test_time_feature_creation(self):

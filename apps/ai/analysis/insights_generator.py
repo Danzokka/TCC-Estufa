@@ -246,8 +246,7 @@ class InsightsGenerator:
                 'air_temperature': 'mean',
                 'air_humidity': 'mean',
                 'soil_moisture': 'mean',
-                'soil_temperature': 'mean',
-                'light_intensity': 'mean'
+                'soil_temperature': 'mean'
             }).reset_index()
             
             if len(weekly_stats) > 1:
@@ -296,7 +295,6 @@ class InsightsGenerator:
             'air_humidity': 'Umidade do ar',
             'soil_moisture': 'Umidade do solo',
             'soil_temperature': 'Temperatura do solo',
-            'light_intensity': 'Intensidade da luz',
             'water_level': 'Nível da água',
             'water_reserve': 'Reserva de água'
         }
@@ -339,12 +337,6 @@ class InsightsGenerator:
                 return f"{action}Aumentar a sombra para reduzir a temperatura do solo."
             else:
                 return f"{action}Considerar uma cobertura para o solo para aumentar a temperatura."
-                
-        elif variable == 'light_intensity':
-            if condition == 'high':
-                return f"{action}Adicionar sombreamento para reduzir a intensidade da luz."
-            else:
-                return f"{action}Mover a planta para uma área mais iluminada ou considerar iluminação artificial."
                 
         elif variable == 'water_level':
             if condition == 'high':

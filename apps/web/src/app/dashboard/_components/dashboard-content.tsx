@@ -7,11 +7,12 @@ import {
   getHourlyAggregatedData,
   DashboardFilters as DashboardFiltersType,
 } from "@/server/actions/dashboard";
+import { getIrrigationHistory } from "@/server/actions/irrigation";
 import {
   TemperatureKPI,
   HumidityKPI,
   SoilMoistureKPI,
-  WaterLevelKPI,
+  SoilTemperatureKPI,
   AlertsKPI,
   KPICardSkeleton,
 } from "@/app/dashboard/_components/kpi-card";
@@ -19,6 +20,7 @@ import {
   SensorChart,
   SensorChartSkeleton,
   MultiMetricChart,
+  IrrigationChart,
 } from "@/app/dashboard/_components/sensor-chart";
 import { DashboardFilters } from "@/app/dashboard/_components/dashboard-filters";
 import { generateAlerts } from "@/app/dashboard/_components/alerts-widget";
@@ -57,6 +59,18 @@ export function DashboardContent() {
     enabled: !!plantId,
   });
 
+  // Query para histórico de irrigação
+  const { data: irrigationData, isLoading: isIrrigationLoading } = useQuery({
+    queryKey: ["irrigation-history", selectedPlant?.greenhouseId, period],
+    queryFn: () =>
+      getIrrigationHistory({
+        greenhouseId: selectedPlant?.greenhouseId,
+        period: period === "today" ? "day" : period,
+      }),
+    refetchInterval: 60000, // Atualizar a cada 1 minuto
+    enabled: !!selectedPlant?.greenhouseId,
+  });
+
   const isLoading = isDashboardLoading || isHourlyLoading;
   const latest = dashboardData?.latest;
   const kpis = dashboardData?.kpis;
@@ -70,8 +84,19 @@ export function DashboardContent() {
     if (history.length < 2) return { trend: "neutral", percentage: "0" };
 
     const firstValue = Number(history[0][dataKey as keyof (typeof history)[0]]);
+
+    // Handle invalid, zero, or undefined firstValue to avoid NaN
+    if (
+      !firstValue ||
+      firstValue === 0 ||
+      isNaN(firstValue) ||
+      isNaN(currentValue)
+    ) {
+      return { trend: "neutral", percentage: "0" };
+    }
+
     const diff = currentValue - firstValue;
-    const percentChange = ((diff / firstValue) * 100)?.toFixed(1);
+    const percentChange = ((diff / firstValue) * 100).toFixed(1);
 
     if (Math.abs(diff) < 0.5) return { trend: "neutral", percentage: "0" };
 
@@ -191,17 +216,17 @@ export function DashboardContent() {
                   : "Sem dados suficientes"
               }
             />
-            <WaterLevelKPI
-              value={latest.water_level}
-              trend={calculateTrend(latest.water_level, "water_level").trend}
+            <SoilTemperatureKPI
+              value={latest.soil_temperature}
+              trend={
+                calculateTrend(latest.soil_temperature, "soil_temperature")
+                  .trend
+              }
               trendValue={
-                calculateTrend(latest.water_level, "water_level").percentage
+                calculateTrend(latest.soil_temperature, "soil_temperature")
+                  .percentage
               }
-              description={
-                kpis?.avgWaterLevel != null
-                  ? `Média: ${kpis.avgWaterLevel.toFixed(1)}%`
-                  : "Sem dados suficientes"
-              }
+              description="Temperatura do solo"
             />
             <AlertsKPI
               activeAlerts={alerts.length}
@@ -312,10 +337,10 @@ export function DashboardContent() {
             />
             <SensorChart
               data={hourlyData}
-              title="Nível de Água"
-              dataKey="water_level"
-              unit="%"
-              color="#06b6d4"
+              title="Temperatura do Solo"
+              dataKey="soil_temperature"
+              unit="°C"
+              color="#f59e0b"
             />
           </>
         ) : (
@@ -341,6 +366,16 @@ export function DashboardContent() {
             { dataKey: "air_humidity", name: "Umidade", color: "#3b82f6" },
             { dataKey: "soil_moisture", name: "Solo", color: "#14b8a6" },
           ]}
+        />
+      )}
+
+      {/* Gráfico de Irrigação */}
+      {!isIrrigationLoading && irrigationData && (
+        <IrrigationChart
+          data={irrigationData.dailySummary}
+          totalCount={irrigationData.totalCount}
+          totalVolumeMl={irrigationData.totalVolumeMl}
+          period={irrigationData.period}
         />
       )}
     </div>

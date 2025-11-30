@@ -367,8 +367,20 @@ export class SensorService {
 
       this.logger.log('Dashboard data retrieved successfully');
 
+      // Transform latest to snake_case for frontend compatibility
+      const latestFormatted = latest
+        ? {
+            id: latest.id,
+            air_temperature: latest.airTemperature,
+            air_humidity: latest.airHumidity,
+            soil_temperature: latest.soilTemperature,
+            soil_moisture: latest.soilMoisture,
+            timecreated: latest.timestamp.toISOString(),
+          }
+        : null;
+
       return {
-        latest,
+        latest: latestFormatted,
         history: aggregatedData.data,
         kpis,
         intervalMinutes: aggregatedData.intervalMinutes,
@@ -431,9 +443,10 @@ export class SensorService {
   async checkForIrrigationDetection(greenhouseSensorReading: any) {
     try {
       // Use the irrigation service to detect moisture-based irrigation
+      // Pass the sensor reading ID (not the soilMoisture value)
       await this.irrigationService.detectMoistureIrrigation(
         greenhouseSensorReading.greenhouseId,
-        greenhouseSensorReading.soilMoisture,
+        greenhouseSensorReading.id,
       );
     } catch (error) {
       this.logger.error('Error checking for irrigation detection:', error);

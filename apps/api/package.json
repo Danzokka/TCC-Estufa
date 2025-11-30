@@ -20,9 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:irrigation": "node scripts/test-irrigation.js",
     "test:frontend-notifications": "node scripts/test-frontend-notifications.js",
-    "prisma:seed": "ts-node prisma/seed.ts",
-    "seed:plant-health": "ts-node prisma/seed-plant-health-dataset.ts",
-    "seed:sensor-data": "ts-node prisma/seed-sensor-data.ts"
+    "prisma:seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",

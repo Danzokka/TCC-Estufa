@@ -504,6 +504,19 @@ class SmartIrrigationService:
             self.last_irrigation[greenhouse_id] = datetime.now()
             self.status = IrrigationStatus.IDLE
             
+            # Report success to backend
+            self._report_irrigation_to_backend(
+                greenhouse_id=greenhouse_id,
+                status='success',
+                duration_ms=int(total_duration * 1000),
+                pulse_count=pulses_executed,
+                moisture_before=moisture_before,
+                moisture_after=moisture_after,
+                target_moisture=decision.target_moisture,
+                plant_type=config.get('plant_type'),
+                esp32_ip=esp32_url.replace('http://', '').split(':')[0] if esp32_url else None
+            )
+            
             return IrrigationResult(
                 success=True,
                 pulses_executed=pulses_executed,
@@ -517,6 +530,19 @@ class SmartIrrigationService:
         except Exception as e:
             self.status = IrrigationStatus.ERROR
             logger.error(f"❌ Erro na irrigação: {e}")
+            
+            # Report failure to backend
+            self._report_irrigation_to_backend(
+                greenhouse_id=greenhouse_id,
+                status='failed',
+                duration_ms=int(total_duration * 1000),
+                pulse_count=pulses_executed,
+                moisture_before=moisture_before,
+                target_moisture=decision.target_moisture if decision else None,
+                plant_type=config.get('plant_type'),
+                esp32_ip=esp32_url.replace('http://', '').split(':')[0] if esp32_url else None,
+                error_message=str(e)
+            )
             
             return IrrigationResult(
                 success=False,
@@ -651,6 +677,12 @@ class SmartIrrigationService:
             return False
         
         try:
+            # Obter leitura antes da irrigação
+            reading = self.get_current_reading(greenhouse_id)
+            moisture_before = reading.soil_moisture if reading else 0
+            target_moisture = config.get('target_moisture', 50)
+            plant_type = config.get('plant_type', 'default')
+            
             # Ativar bomba via POST
             activate_url = f"{esp32_url}/pump/activate"
             
@@ -664,14 +696,99 @@ class SmartIrrigationService:
             if response.status_code == 200:
                 self.last_irrigation[greenhouse_id] = datetime.now()
                 logger.info(f"💧 Bomba ativada por {pulse_duration}s ({duration_ms}ms)")
+                
+                # Reportar sucesso ao backend
+                self._report_irrigation_to_backend(
+                    greenhouse_id=greenhouse_id,
+                    status='success',
+                    duration_ms=duration_ms,
+                    pulse_count=1,
+                    moisture_before=moisture_before,
+                    target_moisture=target_moisture,
+                    plant_type=plant_type,
+                    esp32_ip=esp32_url.replace('http://', '').split(':')[0]
+                )
+                
                 return True
             else:
                 logger.warning(f"ESP32 retornou {response.status_code}: {response.text}")
+                
+                # Reportar falha ao backend
+                self._report_irrigation_to_backend(
+                    greenhouse_id=greenhouse_id,
+                    status='failed',
+                    duration_ms=0,
+                    pulse_count=0,
+                    moisture_before=moisture_before,
+                    target_moisture=target_moisture,
+                    plant_type=plant_type,
+                    esp32_ip=esp32_url.replace('http://', '').split(':')[0],
+                    error_message=f"ESP32 returned {response.status_code}: {response.text}"
+                )
+                
                 return False
                 
         except Exception as e:
             logger.error(f"Erro ao ativar bomba: {e}")
+            
+            # Reportar falha ao backend
+            self._report_irrigation_to_backend(
+                greenhouse_id=greenhouse_id,
+                status='failed',
+                duration_ms=0,
+                pulse_count=0,
+                moisture_before=moisture_before if 'moisture_before' in dir() else 0,
+                target_moisture=config.get('target_moisture', 50),
+                plant_type=config.get('plant_type', 'default'),
+                esp32_ip=esp32_url.replace('http://', '').split(':')[0] if esp32_url else 'unknown',
+                error_message=str(e)
+            )
+            
             return False
+    
+    def _report_irrigation_to_backend(
+        self,
+        greenhouse_id: str,
+        status: str,
+        duration_ms: int,
+        pulse_count: int = 1,
+        moisture_before: float = None,
+        moisture_after: float = None,
+        target_moisture: float = None,
+        plant_type: str = None,
+        esp32_ip: str = None,
+        error_message: str = None
+    ):
+        """Report irrigation event to backend for logging and notifications"""
+        try:
+            report_url = f"{self.backend_url}/irrigation/ai/report"
+            payload = {
+                'greenhouseId': greenhouse_id,
+                'status': status,
+                'durationMs': duration_ms,
+                'pulseCount': pulse_count,
+                'moistureBefore': moisture_before,
+                'moistureAfter': moisture_after,
+                'targetMoisture': target_moisture,
+                'plantType': plant_type,
+                'esp32Ip': esp32_ip,
+                'errorMessage': error_message
+            }
+            
+            # Remove None values
+            payload = {k: v for k, v in payload.items() if v is not None}
+            
+            logger.info(f"📤 Reporting irrigation to backend: {status}")
+            response = requests.post(report_url, json=payload, timeout=5)
+            
+            if response.status_code == 201:
+                result = response.json()
+                logger.info(f"✅ Backend reported: irrigationId={result.get('irrigationId')}")
+            else:
+                logger.warning(f"⚠️ Backend report failed: {response.status_code} - {response.text}")
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to report to backend: {e}")
     
     def get_status(self, greenhouse_id: str = None) -> dict:
         """Retorna status do serviço de irrigação"""

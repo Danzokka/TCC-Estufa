@@ -32,8 +32,6 @@ model Plant {
   air_humidity_initial     Float
   air_temperature_final    Float
   air_temperature_initial  Float
-  light_intensity_final    Float
-  light_intensity_initial  Float
   soil_moisture_final      Int
   soil_moisture_initial    Int
   soil_temperature_final   Float
