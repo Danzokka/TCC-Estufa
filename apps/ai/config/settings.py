@@ -32,4 +32,4 @@ LOG_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs", "ai_
 
 # Configurações da API
 API_HOST = "localhost"
-API_PORT = 5000
+API_PORT = 8000  # Porta 8000 para não conflitar com NestJS (porta 5000)

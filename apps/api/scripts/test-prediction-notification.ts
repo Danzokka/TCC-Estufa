@@ -37,7 +37,11 @@ async function sendTestPredictionNotification() {
       },
     });
 
-    if (!greenhouse || !greenhouse.userPlants || greenhouse.userPlants.length === 0) {
+    if (
+      !greenhouse ||
+      !greenhouse.userPlants ||
+      greenhouse.userPlants.length === 0
+    ) {
       console.error('❌ Greenhouse ou planta não encontrados');
       return;
     }
@@ -82,9 +86,13 @@ async function sendTestPredictionNotification() {
     };
 
     console.log('🤖 Dados de predição (simulados):');
-    console.log(`   Umidade prevista: ${predictionData.predictedSoilMoisture}%`);
+    console.log(
+      `   Umidade prevista: ${predictionData.predictedSoilMoisture}%`,
+    );
     console.log(`   Horas até secar: ${predictionData.hoursUntilDry}h`);
-    console.log(`   Confiança: ${(predictionData.confidence * 100).toFixed(0)}%`);
+    console.log(
+      `   Confiança: ${(predictionData.confidence * 100).toFixed(0)}%`,
+    );
     console.log('');
 
     // 4. Enviar para a API
@@ -125,15 +133,18 @@ async function sendTestPredictionNotification() {
       console.log(`   Tipo: ${notification.type}`);
       console.log(`   Título: ${notification.title}`);
       console.log(`   Mensagem: ${notification.message}`);
-      console.log(`   Criada em: ${notification.createdAt.toLocaleString('pt-BR')}`);
+      console.log(
+        `   Criada em: ${notification.createdAt.toLocaleString('pt-BR')}`,
+      );
       console.log(`   Lida: ${notification.isRead ? 'Sim' : 'Não'}`);
       console.log('');
       console.log('✅ Agora você pode verificar a notificação no frontend!');
-      console.log('   Acesse: http://localhost:3000 e clique no ícone de notificações');
+      console.log(
+        '   Acesse: http://localhost:3000 e clique no ícone de notificações',
+      );
     } else {
       console.log('⚠️  Notificação não encontrada no banco de dados');
     }
-
   } catch (error) {
     console.error('❌ Erro ao enviar notificação de teste:');
     if (axios.isAxiosError(error)) {

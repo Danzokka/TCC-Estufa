@@ -37,36 +37,38 @@ if __name__ == '__main__':
 
     # Importar módulos necessários (importação tardia para evitar problemas de dependência circular)
     from api.api_service import start_api, update_sensor_data, generate_all_insights
-    from db.database import fetch_user_plants
+    # from db.database import fetch_user_plants  # Função não implementada ainda
     from models.lstm_model import PlantLSTMTrainer
     
     if args.train:
         # Treinar modelos iniciais com dados existentes
-        from data_processing.preprocessor import DataPreprocessor
+        logger.warning("Treinamento de modelos ainda não implementado completamente")
+        logger.info("Use --analyze ou inicie a API sem argumentos")
+        # from data_processing.preprocessor import DataPreprocessor
         
-        logger.info("Iniciando treinamento inicial de modelos...")
-        user_plants = fetch_user_plants()
+        # logger.info("Iniciando treinamento inicial de modelos...")
+        # user_plants = fetch_user_plants()
         
-        if not user_plants.empty:
-            data_processor = DataPreprocessor()
-            feature_columns = [
-                'air_temperature', 'air_humidity', 'soil_moisture', 
-                'soil_temperature', 'water_level', 'water_reserve'
-            ]
-            model_trainer = PlantLSTMTrainer(feature_columns)
-            
-            # Treinar modelo default para cada variável monitorada
-            from api.api_service import train_plant_model
-            
-            variables = ['soil_moisture', 'air_temperature', 'air_humidity']
-            for var in variables:
-                logger.info(f"Treinando modelo default para {var}...")
-                # Selecionar a primeira planta para treinar o modelo default
-                if len(user_plants) > 0:
-                    user_plant_id = user_plants['id'].iloc[0]
-                    train_plant_model(user_plant_id, var, 60)  # 60 dias de dados
+        # if not user_plants.empty:
+        #     data_processor = DataPreprocessor()
+        #     feature_columns = [
+        #         'air_temperature', 'air_humidity', 'soil_moisture', 
+        #         'soil_temperature', 'water_level', 'water_reserve'
+        #     ]
+        #     model_trainer = PlantLSTMTrainer(feature_columns)
+        #     
+        #     # Treinar modelo default para cada variável monitorada
+        #     from api.api_service import train_plant_model
+        #     
+        #     variables = ['soil_moisture', 'air_temperature', 'air_humidity']
+        #     for var in variables:
+        #         logger.info(f"Treinando modelo default para {var}...")
+        #         # Selecionar a primeira planta para treinar o modelo default
+        #         if len(user_plants) > 0:
+        #             user_plant_id = user_plants['id'].iloc[0]
+        #             train_plant_model(user_plant_id, var, 60)  # 60 dias de dados
         
-        logger.info("Treinamento inicial concluído!")
+        # logger.info("Treinamento inicial concluído!")
     
     elif args.analyze:
         # Executar análise pontual sem iniciar a API

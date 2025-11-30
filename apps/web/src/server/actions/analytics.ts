@@ -5,17 +5,30 @@ import { revalidatePath } from "next/cache";
 export interface Report {
   id: string;
   userPlantId: string;
-  type: 'weekly' | 'monthly' | 'general';
+  type: "weekly" | "monthly" | "general";
   startDate: string;
   endDate: string;
   totalReadings: number;
   totalIrrigations: number;
   avgGrowthRate?: number;
   summary?: string;
-  aiInsights?: Record<string, unknown>;
+  aiInsights?: {
+    summary: string;
+    insights: Record<string, string>;
+    recommendations: Array<{
+      category: string;
+      priority: "high" | "medium" | "low";
+      description: string;
+    }>;
+    anomalies: Array<{
+      type: string;
+      description: string;
+      severity: "high" | "medium" | "low";
+    }>;
+  };
   recommendations?: Array<{
     category: string;
-    priority: 'high' | 'medium' | 'low';
+    priority: "high" | "medium" | "low";
     description: string;
   }>;
   weatherSummary?: {
@@ -45,12 +58,16 @@ export interface Report {
 
 export interface GenerateReportData {
   userPlantId: string;
-  type: 'weekly' | 'monthly' | 'general';
+  type: "weekly" | "monthly" | "general";
 }
 
-export async function generateReport(data: GenerateReportData): Promise<Report> {
+export async function generateReport(
+  data: GenerateReportData
+): Promise<Report> {
   try {
-    const response = await api.post(`/analytics/generate/${data.userPlantId}?type=${data.type}`);
+    const response = await api.post(
+      `/analytics/generate/${data.userPlantId}?type=${data.type}`
+    );
     revalidatePath("/analytics");
     return response.data.data;
   } catch (error) {
@@ -59,9 +76,14 @@ export async function generateReport(data: GenerateReportData): Promise<Report> 
   }
 }
 
-export async function getLatestReport(userPlantId: string, type: string): Promise<Report | null> {
+export async function getLatestReport(
+  userPlantId: string,
+  type: string
+): Promise<Report | null> {
   try {
-    const response = await api.get(`/analytics/latest/${userPlantId}?type=${type}`);
+    const response = await api.get(
+      `/analytics/latest/${userPlantId}?type=${type}`
+    );
     return response.data.data;
   } catch (error) {
     console.error("Erro ao buscar último relatório:", error);
@@ -79,12 +101,15 @@ export async function getReportById(reportId: string): Promise<Report | null> {
   }
 }
 
-export async function getReportsList(userPlantId: string, type?: string): Promise<Report[]> {
+export async function getReportsList(
+  userPlantId: string,
+  type?: string
+): Promise<Report[]> {
   try {
-    const url = type 
+    const url = type
       ? `/analytics/reports/${userPlantId}?type=${type}`
       : `/analytics/reports/${userPlantId}`;
-    
+
     const response = await api.get(url);
     return response.data.data;
   } catch (error) {

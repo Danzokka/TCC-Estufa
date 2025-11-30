@@ -3,8 +3,13 @@ import numpy as np
 import logging
 from datetime import datetime, timedelta
 import json
+import sys
+import os
 
-from ..config.settings import THRESHOLDS
+# Adicionar o diretório pai ao path para imports absolutos
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from config.settings import THRESHOLDS
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO)
@@ -65,8 +70,8 @@ class InsightsGenerator:
             
         # Pegar apenas os dados mais recentes para cada planta
         latest_data = (
-            sensor_data.sort_values('timecreated')
-            .groupby('userPlantId')
+            sensor_data.sort_values('timestamp')
+            .groupby('greenhouse_id')
             .last()
             .reset_index()
         )
@@ -78,8 +83,8 @@ class InsightsGenerator:
             plant_nickname = row.get('plant_nickname', 'Planta')
             thresholds = self.get_plant_thresholds(plant_name)
             
-            user_plant_id = row['userPlantId']
-            timestamp = row['timecreated']
+            user_plant_id = row['greenhouse_id']
+            timestamp = row['timestamp']
             
             # Verificar cada variável monitorada
             for var, limits in thresholds.items():
@@ -92,7 +97,7 @@ class InsightsGenerator:
                     if value < min_val:
                         severity = "high" if value < min_val * 0.8 else "medium"
                         alerts.append({
-                            "userPlantId": user_plant_id,
+                            "greenhouse_id": user_plant_id,
                             "plant_name": plant_name,
                             "plant_nickname": plant_nickname,
                             "timestamp": timestamp,
@@ -107,7 +112,7 @@ class InsightsGenerator:
                     elif value > max_val:
                         severity = "high" if value > max_val * 1.2 else "medium"
                         alerts.append({
-                            "userPlantId": user_plant_id,
+                            "greenhouse_id": user_plant_id,
                             "plant_name": plant_name,
                             "plant_nickname": plant_nickname,
                             "timestamp": timestamp,
@@ -146,8 +151,8 @@ class InsightsGenerator:
         
         preventive_alerts = []
         
-        for user_plant_id in predictions_df['userPlantId'].unique():
-            plant_data = predictions_df[predictions_df['userPlantId'] == user_plant_id]
+        for user_plant_id in predictions_df['greenhouse_id'].unique():
+            plant_data = predictions_df[predictions_df['greenhouse_id'] == user_plant_id]
             plant_name = plant_data['plant_name'].iloc[0] if 'plant_name' in plant_data.columns else 'default'
             plant_nickname = plant_data['plant_nickname'].iloc[0] if 'plant_nickname' in plant_data.columns else 'Planta'
             thresholds = self.get_plant_thresholds(plant_name)
@@ -168,7 +173,7 @@ class InsightsGenerator:
                     
                     if value < min_val:
                         preventive_alerts.append({
-                            "userPlantId": user_plant_id,
+                            "greenhouse_id": user_plant_id,
                             "plant_name": plant_name,
                             "plant_nickname": plant_nickname,
                             "timestamp": timestamp,
@@ -183,7 +188,7 @@ class InsightsGenerator:
                         })
                     elif value > max_val:
                         preventive_alerts.append({
-                            "userPlantId": user_plant_id,
+                            "greenhouse_id": user_plant_id,
                             "plant_name": plant_name,
                             "plant_nickname": plant_nickname,
                             "timestamp": timestamp,
@@ -220,18 +225,18 @@ class InsightsGenerator:
         insights = []
         
         # Agrupar por planta do usuário
-        for user_plant_id in historical_data['userPlantId'].unique():
-            plant_data = historical_data[historical_data['userPlantId'] == user_plant_id].copy()
+        for user_plant_id in historical_data['greenhouse_id'].unique():
+            plant_data = historical_data[historical_data['greenhouse_id'] == user_plant_id].copy()
             
             if len(plant_data) < 24:  # Precisa de pelo menos 24 horas de dados
                 continue
                 
-            plant_data['timecreated'] = pd.to_datetime(plant_data['timecreated'])
-            plant_data = plant_data.sort_values('timecreated')
+            plant_data['timestamp'] = pd.to_datetime(plant_data['timestamp'])
+            plant_data = plant_data.sort_values('timestamp')
             
             # Calcular duração do monitoramento
-            start_date = plant_data['timecreated'].min()
-            end_date = plant_data['timecreated'].max()
+            start_date = plant_data['timestamp'].min()
+            end_date = plant_data['timestamp'].max()
             days_monitored = (end_date - start_date).days
             
             if days_monitored < 1:
@@ -241,12 +246,12 @@ class InsightsGenerator:
             plant_nickname = plant_data['plant_nickname'].iloc[0] if 'plant_nickname' in plant_data.columns else 'Planta'
             
             # Calcular médias semanais
-            plant_data['week'] = (plant_data['timecreated'] - start_date).dt.days // 7
+            plant_data['week'] = (plant_data['timestamp'] - start_date).dt.days // 7
             weekly_stats = plant_data.groupby('week').agg({
-                'air_temperature': 'mean',
-                'air_humidity': 'mean',
-                'soil_moisture': 'mean',
-                'soil_temperature': 'mean'
+                'airTemperature': 'mean',
+                'airHumidity': 'mean',
+                'soilMoisture': 'mean',
+                'soilTemperature': 'mean'
             }).reset_index()
             
             if len(weekly_stats) > 1:
@@ -269,7 +274,7 @@ class InsightsGenerator:
                 # Gerar insights baseados nas tendências
                 for var, trend_data in trends.items():
                     insights.append({
-                        "userPlantId": user_plant_id,
+                        "greenhouse_id": user_plant_id,
                         "plant_name": plant_name,
                         "plant_nickname": plant_nickname,
                         "days_monitored": days_monitored,
@@ -291,10 +296,10 @@ class InsightsGenerator:
     def _format_variable_name(self, var_name):
         """Formata o nome da variável para exibição"""
         name_map = {
-            'air_temperature': 'Temperatura do ar',
-            'air_humidity': 'Umidade do ar',
-            'soil_moisture': 'Umidade do solo',
-            'soil_temperature': 'Temperatura do solo',
+            'airTemperature': 'Temperatura do ar',
+            'airHumidity': 'Umidade do ar',
+            'soilMoisture': 'Umidade do solo',
+            'soilTemperature': 'Temperatura do solo',
             'water_level': 'Nível da água',
             'water_reserve': 'Reserva de água'
         }
@@ -314,25 +319,25 @@ class InsightsGenerator:
         """
         action = "Prepare-se para " if preventive else ""
         
-        if variable == 'air_temperature':
+        if variable == 'airTemperature':
             if condition == 'high':
                 return f"{action}Aumentar a ventilação ou usar sombreamento para reduzir a temperatura."
             else:
                 return f"{action}Reduzir a ventilação ou adicionar aquecimento para aumentar a temperatura."
                 
-        elif variable == 'air_humidity':
+        elif variable == 'airHumidity':
             if condition == 'high':
                 return f"{action}Aumentar a ventilação para reduzir a umidade do ar."
             else:
                 return f"{action}Usar um umidificador ou borrifar água nas folhas para aumentar a umidade."
                 
-        elif variable == 'soil_moisture':
+        elif variable == 'soilMoisture':
             if condition == 'high':
                 return f"{action}Reduzir a irrigação e verificar a drenagem do solo."
             else:
                 return f"{action}Aumentar a frequência de irrigação."
                 
-        elif variable == 'soil_temperature':
+        elif variable == 'soilTemperature':
             if condition == 'high':
                 return f"{action}Aumentar a sombra para reduzir a temperatura do solo."
             else:

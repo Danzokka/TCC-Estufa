@@ -43,6 +43,7 @@ export interface Report {
   summary: string | null;
   aiInsights: AIInsights | null;
   recommendations: any | null;
+  generatedAt: Date;
   createdAt: Date;
 }
 
@@ -182,8 +183,21 @@ export class AnalyticsService {
     let insights: AIInsights | null = null;
     try {
       insights = await this.aiIntegration.generateInsights(reportData as any);
+      this.logger.log(
+        `✅ Insights gerados com sucesso: ${JSON.stringify(Object.keys(insights || {}))}`,
+      );
     } catch (error) {
-      this.logger.warn(`Falha ao gerar insights via IA: ${error.message}`);
+      this.logger.warn(`⚠️ Falha ao gerar insights via IA: ${error.message}`);
+    }
+
+    // Log para debug
+    this.logger.log(
+      `📊 Insights antes de salvar no banco: ${insights ? 'PRESENTE' : 'NULL'}`,
+    );
+    if (insights) {
+      this.logger.log(
+        `📊 Estrutura insights: ${JSON.stringify({ hasInsights: !!insights.insights, hasRecommendations: !!insights.recommendations, hasAnomalies: !!insights.anomalies })}`,
+      );
     }
 
     // 7. Gerar resumo
@@ -210,6 +224,11 @@ export class AnalyticsService {
       },
     });
 
+    // Log para debug
+    this.logger.log(
+      `💾 Relatório salvo - aiInsights: ${report.aiInsights ? 'PRESENTE' : 'NULL'}`,
+    );
+
     return {
       id: report.id,
       userPlantId: report.userPlantId,
@@ -221,6 +240,7 @@ export class AnalyticsService {
       summary: report.summary,
       aiInsights: report.aiInsights as AIInsights | null,
       recommendations: report.recommendations,
+      generatedAt: report.generatedAt,
       createdAt: report.createdAt,
     };
   }
@@ -418,6 +438,7 @@ export class AnalyticsService {
       summary: r.summary,
       aiInsights: r.aiInsights as AIInsights | null,
       recommendations: r.recommendations,
+      generatedAt: r.generatedAt,
       createdAt: r.createdAt,
     }));
   }
@@ -444,6 +465,7 @@ export class AnalyticsService {
       aiInsights: report.aiInsights as AIInsights | null,
       recommendations: report.recommendations,
       createdAt: report.createdAt,
+      generatedAt: report.generatedAt,
     };
   }
 
@@ -476,6 +498,7 @@ export class AnalyticsService {
       aiInsights: report.aiInsights as AIInsights | null,
       recommendations: report.recommendations,
       createdAt: report.createdAt,
+      generatedAt: report.generatedAt,
     };
   }
 
